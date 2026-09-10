@@ -1,3 +1,14 @@
+/* Servida do próprio repo, e não do Google Fonts: o app precisa abrir sem rede na academia e
+   depois como PWA instalada, e fonte remota falharia justo ali. Variável de 400 a 800, que
+   cobre os três pesos usados. Por file:// o navegador recusa o arquivo e cai no system-ui. */
+@font-face {
+  font-family: "Mulish";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("mulish.woff2") format("woff2");
+}
+
 :root {
   --noite-900: #0D0E17;
   --noite-800: #191726;
@@ -38,7 +49,7 @@ body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background: var(--fundo);
   color: var(--texto);
-  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font: 16px/1.5 Mulish, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

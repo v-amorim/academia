@@ -41,6 +41,7 @@ banco da versão 1 com fotos gravadas.
 |---|---|
 | `index.html` | Só a marcação |
 | `estilo.css` | Tokens de cor e todo o estilo |
+| `mulish.woff2` | A fonte, servida do próprio repo para funcionar sem rede |
 | `fichas.js` | Os 21 exercícios e os dois perfis |
 | `banco.js` | Acesso a dado. Único arquivo que toca IndexedDB e localStorage |
 | `app.js` | Tela, gestos e diálogos |

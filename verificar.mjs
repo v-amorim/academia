@@ -37,7 +37,10 @@ const CAMINHOS_CHROME = [
 ].filter(Boolean);
 
 const PRAZO_CASO = 60000;
-const TIPOS = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".jpg": "image/jpeg" };
+const TIPOS = {
+  ".html": "text/html", ".js": "text/javascript", ".css": "text/css",
+  ".jpg": "image/jpeg", ".woff2": "font/woff2"
+};
 
 let falhas = 0;
 const ok = (texto) => console.log(`  ok    ${texto}`);
