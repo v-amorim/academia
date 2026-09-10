@@ -196,15 +196,17 @@ h1 { margin: 0 0 12px; font-size: 20px; line-height: 1.2; }
 /* Empilhados na mesma célula, e acima do preenchimento. */
 .contador > * { grid-area: 1 / 1; position: relative; }
 
-/* Marca d'água no canto, sangrando na borda de propósito. As repetições ficam sozinhas no
-   centro, e o contorno delas resolve o encontro das duas camadas.
-   0.6 e não menos: com o preenchimento cheio atrás, a 0.45 o fantasma cai para 1,92:1, e a 0.6
-   fica em 3,20:1, que é o piso de texto grande. O número também é falado no aria-label. */
+/* Marca d'água no canto, sangrando na borda de propósito, escura para ler como sombra e não
+   como texto. Sobre superfície escura ela não passa de 1,64:1 nem no preto puro, então é
+   textura e não informação: quem carrega quantas séries faltam é a altura do preenchimento,
+   mais o aria-label do botão. Ela aparece mais conforme a lavanda sobe atrás, que é o efeito
+   desejado. */
 .fantasma {
   position: absolute;
   inset-inline-end: -2px;
   bottom: -8px;
-  opacity: 0.6;
+  color: var(--contorno);
+  opacity: 0.55;
   font-weight: 700;
   font-size: 50px;
   line-height: 1;
