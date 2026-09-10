@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0D0E17">
+<title>Treino ABC</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+<header>
+  <h1>Treino ABC</h1>
+  <fieldset id="perfis">
+    <legend class="oculto-visual">Quem está treinando</legend>
+  </fieldset>
+  <nav id="abas" role="tablist" aria-label="Treinos"></nav>
+</header>
+
+<main>
+  <p id="sem-banco" role="alert" hidden>Séries e fotos não serão salvas nesta sessão. O navegador bloqueia o banco de dados em página aberta como arquivo. Publique a pasta num endereço http ou https para gravar.</p>
+
+  <section id="ciclo" role="status" hidden>
+    <p>Ciclo ABC completo. Os três treinos estão marcados.</p>
+    <button type="button" class="primario" id="abrir-recomecar">Recomeçar ciclo</button>
+  </section>
+
+  <ul id="lista" role="tabpanel"></ul>
+</main>
+
+<p id="aviso" class="oculto-visual" role="status"></p>
+
+<dialog id="dialogo-roda" aria-labelledby="roda-titulo">
+  <h2 id="roda-titulo"></h2>
+  <div id="roda-caixa">
+    <div id="roda"></div>
+    <div class="faixa"></div>
+  </div>
+  <button type="button" class="primario" id="roda-confirmar">Confirmar série</button>
+</dialog>
+
+<dialog id="visor" aria-labelledby="visor-titulo">
+  <h2 id="visor-titulo"></h2>
+  <img alt="">
+  <div class="acoes">
+    <button type="button" class="secundario" id="visor-trocar">Trocar foto</button>
+    <button type="button" class="primario" id="visor-fechar">Fechar</button>
+  </div>
+</dialog>
+
+<dialog id="dialogo-exercicio" aria-labelledby="exercicio-titulo">
+  <h2 id="exercicio-titulo">Resetar progresso?</h2>
+  <p id="exercicio-corpo"></p>
+  <form method="dialog" class="acoes">
+    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
+    <button type="submit" class="primario" value="resetar">Resetar progresso</button>
+  </form>
+</dialog>
+
+<dialog id="dialogo-treino" aria-labelledby="treino-titulo">
+  <h2 id="treino-titulo"></h2>
+  <form method="dialog" class="acoes-empilhadas">
+    <button type="submit" class="primario" value="feito">Marcar feito</button>
+    <button type="submit" class="secundario" value="resetar">Resetar progresso</button>
+    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
+  </form>
+</dialog>
+
+<dialog id="dialogo-recomecar" aria-labelledby="recomecar-titulo">
+  <h2 id="recomecar-titulo">Recomeçar o ciclo?</h2>
+  <p>As marcações de A, B e C voltam ao início. As fotos das máquinas continuam salvas.</p>
+  <form method="dialog" class="acoes">
+    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
+    <button type="submit" class="primario" value="recomecar">Recomeçar ciclo</button>
+  </form>
+</dialog>
+
+<input id="camera" type="file" accept="image/*" capture="environment" class="oculto-visual">
+
+<script src="fichas.js"></script>
+<script src="banco.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

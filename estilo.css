@@ -1,0 +1,293 @@
+:root {
+  --noite-900: #0D0E17;
+  --noite-800: #191726;
+  --noite-600: #303751;
+  --noite-500: #3C466F;
+  --tinta-100: #F8EAF8;
+  --tinta-400: #AEA4BF;
+  --azul-400: #5DABF3;
+  --lavanda-300: #B0B9E5;
+  --ambar-400: #FFCB6B;
+
+  --fundo: var(--noite-900);
+  --superficie: var(--noite-800);
+  --superficie-alta: var(--noite-600);
+  --borda: var(--noite-500);
+  --texto: var(--tinta-100);
+  --texto-secundario: var(--tinta-400);
+  --acento: var(--azul-400);
+  --acento-texto: var(--noite-900);
+  --foco: var(--azul-400);
+  --feito: var(--lavanda-300);
+  --feito-texto: var(--noite-900);
+  --alerta: var(--ambar-400);
+
+  --raio-carta: 16px;
+  --raio-painel: 22px;
+  --raio-interno-carta: 6px;
+  --raio-interno-painel: 10px;
+  --alvo: 44px;
+  --curva: cubic-bezier(0.2, 0, 0, 1);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  margin: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--fundo);
+  color: var(--texto);
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .contador, .foto, .aba, .primario, .secundario, #perfis label {
+    transition-property: background-color, border-color, color, scale;
+    transition-duration: 120ms;
+    transition-timing-function: var(--curva);
+  }
+  .contador:active, .foto:active, .aba:active, .primario:active, .secundario:active, #perfis label:active { scale: 0.96; }
+}
+
+.oculto-visual {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+header { padding-block: 16px 0; padding-inline: 16px; }
+h1 { margin: 0 0 12px; font-size: 20px; line-height: 1.2; }
+
+#perfis { display: flex; gap: 8px; margin: 0 0 12px; padding: 0; border: 0; }
+#perfis label {
+  position: relative;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: var(--alvo);
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--texto-secundario);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+}
+#perfis label:has(:checked) { background: var(--acento); border-color: var(--acento); color: var(--acento-texto); }
+#perfis label:has(:focus-visible) { outline: 2px solid var(--foco); outline-offset: 2px; }
+
+#abas { display: flex; gap: 8px; }
+.aba {
+  flex: 1;
+  min-height: var(--alvo);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-interno-painel);
+  background: var(--superficie);
+  color: var(--texto-secundario);
+  font-weight: 600;
+  font-size: 17px;
+}
+.aba[aria-selected="true"] {
+  background: var(--superficie-alta);
+  border-color: var(--acento);
+  color: var(--acento);
+}
+.aba .marca { color: var(--feito); }
+
+#sem-banco {
+  margin-block: 16px 0;
+  margin-inline: 16px;
+  padding: 12px;
+  border: 1px solid var(--alerta);
+  border-radius: var(--raio-painel);
+  background: var(--superficie);
+  color: var(--alerta);
+  font-size: 14px;
+  text-wrap: pretty;
+}
+
+#ciclo {
+  margin-block: 16px 0;
+  margin-inline: 16px;
+  padding: 12px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-painel);
+  background: var(--superficie);
+  text-align: center;
+}
+#ciclo p { margin: 0 0 12px; }
+
+.primario, .secundario {
+  min-height: var(--alvo);
+  padding-inline: 20px;
+  border-radius: var(--raio-interno-painel);
+  font-weight: 700;
+}
+.primario { border: 0; background: var(--acento); color: var(--acento-texto); }
+.secundario { border: 1px solid var(--borda); background: var(--superficie-alta); color: var(--texto); }
+#ciclo .primario { width: 100%; }
+
+#lista { list-style: none; margin: 0; padding: 16px; display: grid; gap: 12px; }
+
+.exercicio {
+  display: grid;
+  grid-template-columns: 78px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-carta);
+}
+.exercicio.feito {
+  background: color-mix(in oklab, var(--feito) 10%, var(--superficie));
+  border-color: color-mix(in oklab, var(--feito) 35%, var(--borda));
+}
+.exercicio.feito .nome { text-decoration: line-through; color: var(--texto-secundario); }
+
+.contador {
+  min-height: 58px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-interno-carta);
+  background: var(--superficie-alta);
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Todo alvo de toque longo precisa disto, senão segurar seleciona o texto em vez de disparar o gesto. */
+.contador, .descricao, .aba {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.contador[data-feito="1"] { background: var(--feito); border-color: var(--feito); color: var(--feito-texto); }
+
+/* min-width: 0 em item de grid, senão o conteúdo sem quebra estica a faixa além da tela. */
+.descricao {
+  min-width: 0;
+  padding: 6px;
+  margin: -6px;
+  border: 0;
+  border-radius: var(--raio-interno-carta);
+  background: none;
+  text-align: start;
+}
+@media (hover: hover) {
+  .descricao:hover { background: var(--superficie-alta); }
+}
+
+.nome {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.32;
+  text-wrap: balance;
+}
+
+.meta {
+  min-width: 0;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--texto-secundario);
+}
+.meta div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.valor {
+  display: inline-block;
+  padding-inline: 7px;
+  border-radius: 999px;
+  background: var(--superficie-alta);
+  color: var(--texto);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.foto {
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-interno-carta);
+  background: var(--superficie-alta);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.foto svg { width: 24px; height: 24px; }
+
+dialog {
+  margin: auto;
+  max-width: min(340px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-painel);
+  background: var(--superficie);
+  color: var(--texto);
+}
+dialog::backdrop { background: color-mix(in oklab, var(--noite-900, #0D0E17) 85%, transparent); }
+dialog h2 { margin: 4px 0 12px; font-size: 16px; line-height: 1.3; text-wrap: balance; }
+dialog p { margin: 0 0 16px; color: var(--texto-secundario); }
+.acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.acoes-empilhadas { display: grid; gap: 12px; }
+
+#roda-caixa { position: relative; }
+/* Espaçador com a mesma altura de um item faz scrollTop / 44 virar o índice centralizado. */
+#roda {
+  height: 132px;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+#roda::-webkit-scrollbar { display: none; }
+#roda button {
+  display: block;
+  width: 100%;
+  height: 44px;
+  border: 0;
+  background: none;
+  scroll-snap-align: center;
+  font-weight: 700;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+#roda .vazio { height: 44px; }
+.faixa {
+  position: absolute;
+  inset-inline: 0;
+  top: 44px;
+  height: 44px;
+  border-block: 1px solid var(--acento);
+  pointer-events: none;
+}
+#roda-confirmar { width: 100%; margin-top: 16px; }
+
+#visor img { display: block; max-width: 100%; max-height: 70vh; border-radius: var(--raio-interno-painel); outline: 1px solid rgb(255 255 255 / 0.1); }
+#visor .acoes { margin-top: 12px; }
