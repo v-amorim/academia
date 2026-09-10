@@ -17,15 +17,24 @@ const Sonda = (function () {
   }
 
   const cartoes = () => [...document.querySelectorAll(".exercicio")];
-  const contadores = () => cartoes().map((item) => item.querySelector(".contador").textContent);
+
+  // O contador empilha o número que falta atrás das repetições, então o rótulo é remontado das
+  // duas partes. Assim a sonda confere que as duas renderizam, e não só o texto do botão.
+  function rotuloDo(item) {
+    const contador = item.querySelector(".contador");
+    const fantasma = contador.querySelector(".fantasma");
+    if (!fantasma) return contador.textContent;
+    return `${fantasma.textContent}×${contador.querySelector(".reps").textContent.replace(" rep", "")}`;
+  }
+
+  const contadores = () => cartoes().map(rotuloDo);
   const abaDe = (letra) => document.getElementById(`aba-${letra}`);
   const menu = () => document.getElementById("dialogo-treino");
   const avisoDiz = (trecho) => document.getElementById("aviso").textContent.includes(trecho);
 
   async function baixarAte(item, alvo) {
-    const contador = item.querySelector(".contador");
-    while (contador.textContent !== alvo) {
-      contador.click();
+    while (rotuloDo(item) !== alvo) {
+      item.querySelector(".contador").click();
       await respira(80);
     }
   }
@@ -51,8 +60,8 @@ const Sonda = (function () {
 
     cartoes()[0].querySelector(".contador").click();
     await respira();
-    confere("um toque desce uma série", contadores()[0] === "2x12", contadores()[0]);
-    confere("a série baixada é anunciada", avisoDiz("2x12"));
+    confere("um toque desce uma série", contadores()[0] === "2×12", contadores()[0]);
+    confere("a série baixada é anunciada", avisoDiz("2×12"));
 
     await baixarAte(cartoes()[0], "feito");
     confere("zerado mostra feito", contadores()[0] === "feito", contadores()[0]);
@@ -75,7 +84,7 @@ const Sonda = (function () {
     await respira(250);
     confere("trocar de aba carrega o outro treino",
       cartoes()[0].querySelector(".nome").textContent === TREINOS.B[0].nome);
-    confere("treino não começado nasce cheio", contadores().every((texto) => texto === "3x12"));
+    confere("treino não começado nasce cheio", contadores().every((texto) => texto === "3×12"));
 
     abaDe("A").click();
     await respira(250);
@@ -90,7 +99,7 @@ const Sonda = (function () {
     menu().querySelector('[value="resetar"]').click();
     await respira(250);
 
-    confere("reset volta ao total", contadores().every((texto) => texto === "3x12"), contadores().join(","));
+    confere("reset volta ao total", contadores().every((texto) => texto === "3×12"), contadores().join(","));
     confere("reset tira o visto da aba", !abaDe("A").querySelector(".marca"));
     confere("reset não apaga registro", (await Banco.lerSessaoDeHoje("sun", "A")).registros.size === 7);
 
@@ -100,7 +109,7 @@ const Sonda = (function () {
     await pelaAba("A", "encerrar");
     confere("encerrar marca a aba", Boolean(abaDe("A").querySelector(".marca")));
     confere("o encerramento manual é anunciado", avisoDiz("encerrado e gravado"));
-    confere("encerrar não mexe no que está na tela", contadores()[0] === "2x12", contadores()[0]);
+    confere("encerrar não mexe no que está na tela", contadores()[0] === "2×12", contadores()[0]);
 
     const parcial = await Banco.lerSessaoDeHoje("sun", "A");
     const exerciciosA = await Banco.listarExercicios("A");
@@ -122,7 +131,7 @@ const Sonda = (function () {
     confere("recomeçar limpa os vistos", document.querySelectorAll(".aba .marca").length === 0);
     confere("recomeçar esconde a seção do ciclo", document.getElementById("ciclo").hidden);
     confere("recomeçar volta para A", abaDe("A").getAttribute("aria-selected") === "true");
-    confere("recomeçar zera os contadores", contadores().every((texto) => texto === "3x12"));
+    confere("recomeçar zera os contadores", contadores().every((texto) => texto === "3×12"));
     confere("recomeçar é anunciado", avisoDiz("recomeçado"));
     confere("recomeçar não apaga sessão", (await Banco.lerSessaoDeHoje("sun", "A")).registros.size === 7);
     confere("nada fica concluído depois do recomeço", (await Banco.letrasConcluidas("sun")).size === 0);
@@ -131,11 +140,11 @@ const Sonda = (function () {
     await respira();
     document.querySelector('input[value="shine"]').click();
     await respira(300);
-    confere("o outro perfil nasce cheio", contadores().every((texto) => texto === "3x12"));
+    confere("o outro perfil nasce cheio", contadores().every((texto) => texto === "3×12"));
     confere("a troca de perfil é anunciada", avisoDiz("Shine"));
     document.querySelector('input[value="sun"]').click();
     await respira(300);
-    confere("cada perfil volta com o próprio progresso", contadores()[0] === "2x12", contadores()[0]);
+    confere("cada perfil volta com o próprio progresso", contadores()[0] === "2×12", contadores()[0]);
 
     const banco = await new Promise((pronto) => {
       const pedido = indexedDB.open("academia");
@@ -183,13 +192,13 @@ const Sonda = (function () {
     contador.focus();
     tecla(contador, "ArrowDown");
     await respira();
-    confere("seta baixo desce uma série", contadores()[0] === "2x12", contadores()[0]);
+    confere("seta baixo desce uma série", contadores()[0] === "2×12", contadores()[0]);
     tecla(contador, "ArrowUp");
     await respira();
-    confere("seta cima sobe uma série", contadores()[0] === "3x12", contadores()[0]);
+    confere("seta cima sobe uma série", contadores()[0] === "3×12", contadores()[0]);
     tecla(contador, "ArrowUp");
     await respira();
-    confere("o contador não passa do total", contadores()[0] === "3x12", contadores()[0]);
+    confere("o contador não passa do total", contadores()[0] === "3×12", contadores()[0]);
 
     cartoes()[0].querySelector(".descricao").click();
     await respira();
@@ -231,9 +240,7 @@ const Sonda = (function () {
 
     confere("o cartão migrado mostra a foto", Boolean(cartoes()[3].querySelector(".foto img")));
     confere("cartão sem foto segue com a câmera", Boolean(cartoes()[0].querySelector(".foto svg")));
-    confere("o progresso por posição é descartado",
-      cartoes()[3].querySelector(".contador").textContent === "3x12",
-      cartoes()[3].querySelector(".contador").textContent);
+    confere("o progresso por posição é descartado", rotuloDo(cartoes()[3]) === "3×12", rotuloDo(cartoes()[3]));
 
     cartoes()[3].querySelector(".foto").click();
     await respira();

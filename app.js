@@ -1,4 +1,26 @@
-const ICONE_CAMERA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2a1.5 1.5 0 0 0 1.2-.6l.9-1.2a1.5 1.5 0 0 1 1.2-.6h4a1.5 1.5 0 0 1 1.2.6l.9 1.2a1.5 1.5 0 0 0 1.2.6h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5Z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+// Traço de 1.5px porque o ícone fica ao lado de texto de peso 400, e currentColor porque um SVG
+// só é recolorido por estado, nunca trocado por outro arquivo.
+const svg = (miolo) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${miolo}</svg>`;
+
+const ICONE_CAMERA = svg(`<path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2a1.5 1.5 0 0 0 1.2-.6l.9-1.2a1.5 1.5 0 0 1 1.2-.6h4a1.5 1.5 0 0 1 1.2.6l.9 1.2a1.5 1.5 0 0 0 1.2.6h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5Z"/><circle cx="12" cy="13" r="3.5"/>`);
+
+// Silhuetas propositalmente diferentes entre si, porque a 16px o que distingue é o contorno
+// geral, não o detalhe: moldura com pilha, barra com pesos, polia com pegador, e anel.
+const ICONES_EQUIPAMENTO = {
+  maquina: svg(`<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M8 10h8M8 14h8"/>`),
+  halteres: svg(`<rect x="3.5" y="8.5" width="4" height="7" rx="1.25"/><rect x="16.5" y="8.5" width="4" height="7" rx="1.25"/><path d="M7.5 12h9"/>`),
+  cabo: svg(`<path d="M12 3v3.5"/><path d="M12 6.5 6.8 17.6a1.6 1.6 0 0 0 1.5 2.3h7.4a1.6 1.6 0 0 0 1.5-2.3Z"/>`),
+  anilha: svg(`<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/>`)
+};
+
+// O dado guarda o valor sem acento; a tela mostra a palavra como um nativo escreve.
+const NOME_DO_EQUIPAMENTO = { maquina: "máquina", halteres: "halteres", cabo: "cabo", anilha: "anilha" };
+const NOME_DO_GRUPO = {
+  peito: "peito", costas: "costas", ombro: "ombro", biceps: "bíceps", triceps: "tríceps",
+  quadriceps: "quadríceps", posterior: "posterior", gluteo: "glúteo", adutor: "adutor",
+  panturrilha: "panturrilha"
+};
 
 const LETRAS = Object.keys(TREINOS);
 const ALTURA_ITEM = 44;
@@ -30,6 +52,7 @@ const roda = document.getElementById("roda");
 const rodaTitulo = document.getElementById("roda-titulo");
 const visor = document.getElementById("visor");
 const visorTitulo = document.getElementById("visor-titulo");
+const visorMeta = document.getElementById("visor-meta");
 const visorImg = visor.querySelector("img");
 const dialogoRecomecar = document.getElementById("dialogo-recomecar");
 const dialogoExercicio = document.getElementById("dialogo-exercicio");
@@ -68,17 +91,16 @@ async function carregarFotos() {
 
 const faltam = (exercicio) => restantes.get(exercicio.id) ?? exercicio.series;
 const letraFeita = (letra) => concluidas.has(letra);
-const rotulo = (faltando, reps) => (faltando === 0 ? "feito" : `${faltando}x${reps}`);
+const rotulo = (faltando, reps) => (faltando === 0 ? "feito" : `${faltando}×${reps}`);
 
-function linhaMeta(nome, valor) {
-  const marca = document.createElement("b");
-  marca.className = "valor";
-  marca.textContent = valor;
+const gruposDe = (exercicio) => exercicio.grupos.map((grupo) => NOME_DO_GRUPO[grupo]).join(" · ");
 
-  const linha = document.createElement("div");
-  linha.append(nome, marca);
-  return linha;
-}
+// As séries que faltam ficam atrás, grandes e mais apagadas, e as repetições na frente, nítidas.
+// Sinal multiplicação, não a letra x: é o que um nativo lê como "doze vezes".
+const rotuloDoContador = (faltando, reps) =>
+  faltando === 0
+    ? `<span class="reps feito">feito</span>`
+    : `<span class="fantasma" aria-hidden="true">${faltando}</span><span class="reps">${reps} rep</span>`;
 
 function refrescar() {
   cartoes.forEach((cartao) => cartao.atualizar());
@@ -239,8 +261,11 @@ function criarCartao(exercicio) {
   const meio = document.createElement("button");
   meio.type = "button";
   meio.className = "descricao";
+  // O ícone é aria-hidden, então o nome do equipamento e os grupos entram aqui, senão quem usa
+  // leitor de tela perde a informação que a fase 2 acrescentou.
   meio.setAttribute("aria-label",
-    `${exercicio.nome}. Aparelho ${exercicio.aparelho}, vídeo ${exercicio.cod}. Resetar progresso.`);
+    `${exercicio.nome}. ${NOME_DO_EQUIPAMENTO[exercicio.equipamento]}, ${gruposDe(exercicio)}. ` +
+    `Aparelho ${exercicio.aparelho}, vídeo ${exercicio.cod}. Resetar progresso.`);
   const segurouNome = ligarToqueLongo(meio, () => abrirResetExercicio(exercicio));
   meio.onclick = () => {
     if (segurouNome()) return;
@@ -251,11 +276,15 @@ function criarCartao(exercicio) {
   nome.className = "nome";
   nome.textContent = exercicio.nome;
 
-  const meta = document.createElement("div");
-  meta.className = "meta";
-  meta.append(linhaMeta("Aparelho ", exercicio.aparelho), linhaMeta("Vídeo ", exercicio.cod));
+  const grupos = document.createElement("div");
+  grupos.className = "grupos";
+  grupos.innerHTML =
+    `<span class="equipamento">${ICONES_EQUIPAMENTO[exercicio.equipamento]}</span>` +
+    `<b class="aparelho"></b>`;
+  grupos.querySelector(".aparelho").textContent = exercicio.aparelho;
+  grupos.append(Object.assign(document.createElement("span"), { textContent: gruposDe(exercicio) }));
 
-  meio.append(nome, meta);
+  meio.append(nome, grupos);
 
   const foto = document.createElement("button");
   foto.type = "button";
@@ -267,22 +296,20 @@ function criarCartao(exercicio) {
       const faltando = faltam(exercicio);
       item.classList.toggle("feito", faltando === 0);
       contador.dataset.feito = faltando === 0 ? "1" : "0";
-      contador.textContent = rotulo(faltando, exercicio.reps);
+      contador.innerHTML = rotuloDoContador(faltando, exercicio.reps);
+      // O preenchimento sobe com o que já foi executado, não com o que falta.
+      contador.style.setProperty("--progresso", `${((exercicio.series - faltando) / exercicio.series) * 100}%`);
       contador.setAttribute("aria-label",
         faltando === 0
           ? `${exercicio.nome}: feito. Use as setas para ajustar.`
           : `${exercicio.nome}: ${rotulo(faltando, exercicio.reps)} restantes. Tocar para baixar uma série, setas para ajustar.`);
 
       const salva = fotos.get(exercicio.id);
-      if (salva) {
-        foto.innerHTML = `<img src="${salva}" alt="">`;
-        foto.setAttribute("aria-label", `Ver foto da máquina de ${exercicio.nome}`);
-        foto.onclick = () => abrirVisor(exercicio);
-      } else {
-        foto.innerHTML = ICONE_CAMERA;
-        foto.setAttribute("aria-label", `Tirar foto da máquina de ${exercicio.nome}`);
-        foto.onclick = () => tirarFoto(exercicio);
-      }
+      foto.innerHTML = salva ? `<img src="${salva}" alt="">` : ICONE_CAMERA;
+      foto.setAttribute("aria-label", salva
+        ? `Ver foto da máquina de ${exercicio.nome}`
+        : `Tirar foto da máquina de ${exercicio.nome}`);
+      foto.onclick = salva ? () => abrirVisor(exercicio) : () => tirarFoto(exercicio);
     }
   };
 
@@ -382,6 +409,9 @@ dialogoTreino.addEventListener("close", async () => {
 function abrirVisor(exercicio) {
   alvoVisor = exercicio;
   visorTitulo.textContent = `Máquina de ${exercicio.nome}`;
+  // Informação de consulta, não de execução: no cartão o número do aparelho basta, e o do vídeo
+  // só interessa a quem parou para olhar.
+  visorMeta.textContent = `Aparelho ${exercicio.aparelho} · Vídeo ${exercicio.cod}`;
   visorImg.src = fotos.get(exercicio.id);
   visor.showModal();
 }
