@@ -60,8 +60,9 @@
 
 <dialog id="dialogo-treino" aria-labelledby="treino-titulo">
   <h2 id="treino-titulo"></h2>
+  <p>Encerrar grava o treino de hoje no histórico. Exercício que você não fez entra com zero séries.</p>
   <form method="dialog" class="acoes-empilhadas">
-    <button type="submit" class="primario" value="feito">Marcar feito</button>
+    <button type="submit" class="primario" value="encerrar">Encerrar treino aqui</button>
     <button type="submit" class="secundario" value="resetar">Resetar progresso</button>
     <button type="submit" class="secundario" value="cancelar">Cancelar</button>
   </form>
@@ -76,7 +77,7 @@
   </form>
 </dialog>
 
-<input id="camera" type="file" accept="image/*" capture="environment" class="oculto-visual">
+<input id="camera" type="file" accept="image/*" capture="environment" class="oculto-visual" tabindex="-1">
 
 <script src="fichas.js"></script>
 <script src="banco.js"></script>

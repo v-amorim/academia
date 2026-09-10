@@ -5,8 +5,9 @@ const Banco = (function () {
   // prazo é o único jeito de sair. Aparelho lento pode estourar o prazo e abrir depois: nesse
   // caso o banco é adotado em vez de descartado.
   const PRAZO_ABERTURA = 2500;
-  const VERSAO = 2;
-  const NOVOS_DEPOSITOS = ["exercicios", "sessoes", "registros", "ciclo"];
+  const VERSAO = 3;
+  const DEPOSITOS = ["exercicios", "sessoes", "registros", "ciclo", "fotos"];
+  const TAMANHO_ID = 36;
 
   let db = null;
 
@@ -29,13 +30,14 @@ const Banco = (function () {
         return responder(null);
       }
 
-      // A versão 2 só acrescenta. O depósito estado e as chaves de foto por posição morrem na
-      // versão 3, junto com o app.js que ainda depende dos dois.
       pedido.onupgradeneeded = () => {
         const banco = pedido.result;
-        for (const nome of ["estado", "fotos", ...NOVOS_DEPOSITOS]) {
+        for (const nome of DEPOSITOS) {
           if (!banco.objectStoreNames.contains(nome)) banco.createObjectStore(nome);
         }
+        // O progresso por posição na lista morreu com o id estável. A foto sobrevive: fica com
+        // a chave velha e é remapeada no semear(), que é quem conhece a ordem dos exercícios.
+        if (banco.objectStoreNames.contains("estado")) banco.deleteObjectStore("estado");
       };
       pedido.onsuccess = () => {
         if (!respondido) return responder(pedido.result);
@@ -109,13 +111,43 @@ const Banco = (function () {
   const registrosDa = (sessao) => IDBKeyRange.bound(`${sessao}:`, `${sessao}:\uffff`);
 
   async function semear(treinos) {
-    if (!db || (await ler("exercicios")).length > 0) return;
+    if (!db) return;
 
-    const pares = [];
-    for (const [letra, exercicios] of Object.entries(treinos)) {
-      exercicios.forEach((exercicio, ordem) => pares.push([exercicio.id, { ...exercicio, letra, ordem }]));
+    if ((await ler("exercicios")).length === 0) {
+      const pares = [];
+      for (const [letra, exercicios] of Object.entries(treinos)) {
+        exercicios.forEach((exercicio, ordem) => pares.push([exercicio.id, { ...exercicio, letra, ordem }]));
+      }
+      await gravarLote("exercicios", pares);
     }
-    await gravarLote("exercicios", pares);
+    await migrarFotos(treinos);
+  }
+
+  // A chave nova é id mais vaga, e o id tem comprimento fixo. A velha era perfil mais posição
+  // na lista, com prefixo curto. A posição do dois-pontos separa as duas gerações.
+  const ehChaveNova = (chave) => chave.indexOf(":") === TAMANHO_ID;
+
+  // A posição não sobrevive a exercício inserido no meio da lista, então a foto passou a ser
+  // chaveada por id e vaga. Foto do mesmo exercício em dois perfis vira duas vagas do mesmo
+  // exercício: a foto é da máquina física, e máquina não pertence a perfil.
+  async function migrarFotos(treinos) {
+    const antigas = (await ler("fotos")).filter(([chave]) => !ehChaveNova(chave));
+    if (antigas.length === 0) return;
+
+    const idPorPosicao = new Map();
+    for (const [letra, exercicios] of Object.entries(treinos)) {
+      exercicios.forEach((exercicio, indice) => idPorPosicao.set(`${letra}${indice}`, exercicio.id));
+    }
+
+    const proximaVaga = new Map();
+    for (const [chave, foto] of antigas) {
+      const exId = idPorPosicao.get(chave.slice(chave.indexOf(":") + 1));
+      if (!exId) continue;
+      const vaga = proximaVaga.get(exId) ?? 0;
+      proximaVaga.set(exId, vaga + 1);
+      gravar("fotos", `${exId}:${vaga}`, foto);
+      apagar("fotos", chave);
+    }
   }
 
   async function listarExercicios(letra) {
@@ -175,6 +207,8 @@ const Banco = (function () {
   }
 
   // Reset é escrita nova, nunca exclusão: o registro é histórico, e histórico é append-only.
+  // O iniciadoEm volta para agora porque a sessão recomeça, e é isso que a mantém dentro do
+  // ciclo corrente quando o reset vem logo depois de recomeçar o ciclo.
   async function resetarTreino(perfil, letra) {
     if (!db) return;
     const sessao = await garantirSessao(perfil, letra);
@@ -184,7 +218,7 @@ const Banco = (function () {
       { exId: exercicio.id, restantes: exercicio.series, atualizadoEm: agora }
     ]);
     await gravarLote("registros", totais);
-    gravar("sessoes", sessao, { ...(await pegar("sessoes", sessao)), concluidoEm: null });
+    gravar("sessoes", sessao, { ...(await pegar("sessoes", sessao)), iniciadoEm: agora, concluidoEm: null });
   }
 
   const lerCiclo = async (perfil) => (await pegar("ciclo", perfil)) ?? { iniciadoEm: 0 };
@@ -204,6 +238,24 @@ const Banco = (function () {
     return feitas;
   }
 
+  // A foto é da máquina, não do perfil, então não há perfil na chave. Devolve as vagas por
+  // exercício para o app nunca precisar montar chave de depósito.
+  async function lerFotos() {
+    const porExercicio = new Map();
+    for (const [chave, foto] of await ler("fotos")) {
+      if (!ehChaveNova(chave)) continue;
+      const exId = chave.slice(0, TAMANHO_ID);
+      const vagas = porExercicio.get(exId) ?? [];
+      vagas[Number(chave.slice(TAMANHO_ID + 1))] = foto;
+      porExercicio.set(exId, vagas);
+    }
+    return porExercicio;
+  }
+
+  const salvarFoto = (exId, vaga, foto) => gravar("fotos", `${exId}:${vaga}`, foto);
+
+  const apagarFoto = (exId, vaga) => apagar("fotos", `${exId}:${vaga}`);
+
   // Safari lança ao tocar em localStorage numa origem opaca, e o Chrome não. Daí o try.
   function lerPreferencia(chave) {
     try {
@@ -222,9 +274,10 @@ const Banco = (function () {
   }
 
   return {
-    abrir, disponivel, ler, gravar, apagar,
-    semear, listarExercicios, lerSessaoDeHoje, salvarSerie, encerrarSessao, resetarTreino,
+    abrir, disponivel, semear,
+    listarExercicios, lerSessaoDeHoje, salvarSerie, encerrarSessao, resetarTreino,
     lerCiclo, iniciarCiclo, letrasConcluidas,
+    lerFotos, salvarFoto, apagarFoto,
     lerPreferencia, gravarPreferencia
   };
 })();
