@@ -290,6 +290,9 @@ h1 { margin: 0 0 12px; font-size: 20px; line-height: 1.2; }
 
 /* O número do aparelho é identidade, não contagem. Numa faixa de largura cheia na base da
    miniatura ele lia como "X fotos", que é a linguagem de contador de imagem. */
+/* Maiúscula por CSS e não no dado: `em pé` e `step` continuam crus no fichas.js, e o número
+   não é afetado. */
+.aparelho::first-letter { text-transform: uppercase; }
 .aparelho {
   flex: none;
   padding-inline: 7px;

@@ -14,12 +14,13 @@ const ICONES_EQUIPAMENTO = {
   anilha: svg(`<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/>`)
 };
 
-// O dado guarda o valor sem acento; a tela mostra a palavra como um nativo escreve.
-const NOME_DO_EQUIPAMENTO = { maquina: "máquina", halteres: "halteres", cabo: "cabo", anilha: "anilha" };
+// O dado guarda o valor cru, minúsculo e sem acento; a tela mostra a palavra como um nativo
+// escreve, com diacrítico completo e maiúscula inicial.
+const NOME_DO_EQUIPAMENTO = { maquina: "Máquina", halteres: "Halteres", cabo: "Cabo", anilha: "Anilha" };
 const NOME_DO_GRUPO = {
-  peito: "peito", costas: "costas", ombro: "ombro", biceps: "bíceps", triceps: "tríceps",
-  quadriceps: "quadríceps", posterior: "posterior", gluteo: "glúteo", adutor: "adutor",
-  panturrilha: "panturrilha"
+  peito: "Peito", costas: "Costas", ombro: "Ombro", biceps: "Bíceps", triceps: "Tríceps",
+  quadriceps: "Quadríceps", posterior: "Posterior", gluteo: "Glúteo", adutor: "Adutor",
+  panturrilha: "Panturrilha"
 };
 
 const LETRAS = Object.keys(TREINOS);
@@ -98,7 +99,7 @@ const gruposDe = (exercicio) => exercicio.grupos.map((grupo) => NOME_DO_GRUPO[gr
 // Sinal multiplicação, não a letra x: é o que um nativo lê como "doze vezes".
 const rotuloDoContador = (faltando, reps) =>
   faltando === 0
-    ? `<span class="reps feito">feito</span>`
+    ? `<span class="reps feito">Feito</span>`
     : `<span class="fantasma" aria-hidden="true">${faltando}</span><span class="reps">${reps} rep</span>`;
 
 function refrescar() {
@@ -343,7 +344,7 @@ function abrirRoda(exercicio) {
     const opcao = document.createElement("button");
     opcao.type = "button";
     opcao.className = "opcao";
-    opcao.textContent = valor === 0 ? "feito" : String(valor);
+    opcao.textContent = valor === 0 ? "Feito" : String(valor);
     opcao.setAttribute("aria-label",
       valor === 0 ? `Marcar ${exercicio.nome} como feito` : `${rotulo(valor, exercicio.reps)} restantes`);
     if (valor === atual) opcao.setAttribute("aria-current", "true");
@@ -407,7 +408,6 @@ function abrirVisor(exercicio) {
   visor.showModal();
 }
 
-visor.addEventListener("click", (evento) => { if (evento.target === visor) visor.close(); });
 document.getElementById("visor-fechar").onclick = () => visor.close();
 document.getElementById("visor-trocar").onclick = () => {
   visor.close();
@@ -455,6 +455,23 @@ dialogoRecomecar.addEventListener("close", async () => {
   await selecionar(LETRAS[0]);
   aviso.textContent = `Ciclo de ${PERFIS[perfilAtivo]} recomeçado. Treino A liberado.`;
 });
+
+// Tocar fora fecha qualquer diálogo, e fechar assim é sempre cancelar: close() sem argumento
+// deixa o returnValue vazio, e todo ouvinte de close trata vazio como cancelado.
+//
+// As duas condições são necessárias. Só o alvo não basta porque o recheio vazio do diálogo
+// também é o próprio elemento, e tocar nele fecharia. Só a coordenada não basta porque o clique
+// que o Enter gera num botão focado chega em 0,0, que cai fora da caixa: sem o alvo, o teclado
+// perdia a capacidade de confirmar qualquer diálogo.
+for (const caixa of document.querySelectorAll("dialog")) {
+  caixa.addEventListener("click", (evento) => {
+    if (evento.target !== caixa) return;
+    const area = caixa.getBoundingClientRect();
+    const dentro = evento.clientX >= area.left && evento.clientX <= area.right
+      && evento.clientY >= area.top && evento.clientY <= area.bottom;
+    if (!dentro) caixa.close();
+  });
+}
 
 (async () => {
   const temBanco = await Banco.abrir(adotarBanco);

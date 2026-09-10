@@ -63,12 +63,12 @@ const Sonda = (function () {
     confere("um toque desce uma série", contadores()[0] === "2×12", contadores()[0]);
     confere("a série baixada é anunciada", avisoDiz("2×12"));
 
-    await baixarAte(cartoes()[0], "feito");
-    confere("zerado mostra feito", contadores()[0] === "feito", contadores()[0]);
+    await baixarAte(cartoes()[0], "Feito");
+    confere("zerado mostra feito", contadores()[0] === "Feito", contadores()[0]);
     confere("cartão zerado ganha a classe feito", cartoes()[0].classList.contains("feito"));
     confere("uma aba não conclui por um exercício", !abaDe("A").querySelector(".marca"));
 
-    for (const item of cartoes().slice(1)) await baixarAte(item, "feito");
+    for (const item of cartoes().slice(1)) await baixarAte(item, "Feito");
     await respira(250);
     confere("zerar o último encerra o treino", Boolean(abaDe("A").querySelector(".marca")));
     confere("o encerramento automático é anunciado", avisoDiz("completo e gravado"),
@@ -88,7 +88,7 @@ const Sonda = (function () {
 
     abaDe("A").click();
     await respira(250);
-    confere("voltar para A mantém o feito", contadores().every((texto) => texto === "feito"));
+    confere("voltar para A mantém o feito", contadores().every((texto) => texto === "Feito"));
 
     abaDe("A").click();
     await respira();
@@ -159,7 +159,7 @@ const Sonda = (function () {
 
     // Concluir de novo no mesmo dia, depois de recomeçar o ciclo. O visto da aba vem da memória
     // e apareceria de qualquer jeito; quem denuncia a sessão fora do ciclo é o banco.
-    for (const item of cartoes()) await baixarAte(item, "feito");
+    for (const item of cartoes()) await baixarAte(item, "Feito");
     await respira(300);
     confere("A concluída de novo aparece na tela", Boolean(abaDe("A").querySelector(".marca")));
     confere("A concluída de novo entra no ciclo corrente",
@@ -210,11 +210,33 @@ const Sonda = (function () {
     const opcoes = [...seletor.querySelectorAll(".opcao")];
     confere("o toque longo no contador abre o seletor", seletor.open);
     confere("o seletor traz uma opção por valor", opcoes.length === 4, opcoes.length);
-    confere("as opções vão de feito até o total", opcoes.map((o) => o.textContent).join(",") === "feito,1,2,3",
+    confere("as opções vão de feito até o total", opcoes.map((o) => o.textContent).join(",") === "Feito,1,2,3",
       opcoes.map((o) => o.textContent).join(","));
     confere("o valor de agora vem marcado",
       opcoes.filter((o) => o.getAttribute("aria-current") === "true").map((o) => o.textContent).join() === "3");
-    opcoes[1].click();
+    // Clique em 0,0 cai fora da caixa de qualquer diálogo centralizado.
+    const tocarFora = (caixa) => caixa.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 0, clientY: 0 }));
+
+    tocarFora(seletor);
+    await respira(250);
+    confere("tocar fora fecha o seletor", !seletor.open);
+    confere("fechar sem escolher não muda o valor", contadores()[0] === "3×12", contadores()[0]);
+
+    abaDe("A").click();
+    await respira();
+    abaDe("A").click();
+    await respira(250);
+    confere("o menu do treino abre", menu().open);
+    tocarFora(menu());
+    await respira(250);
+    confere("tocar fora fecha o menu do treino", !menu().open);
+    confere("fechar o menu não encerra nem reseta", !abaDe("A").querySelector(".marca"));
+
+    alvo.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    await respira(600);
+    alvo.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+    await respira(250);
+    [...seletor.querySelectorAll(".opcao")][1].click();
     await respira(250);
     confere("um toque escolhe e fecha", !seletor.open);
     confere("o seletor grava o valor escolhido", contadores()[0] === "1×12", contadores()[0]);
