@@ -23,7 +23,6 @@ const NOME_DO_GRUPO = {
 };
 
 const LETRAS = Object.keys(TREINOS);
-const ALTURA_ITEM = 44;
 const ESPERA_TOQUE_LONGO = 400;
 const VAGA_DA_MAQUINA = 0;
 
@@ -336,37 +335,29 @@ function ligarContador(contador, exercicio) {
 }
 
 function abrirRoda(exercicio) {
-  const opcoes = [];
-  for (let valor = exercicio.series; valor >= 0; valor--) opcoes.push(valor);
-  alvoRoda = { exercicio, opcoes };
+  alvoRoda = exercicio;
+  const atual = faltam(exercicio);
 
   rodaTitulo.textContent = `Séries restantes: ${exercicio.nome}`;
-  roda.replaceChildren(
-    Object.assign(document.createElement("div"), { className: "vazio" }),
-    ...opcoes.map((valor) => {
-      const linha = document.createElement("button");
-      linha.type = "button";
-      linha.textContent = rotulo(valor, exercicio.reps);
-      linha.onclick = () => dialogoRoda.close(String(valor));
-      return linha;
-    }),
-    Object.assign(document.createElement("div"), { className: "vazio" })
-  );
+  roda.replaceChildren(...Array.from({ length: exercicio.series + 1 }, (_, valor) => {
+    const opcao = document.createElement("button");
+    opcao.type = "button";
+    opcao.className = "opcao";
+    opcao.textContent = valor === 0 ? "feito" : String(valor);
+    opcao.setAttribute("aria-label",
+      valor === 0 ? `Marcar ${exercicio.nome} como feito` : `${rotulo(valor, exercicio.reps)} restantes`);
+    if (valor === atual) opcao.setAttribute("aria-current", "true");
+    opcao.onclick = () => dialogoRoda.close(String(valor));
+    return opcao;
+  }));
 
   dialogoRoda.returnValue = "";
   dialogoRoda.showModal();
-  roda.scrollTop = opcoes.indexOf(faltam(exercicio)) * ALTURA_ITEM;
 }
-
-document.getElementById("roda-confirmar").onclick = () => {
-  const centralizado = Math.round(roda.scrollTop / ALTURA_ITEM);
-  const limitado = Math.min(Math.max(centralizado, 0), alvoRoda.opcoes.length - 1);
-  dialogoRoda.close(String(alvoRoda.opcoes[limitado]));
-};
 
 dialogoRoda.addEventListener("close", () => {
   if (dialogoRoda.returnValue === "") return;
-  definir(alvoRoda.exercicio, Number(dialogoRoda.returnValue));
+  definir(alvoRoda, Number(dialogoRoda.returnValue));
 });
 
 function abrirResetExercicio(exercicio) {

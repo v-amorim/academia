@@ -200,6 +200,25 @@ const Sonda = (function () {
     await respira();
     confere("o contador não passa do total", contadores()[0] === "3×12", contadores()[0]);
 
+    // Pelo gesto de verdade, e não chamando abrirRoda: é o único teste que passa pelo toque longo.
+    const seletor = document.getElementById("dialogo-roda");
+    const alvo = cartoes()[0].querySelector(".contador");
+    alvo.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    await respira(600);
+    alvo.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+    await respira(250);
+    const opcoes = [...seletor.querySelectorAll(".opcao")];
+    confere("o toque longo no contador abre o seletor", seletor.open);
+    confere("o seletor traz uma opção por valor", opcoes.length === 4, opcoes.length);
+    confere("as opções vão de feito até o total", opcoes.map((o) => o.textContent).join(",") === "feito,1,2,3",
+      opcoes.map((o) => o.textContent).join(","));
+    confere("o valor de agora vem marcado",
+      opcoes.filter((o) => o.getAttribute("aria-current") === "true").map((o) => o.textContent).join() === "3");
+    opcoes[1].click();
+    await respira(250);
+    confere("um toque escolhe e fecha", !seletor.open);
+    confere("o seletor grava o valor escolhido", contadores()[0] === "1×12", contadores()[0]);
+
     cartoes()[0].querySelector(".descricao").click();
     await respira();
     const dialogo = document.getElementById("dialogo-exercicio");
