@@ -4,7 +4,6 @@ const ICONE_CAMERA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 
 // O dado guarda o valor cru, minúsculo e sem acento; a tela mostra a palavra como um nativo
 // escreve, com diacrítico completo e maiúscula inicial.
-const NOME_DO_EQUIPAMENTO = { maquina: "Máquina", halteres: "Halteres", cabo: "Cabo", anilha: "Anilha" };
 const NOME_DO_GRUPO = {
   peito: "Peito", costas: "Costas", ombro: "Ombro", biceps: "Bíceps", triceps: "Tríceps",
   quadriceps: "Quadríceps", posterior: "Posterior", gluteo: "Glúteo", adutor: "Adutor",
@@ -93,15 +92,10 @@ const faltam = (exercicio) => restantes.get(exercicio.id) ?? exercicio.series;
 const letraFeita = (letra) => concluidas.has(letra);
 const rotulo = (faltando, reps) => (faltando === 0 ? "feito" : `${faltando}×${reps}`);
 
-// O equipamento entra como mais um item da lista, não como ícone: quatro silhuetas a 16px não
-// se distinguiam, e a de cabo lia como figura humana. Máquina é o padrão e fica implícita na
-// tela, porque na maioria dos cartões ela só empurrava a linha para duas; o leitor de tela ouve.
-const EQUIPAMENTO_PADRAO = "maquina";
-const etiquetasDe = (exercicio, { tudo = false } = {}) =>
-  [
-    ...(tudo || exercicio.equipamento !== EQUIPAMENTO_PADRAO ? [NOME_DO_EQUIPAMENTO[exercicio.equipamento]] : []),
-    ...exercicio.grupos.map((grupo) => NOME_DO_GRUPO[grupo])
-  ].join(" · ");
+// Só músculo. O equipamento vive dentro do nome do exercício, onde ele é parte de como a pessoa
+// chama o movimento, e não uma etiqueta de catálogo ao lado dele.
+const etiquetasDe = (exercicio) =>
+  exercicio.grupos.map((grupo) => NOME_DO_GRUPO[grupo]).join(" · ");
 
 // As séries que faltam são o número grande, e as repetições a linha pequena embaixo.
 // Sinal de multiplicação, não a letra x: é o que um nativo lê como "doze vezes".
@@ -277,7 +271,7 @@ function criarCartao(exercicio) {
     if (segurouNome()) return;
     abrirVisor(exercicio);
   };
-  meio.setAttribute("aria-label", `${exercicio.nome}. ${etiquetasDe(exercicio, { tudo: true })}. Abrir detalhes e fotos.`);
+  meio.setAttribute("aria-label", `${exercicio.nome}. ${etiquetasDe(exercicio)}. Abrir detalhes e fotos.`);
 
   const nome = document.createElement("div");
   nome.className = "nome";
