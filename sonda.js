@@ -291,6 +291,12 @@ const Sonda = (function () {
       roda(10, 120);
       await respira(300);
       confere("rolar a lista com a roda não troca de treino", ativa() === PRIMEIRA, ativa());
+
+      // Sem isto o Chrome do Android toma o toque como rolagem e cancela o ponteiro antes dos
+      // 60px. Nenhum navegador de mesa denuncia a falta, então quem denuncia é esta linha.
+      const toque = getComputedStyle(principal).touchAction;
+      confere("a lista entrega o horizontal ao app e guarda o vertical com o navegador",
+        toque.includes("pan-y"), toque);
     } else {
       confere("com um treino só, a fileira de abas some da tela",
         document.getElementById("abas").offsetParent === null);

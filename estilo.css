@@ -137,7 +137,18 @@ header {
 }
 .logo { display: block; }
 
-main { flex: 1; }
+/* O Chrome do Android decide quem é dono do toque no primeiro milímetro: sem declarar nada, ele
+   toma o gesto como rolagem e cancela o ponteiro por volta de 8px, muito antes dos 60px que
+   trocam de treino. A rolagem vertical continua sendo dele, o horizontal passa a ser do app.
+   A segunda linha devolve a pinça para quem entende o valor, e quem não entende fica com a
+   primeira: perder o zoom da página inteira seria pior do que perder o deslize. */
+main {
+  flex: 1;
+  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
+  /* Senão o mesmo gesto vira o "voltar" do navegador no meio do treino. */
+  overscroll-behavior-x: contain;
+}
 
 footer {
   position: sticky;
