@@ -263,18 +263,35 @@ const Sonda = (function () {
       };
       const ativa = () => NOMES.find((letra) => abaDe(letra).getAttribute("aria-selected") === "true");
 
+      const lista = document.getElementById("lista");
+
       deslizar(300, 200);
       await respira(250);
       confere("deslizar para a esquerda traz o próximo treino", ativa() === SEGUNDA, ativa());
+      confere("a lista entra pelo lado de onde veio", lista.classList.contains("entra-da-direita"),
+        lista.className);
       deslizar(200, 300);
       await respira(250);
       confere("deslizar para a direita volta ao anterior", ativa() === PRIMEIRA, ativa());
+      confere("voltar entra pelo outro lado", lista.classList.contains("entra-da-esquerda"),
+        lista.className);
       deslizar(300, 290);
       await respira(250);
       confere("deslize curto não troca de treino", ativa() === PRIMEIRA, ativa());
       deslizar(300, 200, 400);
       await respira(250);
       confere("dedo mais vertical é rolagem, e não troca de treino", ativa() === PRIMEIRA, ativa());
+      // Dedo humano sai do lugar em arco: o gesto torto vale, e só o mais vertical que horizontal
+      // é que não vale. Um passo de cada vez, porque é assim que o navegador entrega.
+      principal.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 300, clientY: 200 }));
+      for (const [x, alturaY] of [[294, 207], [280, 218], [250, 232], [210, 245], [180, 250]]) {
+        principal.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: x, clientY: alturaY }));
+      }
+      principal.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientX: 180, clientY: 250 }));
+      await respira(250);
+      confere("deslize torto, como o de um dedo, ainda troca de treino", ativa() === SEGUNDA, ativa());
+      deslizar(200, 300);
+      await respira(250);
 
       // No trackpad o mesmo gesto não gera ponteiro nenhum, só roda com deltaX.
       const roda = (deltaX, deltaY = 0) =>
@@ -293,10 +310,17 @@ const Sonda = (function () {
       confere("rolar a lista com a roda não troca de treino", ativa() === PRIMEIRA, ativa());
 
       // Sem isto o Chrome do Android toma o toque como rolagem e cancela o ponteiro antes dos
-      // 60px. Nenhum navegador de mesa denuncia a falta, então quem denuncia é esta linha.
-      const toque = getComputedStyle(principal).touchAction;
-      confere("a lista entrega o horizontal ao app e guarda o vertical com o navegador",
-        toque.includes("pan-y"), toque);
+      // 60px. Nenhum navegador de mesa denuncia a falta, então quem denuncia são estas linhas.
+      // Nos descendentes também, porque é neles que o dedo encosta.
+      const toqueDe = (elemento) => getComputedStyle(elemento).touchAction;
+      const naLista = [principal, cartoes()[0], cartoes()[0].querySelector(".descricao"),
+        cartoes()[0].querySelector(".foto")];
+      const semPanY = naLista.filter((elemento) => !toqueDe(elemento).includes("pan-y"));
+      confere("a lista e o que está dentro dela entregam o horizontal ao app",
+        semPanY.length === 0, semPanY.map((elemento) => elemento.className).join(","));
+      confere("o contador segue sendo do app inteiro, dele e do que está dentro",
+        toqueDe(cartoes()[0].querySelector(".contador")) === "none"
+          && toqueDe(cartoes()[0].querySelector(".serie")) === "none");
     } else {
       confere("com um treino só, a fileira de abas some da tela",
         document.getElementById("abas").offsetParent === null);

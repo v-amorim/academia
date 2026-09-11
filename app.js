@@ -220,7 +220,7 @@ function criarAba(letra, posicao) {
     if (passo === undefined) return;
     evento.preventDefault();
     const destino = (posicao + passo + LETRAS.length) % LETRAS.length;
-    await selecionar(LETRAS[destino]);
+    await selecionar(LETRAS[destino], passo);
     abas.children[destino].focus();
   };
   return botao;
@@ -247,7 +247,9 @@ function atualizarCiclo() {
   secaoCiclo.hidden = !LETRAS.every(letraFeita);
 }
 
-async function selecionar(letra) {
+// O sentido nasce da distância entre as abas, e quem deu a volta na fileira informa o seu: do C
+// para o A pelo deslize, a lista tem que entrar como quem foi adiante, não como quem voltou.
+async function selecionar(letra, sentido = Math.sign(LETRAS.indexOf(letra) - LETRAS.indexOf(letraAtiva))) {
   const minha = ++geracao;
   const daLetra = await exerciciosDe(letra);
   const { registros } = await Banco.lerSessaoDeHoje(perfilAtivo, letra);
@@ -259,8 +261,20 @@ async function selecionar(letra) {
   lista.setAttribute("aria-labelledby", `aba-${letra}`);
   cartoes = exercicios.map(criarCartao);
   lista.replaceChildren(...cartoes.map((cartao) => cartao.item));
+  animarEntrada(sentido);
   atualizarAbas();
   atualizarCiclo();
+}
+
+// A lista entra pelo lado de onde veio. Sem isto, trocar de treino é um piscar sem direção: a
+// pílula anda e o conteúdo aparece já no lugar, como se nada tivesse se movido.
+function animarEntrada(sentido) {
+  lista.classList.remove("entra-da-direita", "entra-da-esquerda");
+  if (!sentido) return;
+  // Ler o layout entre tirar e pôr, senão trocar de classe no mesmo quadro não reinicia a
+  // animação e a segunda troca seguida fica parada.
+  void lista.offsetWidth;
+  lista.classList.add(sentido > 0 ? "entra-da-direita" : "entra-da-esquerda");
 }
 
 // Deslizar na lista troca de treino, como virar página: o conteúdo segue o dedo, então puxar para
@@ -271,7 +285,7 @@ let deslizou = false;
 
 function trocarVizinha(passo) {
   const posicao = (LETRAS.indexOf(letraAtiva) + passo + LETRAS.length) % LETRAS.length;
-  selecionar(LETRAS[posicao]);
+  selecionar(LETRAS[posicao], passo);
   aviso.textContent = `Treino ${LETRAS[posicao]}.`;
 }
 
@@ -283,25 +297,26 @@ principal.addEventListener("pointerdown", (evento) => {
     : null;
 });
 
-principal.addEventListener("pointermove", (evento) => {
+// O gesto começa na lista e é acompanhado no documento, como Swiper e Embla fazem: preso ao
+// elemento, ele morria quando o dedo saía da lista no meio do caminho.
+document.addEventListener("pointermove", (evento) => {
   if (!deslize) return;
   const dx = evento.clientX - deslize.x;
   const dy = evento.clientY - deslize.y;
-  // Antes da folga o dedo ainda não tem direção. Passada ela, dedo mais vertical é rolagem da
-  // lista, e a decisão vale até soltar: no meio de uma rolagem ninguém quer trocar de treino.
-  if (Math.hypot(dx, dy) < FOLGA_DO_DEDO) return;
-  if (Math.abs(dx) < Math.abs(dy) * 2) {
-    deslize = null;
-    return;
-  }
-  if (Math.abs(dx) < DESLIZE_MINIMO) return;
+  // Nenhum gesto morre por um quadro torto: dedo humano sai do lugar em arco, e os primeiros
+  // milímetros são quase sempre mais verticais do que o resto. Quem descarta a rolagem é o
+  // navegador, que manda pointercancel no instante em que assume o toque; aqui só se compara o
+  // total percorrido, e no fim do gesto, quando ele já tem forma.
+  if (Math.abs(dx) < DESLIZE_MINIMO || Math.abs(dx) <= Math.abs(dy)) return;
   deslize = null;
   deslizou = true;
   trocarVizinha(dx < 0 ? 1 : -1);
 });
 
-for (const nome of ["pointerup", "pointercancel", "pointerleave"]) {
-  principal.addEventListener(nome, () => { deslize = null; });
+// Sem pointerleave: dedo que sai da lista continua no mesmo gesto. Quem encerra é soltar, e quem
+// desiste é o navegador ao assumir o toque para rolar.
+for (const nome of ["pointerup", "pointercancel"]) {
+  document.addEventListener(nome, () => { deslize = null; });
 }
 
 // Com o mouse, arrastar e soltar em cima de um cartão ainda gera clique, e ele abriria o visor
@@ -337,9 +352,11 @@ principal.addEventListener("wheel", (evento) => {
   trocarVizinha(rodaAcumulada > 0 ? 1 : -1);
 }, { passive: false });
 
-function criarCartao(exercicio) {
+function criarCartao(exercicio, posicao) {
   const item = document.createElement("li");
   item.className = "exercicio";
+  // Só serve à escada da entrada: é o que dá a cada cartão o seu atraso.
+  item.style.setProperty("--posicao", posicao);
 
   const contador = document.createElement("button");
   contador.type = "button";

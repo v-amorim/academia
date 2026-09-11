@@ -89,6 +89,21 @@ button {
   /* Só o dígito que acabou de mudar entra assim, nunca a lista inteira ao carregar. */
   .serie.entrando { animation: entrar 200ms var(--curva); }
 
+  /* A lista entra pelo lado de onde veio, um cartão depois do outro. Deslocamento curto, e não a
+     largura da tela: a lista que sai não existe mais quando esta entra, e uma travessia inteira
+     sem par vira salto. A escada é o que faz a troca parecer movimento, e não troca de imagem. */
+  #lista.entra-da-direita .exercicio,
+  #lista.entra-da-esquerda .exercicio {
+    animation-duration: 240ms;
+    animation-timing-function: var(--curva);
+    /* backwards, senão o cartão atrasado aparece no lugar e só depois recua para entrar. */
+    animation-fill-mode: backwards;
+    /* Teto no atraso: com dezenove exercícios, a escada não pode virar espera. */
+    animation-delay: min(calc(var(--posicao, 0) * 22ms), 130ms);
+  }
+  #lista.entra-da-direita .exercicio { animation-name: entrar-da-direita; }
+  #lista.entra-da-esquerda .exercicio { animation-name: entrar-da-esquerda; }
+
   /* Entrada com escala e saída só com opacidade, mais curta: quem fecha já está olhando para
      o resto da tela. display e overlay discretos são o que deixa o <dialog> nativo animar ao sair. */
   dialog {
@@ -111,6 +126,16 @@ button {
 
 @keyframes entrar {
   from { opacity: 0; translate: 0 6px; filter: blur(4px); }
+}
+
+/* Percurso em fração da tela, e não em pixel fixo: o gesto que traz a lista atravessa o celular
+   inteiro, e um deslocamento de alguns pixels não lê como resposta a ele. */
+@keyframes entrar-da-direita {
+  from { opacity: 0; translate: 18vw 0; }
+}
+
+@keyframes entrar-da-esquerda {
+  from { opacity: 0; translate: -18vw 0; }
 }
 
 .oculto-visual {
@@ -137,17 +162,25 @@ header {
 }
 .logo { display: block; }
 
+main {
+  flex: 1;
+  /* Senão o mesmo gesto vira o "voltar" do navegador no meio do treino. */
+  overscroll-behavior-x: contain;
+  /* clip, e não hidden: corta o cartão que entra vindo de fora sem virar caixa de rolagem. */
+  overflow-x: clip;
+}
+
 /* O Chrome do Android decide quem é dono do toque no primeiro milímetro: sem declarar nada, ele
    toma o gesto como rolagem e cancela o ponteiro por volta de 8px, muito antes dos 60px que
    trocam de treino. A rolagem vertical continua sendo dele, o horizontal passa a ser do app.
    A segunda linha devolve a pinça para quem entende o valor, e quem não entende fica com a
-   primeira: perder o zoom da página inteira seria pior do que perder o deslize. */
-main {
-  flex: 1;
+   primeira: perder o zoom da página inteira seria pior do que perder o deslize.
+
+   Nos descendentes também, e não só na lista: é onde o dedo encosta, e o navegador cancela cedo
+   demais quando só o contêiner declara. É o que Swiper e Embla fazem, com `.carousel, .carousel *`. */
+main, main * {
   touch-action: pan-y;
   touch-action: pan-y pinch-zoom;
-  /* Senão o mesmo gesto vira o "voltar" do navegador no meio do treino. */
-  overscroll-behavior-x: contain;
 }
 
 footer {
@@ -314,9 +347,11 @@ footer {
   background: var(--superficie-alta);
   font-variant-numeric: tabular-nums;
   /* O gesto de arrastar é do app, não do navegador: sem isto a lista rola e o ajuste é
-     cancelado no primeiro milímetro. O preço é não dar para rolar a lista pelo contador. */
+     cancelado no primeiro milímetro. O preço é não dar para rolar a lista pelo contador.
+     Depois da regra de `main *`, e por classe, para vencer o pan-y dos descendentes. */
   touch-action: none;
 }
+.contador * { touch-action: none; }
 .contador.ajustando { overflow: visible; }
 
 /* O preenchimento sobe com as séries já feitas. Uma cor só ganhando altura, e não uma cor por
