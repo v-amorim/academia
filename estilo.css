@@ -11,12 +11,12 @@
 
 :root {
   --noite-900: #0D0E17;
-  --noite-800: #191726;
-  --noite-600: #303751;
-  --noite-500: #3C466F;
-  --tinta-100: #F8EAF8;
-  --tinta-400: #AEA4BF;
-  --azul-400: #5DABF3;
+  --noite-800: #141726;
+  --noite-600: #252A42;
+  --noite-500: #2F3654;
+  --tinta-100: #EEEEFA;
+  --tinta-400: #9BA3C4;
+  --azul-400: #8A9BE0;
   --lavanda-300: #B0B9E5;
   --ambar-400: #FFCB6B;
 
@@ -191,8 +191,7 @@ header { padding-block: 16px 0; padding-inline: 16px; }
 }
 
 /* O preenchimento sobe com as séries já feitas. Uma cor só ganhando altura, e não uma cor por
-   etapa: lavanda já significa concluído no app, e hue nova criaria significado novo.
-   Medido no pior caso, com o preenchimento cheio: --texto sobre ele dá 5,74:1. */
+   etapa: lavanda já significa concluído no app, e hue nova criaria significado novo. */
 .contador::before {
   content: "";
   position: absolute;
@@ -207,10 +206,9 @@ header { padding-block: 16px 0; padding-inline: 16px; }
 .contador > * { grid-area: 1 / 1; position: relative; }
 
 /* Marca d'água no canto, sangrando na borda de propósito, escura para ler como sombra e não
-   como texto. Sobre superfície escura ela não passa de 1,64:1 nem no preto puro, então é
-   textura e não informação: quem carrega quantas séries faltam é a altura do preenchimento,
-   mais o aria-label do botão. Ela aparece mais conforme a lavanda sobe atrás, que é o efeito
-   desejado. */
+   como texto. Num tema escuro não existe sombra legível, então ela é textura e não informação:
+   quem carrega quantas séries faltam é a altura do preenchimento, mais o aria-label do botão.
+   Ela aparece mais conforme a lavanda sobe atrás, que é o efeito desejado. */
 .fantasma {
   position: absolute;
   inset-inline-end: -2px;
@@ -221,7 +219,7 @@ header { padding-block: 16px 0; padding-inline: 16px; }
   font-size: 50px;
   line-height: 1;
 }
-/* --texto e não --texto-secundario: sobre o preenchimento cheio o secundário cai para 2,81:1. */
+/* --texto e não --texto-secundario: sobre o preenchimento cheio o secundário reprova AA. */
 /* O contorno é o que deixa as duas camadas ocuparem o mesmo centro sem disputar. paint-order
    põe o traço atrás do preenchimento, senão ele engorda a letra por dentro. */
 .reps {
