@@ -19,9 +19,6 @@
 
 <header>
   <h1 class="oculto-visual">Treino ABC</h1>
-  <fieldset id="perfis">
-    <legend class="oculto-visual">Quem está treinando</legend>
-  </fieldset>
   <nav id="abas" role="tablist" aria-label="Treinos"></nav>
 </header>
 
@@ -35,6 +32,14 @@
 
   <ul id="lista" role="tabpanel"></ul>
 </main>
+
+<!-- Depois da lista, e não no topo: trocar de perfil acontece uma vez por treino, e o topo
+     pertence a quem está treinando agora. -->
+<footer>
+  <fieldset id="perfis">
+    <legend class="oculto-visual">Quem está treinando</legend>
+  </fieldset>
+</footer>
 
 <p id="aviso" class="oculto-visual" role="status"></p>
 
