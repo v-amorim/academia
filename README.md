@@ -81,7 +81,7 @@ flowchart TB
 
   html --> app
   app -->|"exercício, sessão, foto"| banco
-  fichas -->|"semeia na 1ª abertura"| banco
+  fichas -->|"semeia o que falta"| banco
   banco --> idb
   html -.-> sw
   sw --> cache
@@ -182,6 +182,9 @@ config:
     pie3: "#462f4d"
     pie4: "#4b2b3b"
     pie5: "#3d514d"
+    pie6: "#2f3a5c"
+    pie7: "#453a5e"
+    pie8: "#38304a"
     pieTitleTextColor: "#EEEEFA"
     pieSectionTextColor: "#EEEEFA"
     pieLegendTextColor: "#EEEEFA"
@@ -189,27 +192,34 @@ config:
     pieOuterStrokeColor: "#252A42"
 ---
 pie showData
-  title 139 conferências, medidas em 2026-09-11
+  title 218 conferências, medidas em 2026-09-11
   "Comportamento" : 54
+  "Carga e histórico" : 50
+  "Teclado e gestos" : 41
   "Migração de banco antigo" : 37
-  "Teclado e gestos" : 39
+  "Perfil de exemplo" : 20
+  "Limpeza de perfil" : 7
   "Sintaxe" : 5
   "Montagem em file://" : 4
 ```
 
 Sem framework de teste. Um servidor `node:http` injeta uma sonda na página, e a página devolve o
-resultado por `fetch`.
+resultado por `fetch`. Os casos rodam três de cada vez, cada um no seu perfil de Chrome, e
+`node verificar.mjs carga` roda só o que casa com a palavra.
 
 ## O que ele faz
 
 | Recurso              | Comportamento                                                                                                                      |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Contador de séries   | Um toque desce uma série. Segurar e arrastar ajusta no lugar, como o seletor de hora do celular. As setas do teclado fazem o mesmo |
-| Ciclo de treinos     | De um treino em diante, com nomes livres. Concluir todos libera o reinício                                                         |
-| Trocar de treino     | Toque na letra, deslize na lista como quem vira página, ou as setas do teclado                                                     |
+| Carga do dia         | Um número por exercício, herdado da última vez. Sobe, cai ou fica, e o cartão diz qual                                            |
+| Três tipos de exercício | Peso na máquina, peso do corpo sem número nenhum, e aeróbico com tempo mais velocidade ou nível                                |
+| Histórico            | O treino inteiro por exercício, com a progressão dia a dia e o que saiu do treino                                                 |
+| Ciclo de treinos     | De um treino em diante, com nomes livres. Concluir todos libera o reinício                                                        |
+| Trocar de treino     | Toque na letra, deslize como quem vira página, ou as setas do teclado                                                             |
 | Detalhe do exercício | Aparelho, código do vídeo, três fotos da máquina, da câmera ou da galeria, e um campo para as regulagens                          |
-| Foto em tela cheia   | Pinça, arrasto e toque duplo                                                                                                       |
-| Dois perfis          | Mesmo catálogo, progresso separado                                                                                                 |
+| Foto em tela cheia   | Pinça, arrasto e toque duplo                                                                                                      |
+| Três perfis          | Dois que dividem o catálogo da academia, e um de exemplo com treino e histórico próprios                                          |
 
 ## Por que assim
 
@@ -218,6 +228,8 @@ resultado por `fetch`.
 | Scripts clássicos, não módulos                      | `type="module"` não executa em `file://`, e a página precisa abrir com dois cliques                                  |
 | Id fixo escrito no código                           | O catálogo é compartilhado entre aparelhos, e id sorteado em cada um duplicaria tudo na primeira sincronização       |
 | Gestos por pointer events                           | A pinça nativa ampliaria a página inteira junto com o diálogo. Todo gesto tem equivalente de teclado                 |
+| Trocar de treino por scroll snap                    | Um painel por treino num trilho. O conteúdo segue o dedo, volta sozinho no meio do gesto, e a física é a do sistema  |
+| Remover exercício é arquivar                        | O peso foi levantado. Ele sai da lista do dia, continua no histórico, e volta pelo botão que está lá                 |
 | Rede primeiro na navegação, cache primeiro no resto | Versão nova aparece já na primeira abertura com sinal, e abrir rápido na academia vale mais que o CSS da última hora |
 | `<dialog>` nativo                                   | Prisão de foco, Escape, foco de volta no gatilho e fundo inerte vêm de graça                                         |
 
@@ -267,7 +279,7 @@ acrescente em `CAMINHOS_CHROME`.
 | `index.html`    | Só a marcação                                                        |
 | `estilo.css`    | Tokens de cor e todo o estilo                                        |
 | `mulish.woff2`  | A fonte, servida do próprio repositório para funcionar sem rede      |
-| `fichas.js`     | Os exercícios e os perfis                                            |
+| `fichas.js`     | Os exercícios, os perfis e o treino de exemplo                       |
 | `banco.js`      | Acesso a dado. Único arquivo que toca IndexedDB e localStorage       |
 | `app.js`        | Tela, gestos e diálogos                                              |
 | `sonda.js`      | As asserções que rodam com o app montado no navegador                |

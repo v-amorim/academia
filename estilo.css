@@ -18,6 +18,9 @@
   --azul-400: #8A9BE0;
   --lavanda-300: #B0B9E5;
   --ambar-400: #FFCB6B;
+  /* O `error` da Moonlight, #CA5F71, reprova AA no tamanho deste texto sobre a superfície alta,
+     em 3,6:1. Este é o tom quente claro da mesma paleta, e não um clareamento à mão. */
+  --rosa-300: #FFAFAF;
   --branco-08: rgb(255 255 255 / 0.08);
   --branco-13: rgb(255 255 255 / 0.13);
 
@@ -26,6 +29,8 @@
   --superficie-alta: var(--noite-600);
   --anel: var(--branco-08);
   --anel-forte: var(--branco-13);
+  /* Separador de verdade, e não contorno: o que divide séries de carga dentro da mesma caixa. */
+  --divisor: var(--branco-13);
   --texto: var(--tinta-100);
   --texto-secundario: var(--tinta-400);
   --acento: var(--azul-400);
@@ -34,6 +39,10 @@
   --feito: var(--lavanda-300);
   --feito-texto: var(--noite-900);
   --alerta: var(--ambar-400);
+  /* Carga que subiu e carga que caiu. O ganho reusa a lavanda de propósito: neste app ela já quer
+     dizer "deu certo", e gastar hue nova em cada significado parecido é o que enche a tela. */
+  --ganho: var(--lavanda-300);
+  --queda: var(--rosa-300);
 
   --raio-carta: 16px;
   --raio-painel: 24px;
@@ -71,38 +80,21 @@ button {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .contador, .foto, .aba, .primario, .secundario, .exercicio, .vaga, .vaga-quadro, #perfis label {
+  .contador, .foto, .aba, .primario, .secundario, .exercicio, .vaga, .vaga-quadro, .carga-valor, #perfis label {
     transition-property: background-color, box-shadow, color, scale;
     transition-duration: 120ms;
     transition-timing-function: var(--curva);
   }
   /* 150ms é o teto para retorno de interação frequente: baixar série acontece o tempo todo. */
   .contador::before { transition: height 150ms var(--curva); }
-  .contador:active, .foto:active, .aba:active, .primario:active, .secundario:active, #perfis label:active,
+  .contador:active, .foto:active, .aba:active, .primario:active, .secundario:active,
+  .carga-valor:active, #perfis label:active,
   .vaga:active .vaga-quadro { scale: 0.96; }
   /* Ajustando, o contador não encolhe: a fita que o cobre ficaria fora de lugar. */
   .contador.ajustando:active { scale: 1; }
 
-  /* A pílula desliza até a aba escolhida em vez de aparecer nela. */
-  #abas::before { transition: translate 200ms var(--curva); }
-
   /* Só o dígito que acabou de mudar entra assim, nunca a lista inteira ao carregar. */
   .serie.entrando { animation: entrar 200ms var(--curva); }
-
-  /* A lista entra pelo lado de onde veio, um cartão depois do outro. Deslocamento curto, e não a
-     largura da tela: a lista que sai não existe mais quando esta entra, e uma travessia inteira
-     sem par vira salto. A escada é o que faz a troca parecer movimento, e não troca de imagem. */
-  #lista.entra-da-direita .exercicio,
-  #lista.entra-da-esquerda .exercicio {
-    animation-duration: 240ms;
-    animation-timing-function: var(--curva);
-    /* backwards, senão o cartão atrasado aparece no lugar e só depois recua para entrar. */
-    animation-fill-mode: backwards;
-    /* Teto no atraso: com dezenove exercícios, a escada não pode virar espera. */
-    animation-delay: min(calc(var(--posicao, 0) * 22ms), 130ms);
-  }
-  #lista.entra-da-direita .exercicio { animation-name: entrar-da-direita; }
-  #lista.entra-da-esquerda .exercicio { animation-name: entrar-da-esquerda; }
 
   /* Entrada com escala e saída só com opacidade, mais curta: quem fecha já está olhando para
      o resto da tela. display e overlay discretos são o que deixa o <dialog> nativo animar ao sair. */
@@ -130,13 +122,7 @@ button {
 
 /* Percurso em fração da tela, e não em pixel fixo: o gesto que traz a lista atravessa o celular
    inteiro, e um deslocamento de alguns pixels não lê como resposta a ele. */
-@keyframes entrar-da-direita {
-  from { opacity: 0; translate: 18vw 0; }
-}
 
-@keyframes entrar-da-esquerda {
-  from { opacity: 0; translate: -18vw 0; }
-}
 
 .oculto-visual {
   position: absolute;
@@ -160,27 +146,55 @@ header {
   padding-inline: 16px;
   background: var(--fundo);
 }
+/* A marca é botão, então precisa de alvo de toque, mas não de caixa: ela já é uma forma. */
+#abrir-historico {
+  display: grid;
+  place-items: center;
+  min-width: var(--alvo);
+  min-height: var(--alvo);
+  padding: 0;
+  border: 0;
+  border-radius: var(--raio-interno-painel);
+  background: none;
+}
 .logo { display: block; }
 
+/* Coluna: o aviso e a seção do ciclo em cima, e o carrossel ocupando o que sobra. min-height: 0
+   porque item de flex não encolhe abaixo do conteúdo sem isso, e aí o painel nunca rolaria. */
 main {
   flex: 1;
-  /* Senão o mesmo gesto vira o "voltar" do navegador no meio do treino. */
-  overscroll-behavior-x: contain;
-  /* clip, e não hidden: corta o cartão que entra vindo de fora sem virar caixa de rolagem. */
-  overflow-x: clip;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-/* O Chrome do Android decide quem é dono do toque no primeiro milímetro: sem declarar nada, ele
-   toma o gesto como rolagem e cancela o ponteiro por volta de 8px, muito antes dos 60px que
-   trocam de treino. A rolagem vertical continua sendo dele, o horizontal passa a ser do app.
-   A segunda linha devolve a pinça para quem entende o valor, e quem não entende fica com a
-   primeira: perder o zoom da página inteira seria pior do que perder o deslize.
+/* Um trilho com um painel por treino. Quem arrasta é o navegador: scroll snap entrega o conteúdo
+   seguindo o dedo, a inércia, e o voltar quando o gesto não passa da metade, sem uma linha de
+   física escrita à mão. O `contain` impede que o mesmo gesto vire o "voltar" do navegador.
 
-   Nos descendentes também, e não só na lista: é onde o dedo encosta, e o navegador cancela cedo
-   demais quando só o contêiner declara. É o que Swiper e Embla fazem, com `.carousel, .carousel *`. */
-main, main * {
-  touch-action: pan-y;
-  touch-action: pan-y pinch-zoom;
+   Saiu daqui o touch-action: pan-y que existia para o deslize feito à mão. Com o trilho nativo
+   ele proibiria justamente o arrasto horizontal que agora pertence ao navegador. */
+#carrossel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: inline mandatory;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+#carrossel::-webkit-scrollbar { display: none; }
+
+/* `scroll-snap-stop: always` é o que faz um lance rápido andar um treino, e não atravessar a
+   fileira: sem ele, o dedo apressado pula do A para o C. */
+.painel {
+  flex: none;
+  inline-size: 100%;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 footer {
@@ -305,7 +319,7 @@ footer {
 .secundario { background: var(--superficie-alta); color: var(--texto); box-shadow: 0 0 0 1px var(--anel); }
 #ciclo .primario { width: 100%; }
 
-#lista { list-style: none; margin: 0; padding: 8px 16px; display: grid; gap: 12px; }
+.lista { list-style: none; margin: 0; padding: 8px 16px 16px; display: grid; gap: 12px; }
 
 /* Anel translúcido no lugar de borda: sobre fundo escuro a borda sólida virava moldura e o
    cartão lia como wireframe. O contador e a foto ficam tonais, sem moldura própria, para o
@@ -313,7 +327,9 @@ footer {
 .exercicio {
   position: relative;
   display: grid;
-  grid-template-columns: 64px 1fr 64px;
+  /* A primeira coluna é mais larga que a foto por quatro pixels: é o que faz "52,5 kg" caber sem
+     encostar nas pontas da caixa. */
+  grid-template-columns: 68px 1fr 64px;
   gap: 12px;
   align-items: center;
   padding: 8px;
@@ -338,13 +354,14 @@ footer {
   align-content: center;
   justify-items: center;
   gap: 2px;
-  width: 64px;
-  height: 64px;
+  width: 100%;
+  min-height: 56px;
   padding: 0;
   overflow: hidden;
   border: 0;
-  border-radius: var(--raio-interno-carta);
-  background: var(--superficie-alta);
+  /* Só as pontas de cima: as de baixo pertencem à carga, que fecha a caixa. */
+  border-radius: var(--raio-interno-carta) var(--raio-interno-carta) 0 0;
+  background: none;
   font-variant-numeric: tabular-nums;
   /* O gesto de arrastar é do app, não do navegador: sem isto a lista rola e o ajuste é
      cancelado no primeiro milímetro. O preço é não dar para rolar a lista pelo contador.
@@ -353,6 +370,9 @@ footer {
 }
 .contador * { touch-action: none; }
 .contador.ajustando { overflow: visible; }
+/* Terceira vez que isto morde: display declarado pelo autor vence o hidden do navegador, e o
+   mostrador fica na tela junto do campo que deveria ter tomado o lugar dele. */
+.contador[hidden] { display: none; }
 
 /* O preenchimento sobe com as séries já feitas. Uma cor só ganhando altura, e não uma cor por
    etapa: lavanda já significa concluído no app, e hue nova criaria significado novo. */
@@ -391,6 +411,107 @@ footer {
 .contador[data-feito="1"] { background: var(--feito); color: var(--feito-texto); }
 .contador[data-feito="1"] .serie { color: var(--feito-texto); }
 
+/* A carga ocupa a largura inteira do cartão, embaixo dos três blocos. Separada por espaço, e não
+   por linha: a linha viraria moldura dentro de um cartão que já tem anel. */
+/* Séries e carga numa caixa só, divididas por um traço. É o primeiro divisor de verdade do app:
+   não é moldura em volta de nada, é a linha que separa duas leituras que dividem a mesma caixa. */
+.bloco {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  align-self: center;
+  border-radius: var(--raio-interno-carta);
+  background: var(--superficie-alta);
+}
+
+.carga-valor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 28px;
+  padding: 0 4px;
+  border: 0;
+  border-top: 1px solid var(--divisor);
+  border-radius: 0 0 var(--raio-interno-carta) var(--raio-interno-carta);
+  background: none;
+  color: var(--texto);
+  font-weight: 700;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.carga-valor svg { width: 12px; height: 12px; flex: none; }
+/* Com display declarado aqui, o hidden do navegador não esconde mais nada: sem esta linha o chip
+   continua na tela enquanto o campo aparece embaixo, e a caixa ganha uma terceira faixa. */
+.carga-valor[hidden] { display: none; }
+
+/* Caixa alta e menor: as duas letras passam a ter a mesma altura, e a unidade para de brigar com
+   os dígitos tabulares do lado. O texto continua "kg" no código, como se escreve. */
+.unidade {
+  margin-inline-start: 2px;
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+/* Sem carga, o lugar continua reservado e convida sem gritar: o "+" conta que ali se escreve. */
+.carga-valor[data-vazio="1"] { color: var(--texto-secundario); font-weight: 600; }
+.carga-ganho { color: var(--ganho); }
+.carga-queda { color: var(--queda); }
+
+/* 16px no campo, senão o Safari do iPhone dá zoom na página ao focar. */
+.carga-campo {
+  width: 100%;
+  min-height: 28px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 0 0 var(--raio-interno-carta) var(--raio-interno-carta);
+  background: var(--superficie-alta);
+  box-shadow: 0 0 0 2px var(--acento);
+  color: var(--texto);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.carga-campo[hidden] { display: none; }
+/* O campo do tempo mora na caixa de cima, então tem a altura dela e as pontas de cima. */
+.tempo-campo {
+  min-height: 56px;
+  border-radius: var(--raio-interno-carta) var(--raio-interno-carta) 0 0;
+  font-size: 20px;
+}
+
+/* No aeróbico a caixa de cima é o tempo digitado, e não o contador de séries: ela perde o
+   preenchimento de progresso e ganha o mesmo desenho de número e unidade da carga. */
+.contador[data-vazio] { font-weight: 800; font-size: 22px; }
+.contador[data-vazio] .unidade { font-weight: 700; }
+.contador[data-vazio="1"] { color: var(--texto-secundario); }
+
+.carga-nota { min-width: 0; display: flex; align-items: center; gap: 6px; }
+
+/* Pílula de fundo tingido pela própria cor, em vez de texto colorido solto: o texto ganha uma
+   superfície própria e para de brigar com o cartão, e a cor vira etiqueta em vez de aviso. */
+.selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.selo svg { width: 13px; height: 13px; flex: none; }
+/* Só o sinal de igual, sem número ao lado: a pílula encolhe para o tamanho do ícone. */
+.selo-neutro:has(svg) { padding-inline: 6px; }
+.selo-ganho { background: color-mix(in oklab, var(--ganho) 15%, transparent); color: var(--ganho); }
+.selo-queda { background: color-mix(in oklab, var(--queda) 15%, transparent); color: var(--queda); }
+/* Sobre a superfície alta, um neutro tirado dela some. O branco a 7% funciona nas duas. */
+.selo-neutro { background: rgb(255 255 255 / 0.07); color: var(--texto-secundario); }
+
 /* min-width: 0 em item de grid, senão o conteúdo sem quebra estica a faixa além da tela. */
 .descricao {
   min-width: 0;
@@ -425,9 +546,12 @@ footer {
   text-wrap: pretty;
 }
 
+/* Acompanha a altura da caixa de séries e carga, em vez de boiar no meio: com as duas colunas
+   fechando na mesma linha, o cartão lê como um bloco só. */
 .foto {
   width: 64px;
-  height: 64px;
+  align-self: stretch;
+  min-height: 64px;
   padding: 0;
   border: 0;
   border-radius: var(--raio-interno-carta);
@@ -557,6 +681,169 @@ dialog p { margin: 0 0 16px; color: var(--texto-secundario); font-size: 15px; }
 #visor-quadro img { display: block; max-width: 100%; max-height: 36vh; border-radius: var(--raio-interno-painel); }
 /* A foto grande é botão: toque abre em tela cheia. O botão some atrás da imagem. */
 .ampliar { display: block; padding: 0; border: 0; border-radius: var(--raio-interno-painel); background: none; cursor: zoom-in; }
+
+/* O histórico é lista longa, então ocupa a tela quase inteira e rola por dentro, em vez de
+   crescer até estourar. Largura maior que a dos outros diálogos: aqui cabem nome, carga e data
+   na mesma linha. */
+#historico {
+  width: min(420px, calc(100vw - 24px));
+  max-height: calc(100dvh - 48px);
+  padding: 14px;
+  overscroll-behavior: contain;
+}
+/* Só aberto: estilo de autor vence o display do navegador, e um flex solto deixaria o painel
+   visível com o diálogo fechado. */
+#historico[open] { display: flex; flex-direction: column; gap: 10px; }
+.historico-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.historico-topo h2 { margin: 0; }
+#historico-busca {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--raio-interno-painel);
+  background: var(--superficie-alta);
+  box-shadow: 0 0 0 1px var(--anel);
+  color: var(--texto);
+  font: inherit;
+  /* 16px, senão o Safari do iPhone dá zoom na página ao focar. */
+  font-size: 16px;
+}
+#historico-busca::placeholder { color: var(--texto-secundario); }
+
+#historico-lista { overflow-y: auto; display: grid; gap: 8px; }
+/* Não gruda no topo: dentro de um diálogo que rola por dentro, o Chrome do celular às vezes perde
+   a camada e para de pintar a lista inteira. Um título que rola junto custa menos que isso. */
+.historico-treino {
+  margin: 0;
+  padding-block: 6px 2px;
+  background: var(--superficie);
+  color: var(--texto-secundario);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.historico-treino:not(:first-child) { padding-top: 10px; }
+#historico-vazio { margin: 0; padding-block: 8px; text-wrap: pretty; }
+
+.historico-linha {
+  border-radius: var(--raio-carta);
+  background: var(--superficie-alta);
+  box-shadow: 0 0 0 1px var(--anel);
+}
+.historico-resumo {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  align-items: baseline;
+  padding: 10px 12px;
+  border-radius: var(--raio-carta);
+  /* O triângulo nativo ocuparia a coluna do nome e desalinharia as duas linhas. */
+  list-style: none;
+}
+summary.historico-resumo { cursor: pointer; }
+.historico-resumo::-webkit-details-marker { display: none; }
+.historico-resumo:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+/* Sem carga a linha existe para dizer que o exercício está lá, e não para competir com as que
+   têm número. */
+.historico-sem { color: var(--texto-secundario); font-weight: 600; font-size: 12px; }
+.historico-nome { font-weight: 600; font-size: 14px; line-height: 1.3; text-wrap: balance; }
+.historico-agora { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.historico-grupos, .historico-tendencia {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--texto-secundario);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.historico-tendencia { justify-content: flex-end; white-space: nowrap; }
+.tendencia-dia { font-size: 11px; }
+
+/* Fora do treino vai para o fundo da página, um degrau abaixo do painel: a linha afunda em vez
+   de flutuar, e o olho separa o que está no treino do que já saiu antes de ler o título. */
+.historico-fora { background: var(--fundo); }
+.historico-fora .historico-nome, .historico-fora .historico-agora { color: var(--texto-secundario); }
+
+.historico-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+.historico-saiu { color: var(--texto-secundario); font-size: 12px; font-variant-numeric: tabular-nums; }
+.historico-acoes .secundario { min-height: 34px; padding-inline: 14px; font-size: 13px; }
+
+/* Fileira de treinos do diálogo de reativar: mesmo trilho e mesma pílula das abas, porque é a
+   mesma escolha, só que feita de outro lugar. */
+#reativar-treinos {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: var(--raio-trilho);
+  background: var(--superficie-alta);
+}
+#reativar-treinos label {
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  border-radius: var(--raio-interno-trilho);
+  color: var(--texto-secundario);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+#reativar-treinos label:has(:checked) { background: var(--superficie); color: var(--texto); box-shadow: 0 0 0 1px var(--anel); }
+#reativar-treinos label:has(:focus-visible) { outline: 2px solid var(--foco); outline-offset: 2px; }
+
+.progressao-bloco { padding: 0 12px 12px; }
+.progressao-resumo {
+  margin: 0 0 8px;
+  color: var(--texto-secundario);
+  font-size: 12px;
+  text-wrap: pretty;
+}
+.progressao { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.progressao li { display: grid; grid-template-columns: 40px 1fr auto 48px; gap: 8px; align-items: center; }
+/* O passo do dia, à direita do valor: é a leitura que responde "mudou quanto" sem fazer conta. */
+.progressao-passo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  color: var(--texto-secundario);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.progressao-passo svg { width: 12px; height: 12px; flex: none; }
+.passo-ganho { color: var(--ganho); }
+.passo-queda { color: var(--queda); }
+/* A barra do dia acompanha a direção do passo: quem rola a progressão vê a subida antes de ler
+   qualquer número. */
+.progressao li:has(.passo-queda) .progressao-barra {
+  background: color-mix(in oklab, var(--queda) 40%, var(--superficie));
+}
+.progressao-dia, .progressao-carga {
+  color: var(--texto-secundario);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.progressao-carga { color: var(--texto); font-weight: 600; }
+/* Uma barra por dia, para a subida ser vista antes de ser lida. Fica atrás do número, nunca no
+   lugar dele: barra sozinha não diz quantos quilos. */
+.progressao-barra {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--feito) 45%, var(--superficie));
+  width: var(--parte, 100%);
+  justify-self: start;
+}
 
 /* Tela cheia de verdade: sem margem, raio, anel nem teto de altura do <dialog> nativo. */
 #tela-cheia {

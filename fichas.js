@@ -36,4 +36,38 @@ const TREINOS = {
   ]
 };
 
-const PERFIS = { sun: "Sun", shine: "Shine" };
+// Um treino curto, com os três tipos de exercício que o app entende, para quem abre o app pela
+// primeira vez ver a tela cheia sem mexer no treino de ninguém. Os dois últimos nascem arquivados:
+// existiram, saíram da lista e continuam no histórico, que é o caminho que a fase 4 vai usar para
+// remover exercício sem apagar o que foi levantado.
+const TREINOS_EXEMPLO = {
+  A: [
+    { id: "e0000001-0000-4000-8000-000000000001", nome: "Puxada frontal no cabo", aparelho: "4", series: 3, reps: 12, cod: 541, grupos: ["costas"] },
+    { id: "e0000002-0000-4000-8000-000000000002", nome: "Supino plano articulado", aparelho: "47", series: 3, reps: 12, cod: 1113, grupos: ["peito", "triceps"] },
+    { id: "e0000003-0000-4000-8000-000000000003", nome: "Flexão de braço", tipo: "corpo", series: 3, reps: 12, aparelho: "livre", cod: 0, grupos: ["peito", "triceps"] },
+    { id: "e0000004-0000-4000-8000-000000000004", nome: "Esteira", tipo: "tempo", unidade: "km/h", series: 1, reps: null, aparelho: "40", cod: 0, grupos: ["quadriceps", "panturrilha"] }
+  ],
+  B: [
+    { id: "e0000005-0000-4000-8000-000000000005", nome: "Leg press 45 graus", aparelho: "8", series: 3, reps: 12, cod: 59, grupos: ["quadriceps", "gluteo"] },
+    { id: "e0000006-0000-4000-8000-000000000006", nome: "Abdominal na prancha", tipo: "corpo", series: 3, reps: 15, aparelho: "livre", cod: 0, grupos: ["quadriceps"] },
+    { id: "e0000007-0000-4000-8000-000000000007", nome: "Bicicleta ergométrica", tipo: "tempo", unidade: "nível", series: 1, reps: null, aparelho: "41", cod: 0, grupos: ["quadriceps"] }
+  ],
+  // O exemplo tem um treino por letra que existe, senão a aba do treino vazio abre numa lista
+  // sem nada e parece que o app quebrou.
+  C: [
+    { id: "e0000010-0000-4000-8000-000000000010", nome: "Desenvolvimento aberto", aparelho: "18", series: 3, reps: 12, cod: 579, grupos: ["ombro", "triceps"] },
+    { id: "e0000011-0000-4000-8000-000000000011", nome: "Rosca direta com halteres", aparelho: "em pé", series: 3, reps: 12, cod: 101, grupos: ["biceps"] },
+    { id: "e0000012-0000-4000-8000-000000000012", nome: "Elevação de pernas na barra", tipo: "corpo", series: 3, reps: 10, aparelho: "livre", cod: 0, grupos: ["quadriceps"] }
+  ]
+};
+
+const ARQUIVADOS_EXEMPLO = [
+  { id: "e0000008-0000-4000-8000-000000000008", nome: "Remada curvada com barra", aparelho: "livre", series: 3, reps: 10, cod: 0, grupos: ["costas", "biceps"], letra: "A", arquivado: true },
+  { id: "e0000009-0000-4000-8000-000000000009", nome: "Elíptico", tipo: "tempo", unidade: "nível", series: 1, reps: null, aparelho: "44", cod: 0, grupos: ["quadriceps"], letra: "B", arquivado: true }
+];
+
+// O catálogo é de quem treina. Sun e Shine dividem o mesmo, que é o da academia; o Exemplo tem o
+// seu, para poder ser mexido à vontade sem tocar no treino de verdade de ninguém.
+const PERFIS = { sun: "Sun", shine: "Shine", example: "Exemplo" };
+const DONOS_DO_CATALOGO = ["sun", "shine"];
+const DONO_DO_EXEMPLO = ["example"];

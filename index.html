@@ -19,7 +19,11 @@
 
 <header>
   <h1 class="oculto-visual">Sunshine, treino ABC</h1>
-  <img src="icone.svg" width="40" height="40" alt="" class="logo">
+  <!-- Abre o histórico direto, e não um menu: com um destino só, menu é embrulho de botão. Vira
+       menu na fase 6, quando entrar e sair dividirem o lugar com ele. -->
+  <button type="button" id="abrir-historico" aria-label="Abrir o histórico de cargas">
+    <img src="icone.svg" width="40" height="40" alt="" class="logo">
+  </button>
 </header>
 
 <main>
@@ -30,7 +34,9 @@
     <button type="button" class="primario" id="abrir-recomecar">Recomeçar ciclo</button>
   </section>
 
-  <ul id="lista" role="tabpanel"></ul>
+  <!-- Um painel por treino, lado a lado. Quem arrasta é o navegador, por scroll snap: o conteúdo
+       segue o dedo, volta sozinho quando o gesto não passa da metade, e diz onde parou. -->
+  <div id="carrossel"></div>
 </main>
 
 <!-- As duas fileiras ficam no rodapé, ao alcance do polegar: no meio do treino o celular está numa
@@ -60,6 +66,17 @@
   <!-- Sem `capture`: com ele o Android abre a câmera direto e pula a galeria. Dentro do diálogo,
        senão fica inerte enquanto o visor está aberto e o seletor não dispara. -->
   <input id="foto-nova" type="file" accept="image/*" class="oculto-visual" tabindex="-1">
+</dialog>
+
+<dialog id="historico" aria-labelledby="historico-titulo">
+  <div class="historico-topo">
+    <h2 id="historico-titulo">Histórico</h2>
+    <button type="button" class="secundario" id="historico-fechar">Fechar</button>
+  </div>
+  <label for="historico-busca" class="oculto-visual">Buscar por exercício ou grupo</label>
+  <input id="historico-busca" type="search" placeholder="Puxada, costas, bíceps" autocomplete="off" enterkeyhint="search">
+  <div id="historico-lista"></div>
+  <p id="historico-vazio" hidden></p>
 </dialog>
 
 <dialog id="tela-cheia" aria-labelledby="tela-cheia-titulo">
@@ -95,6 +112,16 @@
     <button type="submit" class="primario" value="encerrar">Encerrar treino aqui</button>
     <button type="submit" class="secundario" value="resetar">Resetar progresso</button>
     <button type="submit" class="secundario" value="cancelar">Cancelar</button>
+  </form>
+</dialog>
+
+<dialog id="dialogo-reativar" aria-labelledby="reativar-titulo">
+  <h2 id="reativar-titulo">Voltar para o treino</h2>
+  <p id="reativar-corpo"></p>
+  <div id="reativar-treinos" role="radiogroup" aria-label="Em qual treino ele entra"></div>
+  <form method="dialog" class="acoes">
+    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
+    <button type="submit" class="primario" value="reativar">Voltar para o treino</button>
   </form>
 </dialog>
 

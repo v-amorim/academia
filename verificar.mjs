@@ -14,22 +14,30 @@ const ARQUIVOS_JS = ["fichas.js", "banco.js", "app.js", "sonda.js", "sw.js"];
 
 // Quantos treinos e quantos exercícios saem da semente, não de um número escrito aqui: o app
 // aceita de um treino em diante, e a suíte não pode ser o que trava isso em três.
-const TREINOS = new Function(`${readFileSync(join(PASTA, "fichas.js"), "utf8")}; return TREINOS;`)();
+const FICHAS = readFileSync(join(PASTA, "fichas.js"), "utf8");
+const TREINOS = new Function(`${FICHAS}; return TREINOS;`)();
+const PERFIS = new Function(`${FICHAS}; return PERFIS;`)();
 const LETRAS = Object.keys(TREINOS);
 
 const ESPERADO = [
-  ["cartões", /class="exercicio/g, TREINOS[LETRAS[0]].length],
+  ["cartões", /class="exercicio/g, LETRAS.reduce((total, letra) => total + TREINOS[letra].length, 0)],
   ["abas", /class="aba"/g, LETRAS.length],
-  ["perfis", /name="perfil"/g, 2],
-  ["diálogos", /<dialog id=/g, 6]
+  ["perfis", /name="perfil"/g, Object.keys(PERFIS).length],
+  ["diálogos", /<dialog id=/g, 8]
 ];
 
 // Cada caso roda num perfil de Chrome novo, então o IndexedDB nasce limpo. A migração precisa
 // de dois carregamentos no mesmo perfil: primeiro escreve a versão 1, depois sobe o app.
+//
+// `node verificar.mjs carga` roda só o que casa com a palavra, e pula o despejo em file://, que
+// sozinho custa vinte segundos. É para isso que serve, mexer num caso sem pagar pelos outros.
 const CASOS = [
   { nome: "Comportamento", passos: ["comportamento"] },
   { nome: "Teclado", passos: ["teclado"] },
-  { nome: "Migração da versão 1", passos: ["preparar", "migracao"] }
+  { nome: "Migração da versão 1", passos: ["preparar", "migracao"] },
+  { nome: "Carga", passos: ["prepararCarga", "carga"] },
+  { nome: "Perfil de exemplo", passos: ["exemplo"] },
+  { nome: "Limpeza do Sun e da Shine", passos: ["prepararLimpeza", "limpeza"] }
 ];
 
 const CAMINHOS_CHROME = [
@@ -42,23 +50,30 @@ const CAMINHOS_CHROME = [
 ].filter(Boolean);
 
 const PRAZO_CASO = 60000;
+const LADO_A_LADO = 3;
 const TIPOS = {
   ".html": "text/html", ".js": "text/javascript", ".css": "text/css",
   ".jpg": "image/jpeg", ".woff2": "font/woff2",
   ".json": "application/manifest+json", ".png": "image/png", ".svg": "image/svg+xml"
 };
 
+const FILTRO = process.argv[2]?.toLowerCase() ?? "";
+const semAcento = (texto) => texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+const ESCOLHIDOS = FILTRO ? CASOS.filter((caso) => semAcento(caso.nome).includes(semAcento(FILTRO))) : CASOS;
+
 let falhas = 0;
-const ok = (texto) => console.log(`  ok    ${texto}`);
-const erro = (texto) => { console.log(`  FALHA ${texto}`); falhas++; };
+// Com casos em paralelo, escrever linha a linha misturaria a saída de todos. Cada caso junta as
+// suas e o fim imprime um bloco por caso, na ordem em que foram declarados.
+const ok = (texto) => `  ok    ${texto}`;
+const erro = (texto) => { falhas++; return `  FALHA ${texto}`; };
 
 console.log("\nSintaxe");
 for (const arquivo of ARQUIVOS_JS) {
   try {
     execFileSync(process.execPath, ["--check", join(PASTA, arquivo)], { stdio: "pipe" });
-    ok(arquivo);
+    console.log(ok(arquivo));
   } catch (falha) {
-    erro(`${arquivo}\n${falha.stderr?.toString().trim()}`);
+    console.log(erro(`${arquivo}\n${falha.stderr?.toString().trim()}`));
   }
 }
 
@@ -85,7 +100,7 @@ if (!chrome) {
 
   for (const [nome, padrao, esperado] of ESPERADO) {
     const achado = (dom.match(padrao) ?? []).length;
-    achado === esperado ? ok(`${nome}: ${achado}`) : erro(`${nome}: esperava ${esperado}, achou ${achado}`);
+    console.log(achado === esperado ? ok(`${nome}: ${achado}`) : erro(`${nome}: esperava ${esperado}, achou ${achado}`));
   }
 }
 
@@ -113,7 +128,7 @@ function servidor(aoReceber) {
       const injecao = `<script src="/sonda.js"></script><script>Sonda.rodar(${JSON.stringify(caso)})</script>`;
       // A página do `preparar` não sobe o app, mas carrega a semente: as chaves do banco legado
       // são montadas com os nomes de treino de hoje, e escrevê-las à mão travaria a suíte em ABC.
-      const pagina = caso === "preparar"
+      const pagina = caso.startsWith("preparar")
         ? `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>preparar</title></head>`
           + `<body><script src="/fichas.js"></script>${injecao}</body></html>`
         : marcacao.replace("</body>", `${injecao}\n</body>`);
@@ -131,16 +146,19 @@ function servidor(aoReceber) {
   });
 }
 
-let aoReceber = () => {};
+// Um servidor para todos os Chromes, então a resposta precisa dizer de quem ela é: o roteamento
+// é pelo nome do caso, que a própria sonda devolve no corpo.
+const esperando = new Map();
+const aoReceber = (corpo) => esperando.get(corpo.caso)?.(corpo);
 
 async function rodarCaso({ nome, passos }, porta) {
-  console.log(`\n${nome}`);
+  const linhas = [`\n${nome}`];
   const perfil = mkdtempSync(join(tmpdir(), "academia-"));
 
   try {
     for (const caso of passos) {
       const recebido = new Promise((resolver, rejeitar) => {
-        aoReceber = resolver;
+        esperando.set(caso, resolver);
         setTimeout(() => rejeitar(new Error(`o caso ${caso} não respondeu em ${PRAZO_CASO / 1000}s`)), PRAZO_CASO);
       });
 
@@ -153,16 +171,17 @@ async function rodarCaso({ nome, passos }, porta) {
       try {
         const { resultados } = await recebido;
         for (const { passou, nome: titulo, detalhe } of resultados) {
-          const linha = detalhe ? `${titulo} [${detalhe}]` : titulo;
-          passou ? ok(linha) : erro(linha);
+          const texto = detalhe ? `${titulo} [${detalhe}]` : titulo;
+          linhas.push(passou ? ok(texto) : erro(texto));
         }
       } finally {
+        esperando.delete(caso);
         navegador.kill();
         await new Promise((pronto) => navegador.once("exit", pronto));
       }
     }
   } catch (falha) {
-    erro(falha.message);
+    linhas.push(erro(falha.message));
   } finally {
     // No Windows o Chrome solta os arquivos do perfil depois de sair, então a remoção tenta de
     // novo e desiste calada: perfil temporário esquecido não invalida a verificação.
@@ -172,6 +191,7 @@ async function rodarCaso({ nome, passos }, porta) {
       /* o sistema limpa o temporário depois */
     }
   }
+  return linhas;
 }
 
 if (chrome) {
@@ -179,7 +199,18 @@ if (chrome) {
   await new Promise((pronto) => aplicacao.listen(0, "127.0.0.1", pronto));
   const { port } = aplicacao.address();
 
-  for (const caso of CASOS) await rodarCaso(caso, port);
+  // Em paralelo, com teto: cada caso tem o seu perfil de Chrome, então não disputam banco. O teto
+  // existe porque máquina ocupada já devolveu tela vazia antes, e isso vira falha que não é bug.
+  const fila = [...ESCOLHIDOS.entries()];
+  const saidas = [];
+  const trabalhar = async () => {
+    while (fila.length > 0) {
+      const [posicao, caso] = fila.shift();
+      saidas[posicao] = await rodarCaso(caso, port);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(LADO_A_LADO, fila.length) }, trabalhar));
+  for (const linhas of saidas) console.log(linhas.join("\n"));
   aplicacao.close();
 } else {
   console.log("\nComportamento, Teclado, Migração da versão 1");
