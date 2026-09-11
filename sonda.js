@@ -164,6 +164,37 @@ const Sonda = (function () {
     confere("A concluída de novo aparece na tela", Boolean(abaDe("A").querySelector(".marca")));
     confere("A concluída de novo entra no ciclo corrente",
       (await Banco.letrasConcluidas("sun")).has("A"));
+
+    await instalacao();
+  }
+
+  // O que faz o app abrir sem rede na academia. Cortar a rede de dentro da página não dá, então
+  // aqui se confere o que sobra: o worker ativo e os arquivos guardados. O teste offline de
+  // verdade é manual, por DevTools ou pelo celular.
+  async function instalacao() {
+    const ativo = await Promise.race([
+      navigator.serviceWorker?.ready.then(() => true),
+      respira(8000).then(() => false)
+    ]);
+    confere("o service worker ativa", ativo === true);
+    if (!ativo) return;
+
+    const nomes = await caches.keys();
+    confere("existe um cache só, com a versão no nome", nomes.length === 1 && nomes[0].startsWith("academia-"),
+      nomes.join(","));
+
+    const cache = await caches.open(nomes[0]);
+    const guardados = (await cache.keys()).map((pedido) => new URL(pedido.url).pathname);
+    const faltando = ["/index.html", "/estilo.css", "/app.js", "/banco.js", "/fichas.js", "/mulish.woff2", "/manifest.json"]
+      .filter((arquivo) => !guardados.includes(arquivo));
+    confere("o cache guarda o app inteiro, fonte e manifest", faltando.length === 0, faltando.join(","));
+
+    const manifesto = await (await fetch("manifest.json")).json();
+    confere("o manifest declara nome, escopo e tela cheia",
+      manifesto.name === "Treino ABC" && manifesto.display === "standalone" && manifesto.start_url === ".");
+    confere("o manifest traz ícone comum e mascarável",
+      manifesto.icons.some((icone) => icone.purpose === "any" && icone.sizes === "512x512")
+        && manifesto.icons.some((icone) => icone.purpose === "maskable"));
   }
 
   async function teclado() {

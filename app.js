@@ -758,5 +758,9 @@ for (const caixa of document.querySelectorAll("dialog")) {
   perfis.append(...Object.entries(PERFIS).map(criarPerfil));
   abas.append(...LETRAS.map(criarAba));
   navigator.storage?.persist?.();
+  // Duas APIs de plataforma fora do banco.js, as duas aqui e as duas ignorando o retorno. O
+  // registro falha calado por file://, que não tem origem segura, e é o comportamento esperado:
+  // aberto como arquivo o app roda sem guardar nada, service worker inclusive.
+  navigator.serviceWorker?.register("sw.js").catch(() => { /* sem origem segura */ });
   await selecionar(LETRAS.find((letra) => !letraFeita(letra)) ?? LETRAS[0]);
 })();

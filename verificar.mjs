@@ -10,7 +10,7 @@ import { pathToFileURL } from "node:url";
 
 // import.meta.dirname exige Node 20.11. O fallback mantém o script vivo em Node 18.
 const PASTA = resolve(import.meta.dirname ?? new URL(".", import.meta.url).pathname);
-const ARQUIVOS_JS = ["fichas.js", "banco.js", "app.js", "sonda.js"];
+const ARQUIVOS_JS = ["fichas.js", "banco.js", "app.js", "sonda.js", "sw.js"];
 
 const ESPERADO = [
   ["cartões", /class="exercicio/g, 7],
@@ -39,7 +39,8 @@ const CAMINHOS_CHROME = [
 const PRAZO_CASO = 60000;
 const TIPOS = {
   ".html": "text/html", ".js": "text/javascript", ".css": "text/css",
-  ".jpg": "image/jpeg", ".woff2": "font/woff2"
+  ".jpg": "image/jpeg", ".woff2": "font/woff2",
+  ".json": "application/manifest+json", ".png": "image/png", ".svg": "image/svg+xml"
 };
 
 let falhas = 0;
