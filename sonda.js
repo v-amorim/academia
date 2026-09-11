@@ -191,7 +191,7 @@ const Sonda = (function () {
 
     const manifesto = await (await fetch("manifest.json")).json();
     confere("o manifest declara nome, escopo e tela cheia",
-      manifesto.name === "Treino ABC" && manifesto.display === "standalone" && manifesto.start_url === ".");
+      manifesto.name === "Sunshine" && manifesto.display === "standalone" && manifesto.start_url === ".");
     confere("o manifest traz ícone comum e mascarável",
       manifesto.icons.some((icone) => icone.purpose === "any" && icone.sizes === "512x512")
         && manifesto.icons.some((icone) => icone.purpose === "maskable"));

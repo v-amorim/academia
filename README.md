@@ -1,9 +1,9 @@
-# Treino ABC
+# Sunshine
 
 App de treino de academia. Página estática, sem servidor, dados no aparelho.
 
 Dois usuários: **Sun** e **Shine**. Cada um com o próprio
-progresso, hoje sobre o mesmo treino.
+progresso, hoje sobre o mesmo treino ABC. O nome do app é os dois juntos.
 
 ## Abrir
 
