@@ -12,6 +12,8 @@ const NOME_DO_GRUPO = {
 
 const LETRAS = Object.keys(TREINOS);
 const ESPERA_TOQUE_LONGO = 400;
+// Abaixo disto o dedo ainda está parado: é tremor de quem segura, não gesto.
+const FOLGA_DO_DEDO = 10;
 const VAGA_DA_MAQUINA = 0;
 // Três vagas fixas por exercício: a capa e dois ajustes da máquina que são mais visuais do que
 // descritíveis na observação. Sem lista crescente, sem capa escolhida, sem limite para explicar.
@@ -34,10 +36,11 @@ let alvoTreino = null;
 
 const perfis = document.getElementById("perfis");
 const abas = document.getElementById("abas");
+const principal = document.querySelector("main");
 const lista = document.getElementById("lista");
 const secaoCiclo = document.getElementById("ciclo");
 const aviso = document.getElementById("aviso");
-const camera = document.getElementById("camera");
+const seletorDeFoto = document.getElementById("foto-nova");
 const visor = document.getElementById("visor");
 const visorTitulo = document.getElementById("visor-titulo");
 const visorMeta = document.getElementById("visor-meta");
@@ -147,10 +150,18 @@ async function resetarLetra(letra) {
 function ligarToqueLongo(elemento, aoSegurar) {
   let cronometro;
   let disparou = false;
+  let origem = null;
 
-  elemento.addEventListener("pointerdown", () => {
+  elemento.addEventListener("pointerdown", (evento) => {
     disparou = false;
+    origem = { x: evento.clientX, y: evento.clientY };
     cronometro = setTimeout(() => { disparou = true; aoSegurar(); }, ESPERA_TOQUE_LONGO);
+  });
+  // Dedo que anda é rolagem ou troca de treino, e nenhuma das duas pode virar toque longo.
+  elemento.addEventListener("pointermove", (evento) => {
+    if (origem && Math.hypot(evento.clientX - origem.x, evento.clientY - origem.y) > FOLGA_DO_DEDO) {
+      clearTimeout(cronometro);
+    }
   });
   for (const evento of ["pointerup", "pointercancel", "pointerleave"]) {
     elemento.addEventListener(evento, () => clearTimeout(cronometro));
@@ -252,6 +263,80 @@ async function selecionar(letra) {
   atualizarCiclo();
 }
 
+// Deslizar na lista troca de treino, como virar página: o conteúdo segue o dedo, então puxar para
+// a esquerda traz o próximo. Dá a volta no fim, igual às setas do teclado na fileira de abas.
+const DESLIZE_MINIMO = 60;
+let deslize = null;
+let deslizou = false;
+
+function trocarVizinha(passo) {
+  const posicao = (LETRAS.indexOf(letraAtiva) + passo + LETRAS.length) % LETRAS.length;
+  selecionar(LETRAS[posicao]);
+  aviso.textContent = `Treino ${LETRAS[posicao]}.`;
+}
+
+principal.addEventListener("pointerdown", (evento) => {
+  deslizou = false;
+  // O contador tem gesto próprio e não deixa a página rolar: arrastar ali é ajuste de série.
+  deslize = LETRAS.length > 1 && !evento.target.closest(".contador")
+    ? { x: evento.clientX, y: evento.clientY }
+    : null;
+});
+
+principal.addEventListener("pointermove", (evento) => {
+  if (!deslize) return;
+  const dx = evento.clientX - deslize.x;
+  const dy = evento.clientY - deslize.y;
+  // Antes da folga o dedo ainda não tem direção. Passada ela, dedo mais vertical é rolagem da
+  // lista, e a decisão vale até soltar: no meio de uma rolagem ninguém quer trocar de treino.
+  if (Math.hypot(dx, dy) < FOLGA_DO_DEDO) return;
+  if (Math.abs(dx) < Math.abs(dy) * 2) {
+    deslize = null;
+    return;
+  }
+  if (Math.abs(dx) < DESLIZE_MINIMO) return;
+  deslize = null;
+  deslizou = true;
+  trocarVizinha(dx < 0 ? 1 : -1);
+});
+
+for (const nome of ["pointerup", "pointercancel", "pointerleave"]) {
+  principal.addEventListener(nome, () => { deslize = null; });
+}
+
+// Com o mouse, arrastar e soltar em cima de um cartão ainda gera clique, e ele abriria o visor
+// do exercício que estava ali antes da troca. Na captura, senão o botão do cartão recebe primeiro.
+principal.addEventListener("click", (evento) => {
+  if (!deslizou) return;
+  deslizou = false;
+  evento.stopPropagation();
+  evento.preventDefault();
+}, true);
+
+// No trackpad, deslizar com dois dedos não gera ponteiro nenhum: gera roda com deltaX. Sem isto o
+// gesto existe só no celular, e no notebook parece quebrado.
+const ESPERA_RODA_PARAR = 200;
+let rodaAcumulada = 0;
+let rodaTravada = false;
+let rodaParada;
+
+principal.addEventListener("wheel", (evento) => {
+  if (LETRAS.length < 2) return;
+  if (Math.abs(evento.deltaX) < Math.abs(evento.deltaY) * 2) return;
+  evento.preventDefault();
+
+  // A inércia continua depois de o dedo sair, então o gesto só acaba quando a roda fica quieta:
+  // até lá a trava segura, e uma passada troca um treino só em vez de atravessar a fileira.
+  clearTimeout(rodaParada);
+  rodaParada = setTimeout(() => { rodaAcumulada = 0; rodaTravada = false; }, ESPERA_RODA_PARAR);
+  if (rodaTravada) return;
+
+  rodaAcumulada += evento.deltaX;
+  if (Math.abs(rodaAcumulada) < DESLIZE_MINIMO) return;
+  rodaTravada = true;
+  trocarVizinha(rodaAcumulada > 0 ? 1 : -1);
+}, { passive: false });
+
 function criarCartao(exercicio) {
   const item = document.createElement("li");
   item.className = "exercicio";
@@ -344,7 +429,7 @@ function ligarContador(contador, exercicio) {
   contador.addEventListener("pointermove", (evento) => {
     // Antes do gesto pegar, dedo que anda é rolagem da lista, não ajuste.
     if (!ajuste) {
-      if (Math.abs(evento.clientY - origem) > 10) desistir();
+      if (Math.abs(evento.clientY - origem) > FOLGA_DO_DEDO) desistir();
       return;
     }
     const continuo = Math.min(exercicio.series,
@@ -517,7 +602,8 @@ function desenharVisor() {
     return botao;
   }));
 
-  visorTrocar.textContent = atual ? "Trocar foto" : "Tirar foto";
+  // "Adicionar" e não "Tirar": a foto pode vir da câmera ou da galeria, e quem escolhe é o sistema.
+  visorTrocar.textContent = atual ? "Trocar foto" : "Adicionar foto";
   visorApagar.hidden = !atual;
 }
 
@@ -655,7 +741,7 @@ zoom.addEventListener("wheel", (evento) => {
 
 document.getElementById("visor-fechar").onclick = () => visor.close();
 document.getElementById("visor-resetar").onclick = () => abrirResetExercicio(alvoVisor);
-visorTrocar.onclick = () => tirarFoto(alvoVisor, vagaAtiva);
+visorTrocar.onclick = () => escolherFoto(alvoVisor, vagaAtiva);
 
 visorApagar.onclick = () => {
   document.getElementById("apagar-corpo").textContent =
@@ -694,10 +780,10 @@ observacao.addEventListener("keydown", (evento) => {
   observacao.blur();
 });
 
-function tirarFoto(exercicio, vaga) {
-  camera.value = "";
-  camera.onchange = async () => {
-    const arquivo = camera.files[0];
+function escolherFoto(exercicio, vaga) {
+  seletorDeFoto.value = "";
+  seletorDeFoto.onchange = async () => {
+    const arquivo = seletorDeFoto.files[0];
     if (!arquivo) return;
     const reduzida = await reduzir(arquivo);
     Banco.salvarFoto(exercicio.id, vaga, reduzida);
@@ -709,7 +795,7 @@ function tirarFoto(exercicio, vaga) {
     refrescarVisor(exercicio);
     aviso.textContent = `Foto de ${VAGAS[vaga].toLowerCase()} de ${exercicio.nome} salva.`;
   };
-  camera.click();
+  seletorDeFoto.click();
 }
 
 // Foto crua de celular passa de vários MB e estoura a cota do IndexedDB em poucas máquinas.

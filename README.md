@@ -189,10 +189,10 @@ config:
     pieOuterStrokeColor: "#252A42"
 ---
 pie showData
-  title 130 conferências, medidas em 2026-09-11
-  "Comportamento" : 52
+  title 139 conferências, medidas em 2026-09-11
+  "Comportamento" : 54
   "Migração de banco antigo" : 37
-  "Teclado e gestos" : 32
+  "Teclado e gestos" : 39
   "Sintaxe" : 5
   "Montagem em file://" : 4
 ```
@@ -206,7 +206,8 @@ resultado por `fetch`.
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Contador de séries   | Um toque desce uma série. Segurar e arrastar ajusta no lugar, como o seletor de hora do celular. As setas do teclado fazem o mesmo |
 | Ciclo de treinos     | De um treino em diante, com nomes livres. Concluir todos libera o reinício                                                         |
-| Detalhe do exercício | Aparelho, código do vídeo, três fotos da máquina e um campo para as regulagens                                                     |
+| Trocar de treino     | Toque na letra, deslize na lista como quem vira página, ou as setas do teclado                                                     |
+| Detalhe do exercício | Aparelho, código do vídeo, três fotos da máquina, da câmera ou da galeria, e um campo para as regulagens                          |
 | Foto em tela cheia   | Pinça, arrasto e toque duplo                                                                                                       |
 | Dois perfis          | Mesmo catálogo, progresso separado                                                                                                 |
 

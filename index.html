@@ -19,7 +19,7 @@
 
 <header>
   <h1 class="oculto-visual">Sunshine, treino ABC</h1>
-  <nav id="abas" role="tablist" aria-label="Treinos"></nav>
+  <img src="icone.svg" width="40" height="40" alt="" class="logo">
 </header>
 
 <main>
@@ -33,9 +33,10 @@
   <ul id="lista" role="tabpanel"></ul>
 </main>
 
-<!-- Depois da lista, e não no topo: trocar de perfil acontece uma vez por treino, e o topo
-     pertence a quem está treinando agora. -->
+<!-- As duas fileiras ficam no rodapé, ao alcance do polegar: no meio do treino o celular está numa
+     mão só. O topo é da marca, que vira o menu de conta e histórico quando eles existirem. -->
 <footer>
+  <nav id="abas" role="tablist" aria-label="Treinos"></nav>
   <fieldset id="perfis">
     <legend class="oculto-visual">Quem está treinando</legend>
   </fieldset>
@@ -56,8 +57,9 @@
   </div>
   <button type="button" class="secundario largo" id="visor-resetar">Resetar progresso</button>
   <button type="button" class="secundario largo" id="visor-fechar">Fechar</button>
-  <!-- Dentro do diálogo, senão fica inerte enquanto o visor está aberto e a câmera não dispara. -->
-  <input id="camera" type="file" accept="image/*" capture="environment" class="oculto-visual" tabindex="-1">
+  <!-- Sem `capture`: com ele o Android abre a câmera direto e pula a galeria. Dentro do diálogo,
+       senão fica inerte enquanto o visor está aberto e o seletor não dispara. -->
+  <input id="foto-nova" type="file" accept="image/*" class="oculto-visual" tabindex="-1">
 </dialog>
 
 <dialog id="tela-cheia" aria-labelledby="tela-cheia-titulo">

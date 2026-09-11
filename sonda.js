@@ -77,6 +77,9 @@ const Sonda = (function () {
         .reduce((total, lista) => total + lista.length, 0) === quantosExercicios());
     confere("a primeira aba nasce ativa", abaDe(PRIMEIRA).getAttribute("aria-selected") === "true");
     confere("nenhuma aba concluída", !document.querySelector(".aba .marca"));
+    confere("treino e perfil ficam juntos no rodapé",
+      Boolean(document.getElementById("abas").closest("footer") && document.getElementById("perfis").closest("footer")));
+    confere("a marca fica no topo", Boolean(document.querySelector("header .logo")));
 
     cartoes()[0].querySelector(".contador").click();
     await respira();
@@ -249,6 +252,45 @@ const Sonda = (function () {
       tecla(abaDe(ULTIMA), "Home");
       await respira(250);
       confere("Home volta para a primeira", abaDe(PRIMEIRA).getAttribute("aria-selected") === "true" && document.activeElement === abaDe(PRIMEIRA));
+
+      // Deslizar na lista, como virar página: o conteúdo segue o dedo, e puxar para a esquerda
+      // traz o próximo treino.
+      const principal = document.querySelector("main");
+      const deslizar = (de, para, ateY = 200) => {
+        principal.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: de, clientY: 200 }));
+        principal.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: para, clientY: ateY }));
+        principal.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientX: para, clientY: ateY }));
+      };
+      const ativa = () => NOMES.find((letra) => abaDe(letra).getAttribute("aria-selected") === "true");
+
+      deslizar(300, 200);
+      await respira(250);
+      confere("deslizar para a esquerda traz o próximo treino", ativa() === SEGUNDA, ativa());
+      deslizar(200, 300);
+      await respira(250);
+      confere("deslizar para a direita volta ao anterior", ativa() === PRIMEIRA, ativa());
+      deslizar(300, 290);
+      await respira(250);
+      confere("deslize curto não troca de treino", ativa() === PRIMEIRA, ativa());
+      deslizar(300, 200, 400);
+      await respira(250);
+      confere("dedo mais vertical é rolagem, e não troca de treino", ativa() === PRIMEIRA, ativa());
+
+      // No trackpad o mesmo gesto não gera ponteiro nenhum, só roda com deltaX.
+      const roda = (deltaX, deltaY = 0) =>
+        principal.dispatchEvent(new WheelEvent("wheel", { deltaX, deltaY, bubbles: true, cancelable: true }));
+
+      // Uma passada de trackpad vira dezenas de eventos, todos na mesma rajada: o primeiro troca
+      // e a inércia tem que morrer na trava, senão uma passada atravessa a fileira inteira.
+      for (let resto = 0; resto < 10; resto++) roda(80);
+      await respira(300);
+      confere("uma passada de trackpad troca um treino só", ativa() === SEGUNDA, ativa());
+      roda(-80);
+      await respira(300);
+      confere("roda para a direita volta ao anterior", ativa() === PRIMEIRA, ativa());
+      roda(10, 120);
+      await respira(300);
+      confere("rolar a lista com a roda não troca de treino", ativa() === PRIMEIRA, ativa());
     } else {
       confere("com um treino só, a fileira de abas some da tela",
         document.getElementById("abas").offsetParent === null);
@@ -454,7 +496,7 @@ const Sonda = (function () {
     vagas()[2].click();
     await respira();
     confere("vaga vazia mostra o convite", !fotoGrande() && document.getElementById("visor-quadro").textContent.includes("Nenhuma foto"));
-    confere("o botão fala em tirar quando não há foto", document.getElementById("visor-trocar").textContent === "Tirar foto");
+    confere("o botão fala em adicionar quando não há foto", document.getElementById("visor-trocar").textContent === "Adicionar foto");
     confere("sem foto não há o que apagar", document.getElementById("visor-apagar").hidden);
 
     vagas()[1].click();
@@ -483,7 +525,7 @@ const Sonda = (function () {
 
     cartoes()[0].querySelector(".foto").click();
     await respira();
-    confere("o quadro vazio abre o visor, e não a câmera", visor.open && document.getElementById("visor-trocar").textContent === "Tirar foto");
+    confere("o quadro vazio abre o visor, e não a câmera", visor.open && document.getElementById("visor-trocar").textContent === "Adicionar foto");
     confere("o vídeo está ao alcance sem foto", document.getElementById("visor-meta").textContent.includes("Vídeo"));
     document.getElementById("visor-fechar").click();
     await respira();
