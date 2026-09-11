@@ -47,8 +47,13 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* Coluna de altura cheia: é o que joga o rodapé para o fim da tela mesmo com lista curta, e
+   deixa a lista ser a única coisa que rola entre as abas e o perfil. */
 body {
   margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background: var(--fundo);
   color: var(--texto);
@@ -118,14 +123,28 @@ button {
   white-space: nowrap;
 }
 
-header { padding-block: 12px 0; padding-inline: 16px; }
+/* Abas e perfil ficam presos nas pontas e a lista corre entre eles. Fundo opaco nos dois, senão
+   o cartão passa por baixo à vista. */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding-block: 12px 8px;
+  padding-inline: 16px;
+  background: var(--fundo);
+}
+
+main { flex: 1; }
 
 footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
   display: grid;
   justify-items: center;
-  padding-block: 4px 16px;
+  padding-block: 8px 12px;
   padding-inline: 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  background: var(--fundo);
 }
 
 /* Trilho e pílula: o trilho é a superfície do cartão e a escolhida sobe um degrau. É o mesmo
@@ -225,7 +244,7 @@ footer {
 .secundario { background: var(--superficie-alta); color: var(--texto); box-shadow: 0 0 0 1px var(--anel); }
 #ciclo .primario { width: 100%; }
 
-#lista { list-style: none; margin: 0; padding: 16px; display: grid; gap: 12px; }
+#lista { list-style: none; margin: 0; padding: 8px 16px; display: grid; gap: 12px; }
 
 /* Anel translúcido no lugar de borda: sobre fundo escuro a borda sólida virava moldura e o
    cartão lia como wireframe. O contador e a foto ficam tonais, sem moldura própria, para o
@@ -241,8 +260,10 @@ footer {
   border-radius: var(--raio-carta);
   box-shadow: 0 0 0 1px var(--anel);
 }
-/* A fita transborda o cartão, então o cartão que a contém sobe acima dos vizinhos. */
-.exercicio:has(.ajustando) { z-index: 5; }
+/* A fita transborda o cartão, então o cartão que a contém sobe acima dos vizinhos, e também
+   acima das abas e do perfil: no primeiro cartão ela invade o topo, e ser cortada seria pior do
+   que cobrir a aba pelo tempo do gesto. */
+.exercicio:has(.ajustando) { z-index: 20; }
 .exercicio.feito {
   background: color-mix(in oklab, var(--feito) 10%, var(--superficie));
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--feito) 35%, var(--anel));

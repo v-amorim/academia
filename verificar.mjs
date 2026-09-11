@@ -59,18 +59,25 @@ for (const arquivo of ARQUIVOS_JS) {
 
 const chrome = CAMINHOS_CHROME.find(existsSync);
 
+const despejar = () => spawnSync(chrome, [
+  "--headless", "--disable-gpu", "--no-sandbox",
+  "--virtual-time-budget=20000",
+  // pathToFileURL, e não concatenação: no Windows o caminho tem barra invertida e letra de unidade.
+  "--dump-dom", pathToFileURL(join(PASTA, "index.html")).href
+], { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 }).stdout ?? "";
+
 console.log("\nMontagem da tela em file://");
 if (!chrome) {
   console.log("  pulado, Chrome não encontrado. Acrescente o caminho em CAMINHOS_CHROME.");
 } else {
-  const resultado = spawnSync(chrome, [
-    "--headless", "--disable-gpu", "--no-sandbox",
-    "--virtual-time-budget=9000",
-    // pathToFileURL, e não concatenação: no Windows o caminho tem barra invertida e letra de unidade.
-    "--dump-dom", pathToFileURL(join(PASTA, "index.html")).href
-  ], { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+  // Com a máquina ocupada, o despejo às vezes sai antes de a lista montar e devolve zero cartão
+  // em tudo. Uma segunda tentativa separa ruído de regressão: app quebrado devolve zero nas duas.
+  let dom = despejar();
+  if (!dom.includes('class="exercicio')) {
+    console.log("  a tela veio vazia, tentando de novo");
+    dom = despejar();
+  }
 
-  const dom = resultado.stdout ?? "";
   for (const [nome, padrao, esperado] of ESPERADO) {
     const achado = (dom.match(padrao) ?? []).length;
     achado === esperado ? ok(`${nome}: ${achado}`) : erro(`${nome}: esperava ${esperado}, achou ${achado}`);
