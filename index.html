@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0D0E17">
 <title>Treino ABC</title>
@@ -31,19 +32,38 @@
 
 <p id="aviso" class="oculto-visual" role="status"></p>
 
-<dialog id="dialogo-roda" aria-labelledby="roda-titulo">
-  <h2 id="roda-titulo"></h2>
-  <div id="roda"></div>
-</dialog>
-
 <dialog id="visor" aria-labelledby="visor-titulo">
   <h2 id="visor-titulo"></h2>
   <p id="visor-meta"></p>
-  <img alt="">
+  <div id="visor-quadro"></div>
+  <div id="vagas"></div>
+  <label for="observacao" class="rotulo">Observação</label>
+  <textarea id="observacao" rows="2" placeholder="Banco 4, pino 7" autocomplete="off" enterkeyhint="done"></textarea>
   <div class="acoes">
-    <button type="button" class="secundario" id="visor-trocar">Trocar foto</button>
-    <button type="button" class="primario" id="visor-fechar">Fechar</button>
+    <button type="button" class="secundario" id="visor-apagar">Apagar foto</button>
+    <button type="button" class="primario" id="visor-trocar">Trocar foto</button>
   </div>
+  <button type="button" class="secundario largo" id="visor-resetar">Resetar progresso</button>
+  <button type="button" class="secundario largo" id="visor-fechar">Fechar</button>
+  <!-- Dentro do diálogo, senão fica inerte enquanto o visor está aberto e a câmera não dispara. -->
+  <input id="camera" type="file" accept="image/*" capture="environment" class="oculto-visual" tabindex="-1">
+</dialog>
+
+<dialog id="tela-cheia" aria-labelledby="tela-cheia-titulo">
+  <div id="zoom"><img alt="" draggable="false"></div>
+  <div class="tela-cheia-barra">
+    <p id="tela-cheia-titulo"></p>
+    <button type="button" class="secundario" id="tela-cheia-fechar">Fechar</button>
+  </div>
+</dialog>
+
+<dialog id="dialogo-apagar" aria-labelledby="apagar-titulo">
+  <h2 id="apagar-titulo">Apagar esta foto?</h2>
+  <p id="apagar-corpo"></p>
+  <form method="dialog" class="acoes">
+    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
+    <button type="submit" class="primario" value="apagar">Apagar foto</button>
+  </form>
 </dialog>
 
 <dialog id="dialogo-exercicio" aria-labelledby="exercicio-titulo">
@@ -73,8 +93,6 @@
     <button type="submit" class="primario" value="recomecar">Recomeçar ciclo</button>
   </form>
 </dialog>
-
-<input id="camera" type="file" accept="image/*" capture="environment" class="oculto-visual" tabindex="-1">
 
 <script src="fichas.js"></script>
 <script src="banco.js"></script>

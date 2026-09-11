@@ -18,13 +18,13 @@ const Sonda = (function () {
 
   const cartoes = () => [...document.querySelectorAll(".exercicio")];
 
-  // O contador empilha o número que falta atrás das repetições, então o rótulo é remontado das
-  // duas partes. Assim a sonda confere que as duas renderizam, e não só o texto do botão.
+  // O contador tem o número que falta em cima e as repetições embaixo, então o rótulo é remontado
+  // das duas partes. Assim a sonda confere que as duas renderizam, e não só o texto do botão.
   function rotuloDo(item) {
     const contador = item.querySelector(".contador");
-    const fantasma = contador.querySelector(".fantasma");
-    if (!fantasma) return contador.textContent;
-    return `${fantasma.textContent}×${contador.querySelector(".reps").textContent.replace(" rep", "")}`;
+    const reps = contador.querySelector(".reps");
+    if (!reps) return contador.textContent;
+    return `${contador.querySelector(".serie").textContent}${reps.textContent}`;
   }
 
   const contadores = () => cartoes().map(rotuloDo);
@@ -200,51 +200,100 @@ const Sonda = (function () {
     await respira();
     confere("o contador não passa do total", contadores()[0] === "3×12", contadores()[0]);
 
-    // Pelo gesto de verdade, e não chamando abrirRoda: é o único teste que passa pelo toque longo.
-    const seletor = document.getElementById("dialogo-roda");
+    // Pelo gesto de verdade: segurar, arrastar, soltar. É o único teste que passa pelo toque longo.
     const alvo = cartoes()[0].querySelector(".contador");
-    alvo.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-    await respira(600);
-    alvo.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
-    await respira(250);
-    const opcoes = [...seletor.querySelectorAll(".opcao")];
-    confere("o toque longo no contador abre o seletor", seletor.open);
-    confere("o seletor traz uma opção por valor", opcoes.length === 4, opcoes.length);
-    confere("as opções vão de feito até o total", opcoes.map((o) => o.textContent).join(",") === "Feito,1,2,3",
-      opcoes.map((o) => o.textContent).join(","));
-    confere("o valor de agora vem marcado",
-      opcoes.filter((o) => o.getAttribute("aria-current") === "true").map((o) => o.textContent).join() === "3");
-    // Clique em 0,0 cai fora da caixa de qualquer diálogo centralizado.
-    const tocarFora = (caixa) => caixa.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 0, clientY: 0 }));
+    const PASSO = 44;
+    const fita = () => alvo.querySelector(".fita");
+    const escolhido = () => fita()?.querySelector(".escolhido")?.textContent;
 
-    tocarFora(seletor);
+    const segurar = (y = 300) => alvo.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientY: y }));
+    const arrastar = (y) => alvo.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientY: y }));
+    // O clique que o navegador dispara depois do gesto também é simulado, senão a guarda que o
+    // engole nunca seria exercitada.
+    const soltar = (y) => {
+      alvo.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientY: y }));
+      alvo.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    };
+
+    segurar();
+    await respira(600);
+    confere("segurar o contador abre a fita de ajuste", Boolean(fita()));
+    confere("a fita traz uma linha por valor", fita().firstElementChild.children.length === 4,
+      fita().firstElementChild.children.length);
+    confere("as linhas vão de feito até o total",
+      [...fita().firstElementChild.children].map((l) => l.textContent).join(",") === "Feito,1,2,3");
+    confere("a fita nasce no valor de agora", escolhido() === "3", escolhido());
+    confere("a fita fica em cima do contador, e não no meio da tela",
+      Math.abs(fita().getBoundingClientRect().left - alvo.getBoundingClientRect().left) < 2);
+
+    // Arrastar para baixo diminui: a coluna acompanha o dedo, e os menores estão acima.
+    arrastar(300 + PASSO);
+    await respira(50);
+    confere("arrastar para baixo baixa o valor", escolhido() === "2", escolhido());
+    confere("o contador só muda ao soltar", contadores()[0] === "3×12", contadores()[0]);
+    arrastar(300 + 2 * PASSO);
+    await respira(50);
+    confere("arrastar mais baixa mais", escolhido() === "1", escolhido());
+    arrastar(300 + PASSO);
+    await respira(50);
+    confere("voltar para cima sobe o valor", escolhido() === "2", escolhido());
+    arrastar(300 - 5 * PASSO);
+    await respira(50);
+    confere("a fita não passa do total", escolhido() === "3", escolhido());
+    arrastar(300 + 9 * PASSO);
+    await respira(50);
+    confere("a fita para em feito", escolhido() === "Feito", escolhido());
+
+    arrastar(300 + 2 * PASSO);
+    soltar(300 + 2 * PASSO);
     await respira(250);
-    confere("tocar fora fecha o seletor", !seletor.open);
-    confere("fechar sem escolher não muda o valor", contadores()[0] === "3×12", contadores()[0]);
+    confere("soltar fecha a fita", !fita());
+    // O clique que o navegador gera depois do gesto sai junto no soltar(): se a guarda falhasse,
+    // o valor aqui seria uma série a menos.
+    confere("soltar grava o valor, e o clique do gesto é engolido", contadores()[0] === "1×12", contadores()[0]);
+
+    // Dedo que anda antes dos 400ms é rolagem da lista, e não pode virar ajuste.
+    segurar(300);
+    arrastar(340);
+    await respira(600);
+    confere("mover antes do tempo não abre a fita", !fita());
+    soltar(340);
+    await respira(250);
 
     abaDe("A").click();
     await respira();
     abaDe("A").click();
     await respira(250);
     confere("o menu do treino abre", menu().open);
-    tocarFora(menu());
+    // Clique em 0,0 cai fora da caixa de qualquer diálogo centralizado.
+    menu().dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 0, clientY: 0 }));
     await respira(250);
     confere("tocar fora fecha o menu do treino", !menu().open);
     confere("fechar o menu não encerra nem reseta", !abaDe("A").querySelector(".marca"));
 
-    alvo.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-    await respira(600);
-    alvo.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
-    await respira(250);
-    [...seletor.querySelectorAll(".opcao")][1].click();
-    await respira(250);
-    confere("um toque escolhe e fecha", !seletor.open);
-    confere("o seletor grava o valor escolhido", contadores()[0] === "1×12", contadores()[0]);
-
     cartoes()[0].querySelector(".descricao").click();
     await respira();
+    const detalhes = document.getElementById("visor");
+    confere("o meio do cartão abre o visor", detalhes.open);
+    confere("o aparelho aparece no visor e não no cartão",
+      document.getElementById("visor-meta").textContent.includes(`Aparelho ${TREINOS.A[0].aparelho}`)
+        && !cartoes()[0].querySelector(".descricao").textContent.includes(String(TREINOS.A[0].aparelho)));
+    document.getElementById("visor-resetar").click();
+    await respira();
     const dialogo = document.getElementById("dialogo-exercicio");
-    confere("o nome abre o reset sem toque longo", dialogo.open);
+    confere("o reset tem caminho sem toque longo, pelo visor", dialogo.open);
+    dialogo.querySelector('[value="resetar"]').click();
+    await respira(250);
+    confere("resetar pelo visor volta ao total", contadores()[0] === "3×12", contadores()[0]);
+    detalhes.close();
+    await respira();
+
+    const meio = cartoes()[0].querySelector(".descricao");
+    meio.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    await respira(600);
+    meio.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+    await respira(250);
+    confere("o toque longo no meio é atalho para o reset", dialogo.open && !detalhes.open);
     dialogo.close();
     await respira();
 
@@ -286,13 +335,101 @@ const Sonda = (function () {
     cartoes()[3].querySelector(".foto").click();
     await respira();
     const visor = document.getElementById("visor");
-    confere("o visor abre com a foto migrada", visor.open && visor.querySelector("img").src.startsWith("blob:"));
+    const fotoGrande = () => document.getElementById("visor-quadro").querySelector("img");
+    const vagas = () => [...document.querySelectorAll(".vaga")];
+    confere("o visor abre com a foto migrada", visor.open && fotoGrande()?.src.startsWith("blob:"));
+    confere("a tira tem três vagas", vagas().length === 3, vagas().length);
+    confere("a vaga da máquina nasce escolhida", vagas()[0].getAttribute("aria-current") === "true");
+    confere("a segunda foto migrada aparece na vaga 1", Boolean(vagas()[1].querySelector("img")));
+    confere("a vaga 2 está vazia", Boolean(vagas()[2].querySelector("svg")));
+
+    const capa = fotoGrande().src;
+    const telaCheia = document.getElementById("tela-cheia");
+    const ampliada = telaCheia.querySelector("img");
+    document.querySelector(".ampliar").click();
+    await respira();
+    confere("tocar na foto grande abre a tela cheia", telaCheia.open && ampliada.src === capa);
+    confere("a tela cheia diz de qual vaga é a foto",
+      document.getElementById("tela-cheia-titulo").textContent.includes("Máquina"));
+    const zoomArea = document.getElementById("zoom");
+    const meio = zoomArea.getBoundingClientRect();
+    zoomArea.dispatchEvent(new WheelEvent("wheel", { deltaY: -600, clientX: meio.left + meio.width / 2, clientY: meio.top + meio.height / 2, bubbles: true, cancelable: true }));
+    await respira(50);
+    const escalaDe = () => Number(ampliada.style.transform.match(/scale\(([\d.]+)\)/)?.[1] ?? 1);
+    confere("a roda do mouse amplia", escalaDe() > 1.5, ampliada.style.transform);
+    // Toque duplo por pointer events: dois pares de desce-e-sobe no mesmo ponto.
+    const ponto = { clientX: meio.left + meio.width / 2, clientY: meio.top + meio.height / 2, pointerId: 1, bubbles: true };
+    for (let vez = 0; vez < 2; vez++) {
+      zoomArea.dispatchEvent(new PointerEvent("pointerdown", ponto));
+      zoomArea.dispatchEvent(new PointerEvent("pointerup", ponto));
+      await respira(40);
+    }
+    confere("o toque duplo volta ao tamanho natural depois do zoom", escalaDe() === 1, ampliada.style.transform);
+    for (let vez = 0; vez < 2; vez++) {
+      zoomArea.dispatchEvent(new PointerEvent("pointerdown", ponto));
+      zoomArea.dispatchEvent(new PointerEvent("pointerup", ponto));
+      await respira(40);
+    }
+    confere("o toque duplo amplia a partir do natural", escalaDe() === 2.5, ampliada.style.transform);
+    document.getElementById("tela-cheia-fechar").click();
+    await respira();
+    confere("fechar a tela cheia volta ao visor", !telaCheia.open && visor.open);
+    document.querySelector(".ampliar").click();
+    await respira();
+    confere("a tela cheia reabre sem zoom", escalaDe() === 1, ampliada.style.transform);
+    document.getElementById("tela-cheia-fechar").click();
+    await respira();
+
+    vagas()[1].click();
+    await respira();
+    confere("tocar na vaga troca a foto grande", fotoGrande().src !== capa && fotoGrande().src.startsWith("blob:"));
+    confere("o botão fala em trocar quando há foto", document.getElementById("visor-trocar").textContent === "Trocar foto");
+
+    vagas()[2].click();
+    await respira();
+    confere("vaga vazia mostra o convite", !fotoGrande() && document.getElementById("visor-quadro").textContent.includes("Nenhuma foto"));
+    confere("o botão fala em tirar quando não há foto", document.getElementById("visor-trocar").textContent === "Tirar foto");
+    confere("sem foto não há o que apagar", document.getElementById("visor-apagar").hidden);
+
+    vagas()[1].click();
+    await respira();
+    document.getElementById("visor-apagar").click();
+    await respira();
+    const apagar = document.getElementById("dialogo-apagar");
+    confere("apagar pede confirmação", apagar.open);
+    apagar.querySelector('[value="apagar"]').click();
+    await respira(300);
+    confere("apagar tira a foto do banco", !(await Banco.lerFotos()).get(idA3)?.[1]);
+    confere("apagar mantém a capa", Boolean((await Banco.lerFotos()).get(idA3)?.[0]));
+    confere("a vaga apagada volta a mostrar a câmera", Boolean(vagas()[1].querySelector("svg")));
+    confere("apagar é anunciado", avisoDiz("apagada"));
+
+    const campo = document.getElementById("observacao");
+    campo.value = "Banco 4, pino 7";
+    campo.dispatchEvent(new Event("change", { bubbles: true }));
+    await respira(300);
+    confere("a observação vai para o banco",
+      (await Banco.listarExercicios("A"))[3].observacao === "Banco 4, pino 7");
+    confere("a observação não vaza para o cartão", !cartoes()[3].textContent.includes("pino"));
+    confere("a observação é anunciada", avisoDiz("Observação"));
+    document.getElementById("visor-fechar").click();
+    await respira();
+
+    cartoes()[0].querySelector(".foto").click();
+    await respira();
+    confere("o quadro vazio abre o visor, e não a câmera", visor.open && document.getElementById("visor-trocar").textContent === "Tirar foto");
+    confere("o vídeo está ao alcance sem foto", document.getElementById("visor-meta").textContent.includes("Vídeo"));
     document.getElementById("visor-fechar").click();
     await respira();
 
     document.querySelector('input[value="shine"]').click();
     await respira(300);
     confere("a foto é a mesma nos dois perfis", Boolean(cartoes()[3].querySelector(".foto img")));
+    cartoes()[3].querySelector(".descricao").click();
+    await respira();
+    confere("a observação é a mesma nos dois perfis", campo.value === "Banco 4, pino 7", campo.value);
+    document.getElementById("visor-fechar").click();
+    await respira();
   }
 
   // Escreve um banco na versão 1, com o formato de chave que existia antes do id estável.

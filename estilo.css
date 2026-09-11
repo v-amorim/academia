@@ -13,17 +13,19 @@
   --noite-900: #0D0E17;
   --noite-800: #141726;
   --noite-600: #252A42;
-  --noite-500: #2F3654;
   --tinta-100: #EEEEFA;
   --tinta-400: #9BA3C4;
   --azul-400: #8A9BE0;
   --lavanda-300: #B0B9E5;
   --ambar-400: #FFCB6B;
+  --branco-08: rgb(255 255 255 / 0.08);
+  --branco-13: rgb(255 255 255 / 0.13);
 
   --fundo: var(--noite-900);
   --superficie: var(--noite-800);
   --superficie-alta: var(--noite-600);
-  --borda: var(--noite-500);
+  --anel: var(--branco-08);
+  --anel-forte: var(--branco-13);
   --texto: var(--tinta-100);
   --texto-secundario: var(--tinta-400);
   --acento: var(--azul-400);
@@ -32,12 +34,13 @@
   --feito: var(--lavanda-300);
   --feito-texto: var(--noite-900);
   --alerta: var(--ambar-400);
-  --contorno: var(--noite-900);
 
   --raio-carta: 16px;
-  --raio-painel: 22px;
-  --raio-interno-carta: 6px;
+  --raio-painel: 24px;
+  --raio-interno-carta: 8px;
   --raio-interno-painel: 10px;
+  --raio-trilho: 12px;
+  --raio-interno-trilho: 8px;
   --alvo: 44px;
   --curva: cubic-bezier(0.2, 0, 0, 1);
 }
@@ -63,16 +66,46 @@ button {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .contador, .foto, .aba, .opcao, .primario, .secundario, #perfis label {
-    transition-property: background-color, border-color, color, scale;
+  .contador, .foto, .aba, .primario, .secundario, .exercicio, .vaga, .vaga-quadro, #perfis label {
+    transition-property: background-color, box-shadow, color, scale;
     transition-duration: 120ms;
     transition-timing-function: var(--curva);
   }
   /* 150ms é o teto para retorno de interação frequente: baixar série acontece o tempo todo. */
-  .contador::before {
-    transition: height 150ms var(--curva);
+  .contador::before { transition: height 150ms var(--curva); }
+  .contador:active, .foto:active, .aba:active, .primario:active, .secundario:active, #perfis label:active,
+  .vaga:active .vaga-quadro { scale: 0.96; }
+  /* Ajustando, o contador não encolhe: a fita que o cobre ficaria fora de lugar. */
+  .contador.ajustando:active { scale: 1; }
+
+  /* A pílula desliza até a aba escolhida em vez de aparecer nela. */
+  #abas::before { transition: translate 200ms var(--curva); }
+
+  /* Só o dígito que acabou de mudar entra assim, nunca a lista inteira ao carregar. */
+  .serie.entrando { animation: entrar 200ms var(--curva); }
+
+  /* Entrada com escala e saída só com opacidade, mais curta: quem fecha já está olhando para
+     o resto da tela. display e overlay discretos são o que deixa o <dialog> nativo animar ao sair. */
+  dialog {
+    opacity: 0;
+    scale: 0.96;
+    transition: opacity 150ms var(--curva), scale 150ms var(--curva),
+      display 150ms allow-discrete, overlay 150ms allow-discrete;
   }
-  .contador:active, .foto:active, .aba:active, .opcao:active, .primario:active, .secundario:active, #perfis label:active { scale: 0.96; }
+  dialog[open] { opacity: 1; scale: 1; transition-duration: 200ms; }
+  dialog::backdrop {
+    background: transparent;
+    transition: background-color 150ms var(--curva), display 150ms allow-discrete, overlay 150ms allow-discrete;
+  }
+  dialog[open]::backdrop { transition-duration: 200ms; }
+  @starting-style {
+    dialog[open] { opacity: 0; scale: 0.96; }
+    dialog[open]::backdrop { background: transparent; }
+  }
+}
+
+@keyframes entrar {
+  from { opacity: 0; translate: 0 6px; filter: blur(4px); }
 }
 
 .oculto-visual {
@@ -85,51 +118,84 @@ button {
   white-space: nowrap;
 }
 
-header { padding-block: 16px 0; padding-inline: 16px; }
-
-#perfis { display: flex; gap: 8px; margin: 0 0 12px; padding: 0; border: 0; }
-#perfis label {
-  position: relative;
-  flex: 1;
+header {
   display: grid;
-  place-items: center;
-  min-height: var(--alvo);
-  border: 1px solid var(--borda);
+  gap: 12px;
+  padding-block: 12px 0;
+  padding-inline: 16px;
+}
+
+/* Trilho e pílula: o trilho é a superfície do cartão e a escolhida sobe um degrau. É o mesmo
+   idioma de "selecionado" nas duas fileiras, e nenhuma das duas usa o azul, que é de ação. */
+#perfis {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  justify-self: end;
+  margin: 0;
+  padding: 3px;
+  border: 0;
   border-radius: 999px;
   background: var(--superficie);
+}
+#perfis label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  padding-inline: 16px;
+  border-radius: 999px;
   color: var(--texto-secundario);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 13px;
   cursor: pointer;
 }
-#perfis label:has(:checked) { background: var(--acento); border-color: var(--acento); color: var(--acento-texto); }
+/* O rótulo é menor que o alvo mínimo, então a área de toque cresce por fora sem mexer no desenho. */
+#perfis label::after { content: ""; position: absolute; inset: -5px 0; }
+#perfis label:has(:checked) { background: var(--superficie-alta); color: var(--texto); box-shadow: 0 0 0 1px var(--anel); }
 #perfis label:has(:focus-visible) { outline: 2px solid var(--foco); outline-offset: 2px; }
 
-#abas { display: flex; gap: 8px; }
-.aba {
-  flex: 1;
-  min-height: var(--alvo);
-  border: 1px solid var(--borda);
-  border-radius: var(--raio-interno-painel);
+#abas {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 4px;
+  border-radius: var(--raio-trilho);
   background: var(--superficie);
+}
+/* A pílula é uma só e anda. --ativa vem do app.js, em posição da aba, e a largura é um terço do
+   miolo do trilho. */
+#abas::before {
+  content: "";
+  position: absolute;
+  inset-block: 4px;
+  inset-inline-start: 4px;
+  width: calc((100% - 8px) / 3);
+  translate: calc(var(--ativa, 0) * 100%) 0;
+  border-radius: var(--raio-interno-trilho);
+  background: var(--superficie-alta);
+  box-shadow: 0 0 0 1px var(--anel);
+}
+.aba {
+  position: relative;
+  min-height: 40px;
+  border: 0;
+  border-radius: var(--raio-interno-trilho);
+  background: none;
   color: var(--texto-secundario);
   font-weight: 600;
   font-size: 17px;
 }
-.aba[aria-selected="true"] {
-  background: var(--superficie-alta);
-  border-color: var(--acento);
-  color: var(--acento);
-}
+.aba[aria-selected="true"] { color: var(--texto); font-weight: 700; }
 .aba .marca { color: var(--feito); }
 
 #sem-banco {
   margin-block: 16px 0;
   margin-inline: 16px;
-  padding: 12px;
-  border: 1px solid var(--alerta);
+  padding: 14px;
   border-radius: var(--raio-painel);
   background: var(--superficie);
+  box-shadow: 0 0 0 1px var(--alerta);
   color: var(--alerta);
   font-size: 14px;
   text-wrap: pretty;
@@ -138,10 +204,10 @@ header { padding-block: 16px 0; padding-inline: 16px; }
 #ciclo {
   margin-block: 16px 0;
   margin-inline: 16px;
-  padding: 12px;
-  border: 1px solid var(--borda);
+  padding: 14px;
   border-radius: var(--raio-painel);
   background: var(--superficie);
+  box-shadow: 0 0 0 1px var(--anel);
   text-align: center;
 }
 #ciclo p { margin: 0 0 12px; }
@@ -149,46 +215,58 @@ header { padding-block: 16px 0; padding-inline: 16px; }
 .primario, .secundario {
   min-height: var(--alvo);
   padding-inline: 20px;
+  border: 0;
   border-radius: var(--raio-interno-painel);
   font-weight: 700;
 }
-.primario { border: 0; background: var(--acento); color: var(--acento-texto); }
-.secundario { border: 1px solid var(--borda); background: var(--superficie-alta); color: var(--texto); }
+.primario { background: var(--acento); color: var(--acento-texto); }
+.secundario { background: var(--superficie-alta); color: var(--texto); box-shadow: 0 0 0 1px var(--anel); }
 #ciclo .primario { width: 100%; }
 
 #lista { list-style: none; margin: 0; padding: 16px; display: grid; gap: 12px; }
 
+/* Anel translúcido no lugar de borda: sobre fundo escuro a borda sólida virava moldura e o
+   cartão lia como wireframe. O contador e a foto ficam tonais, sem moldura própria, para o
+   cartão ter uma caixa só. */
 .exercicio {
+  position: relative;
   display: grid;
-  grid-template-columns: 78px 1fr auto;
+  grid-template-columns: 64px 1fr 64px;
   gap: 12px;
   align-items: center;
-  padding: 10px;
+  padding: 8px;
   background: var(--superficie);
-  border: 1px solid var(--borda);
   border-radius: var(--raio-carta);
+  box-shadow: 0 0 0 1px var(--anel);
 }
+/* A fita transborda o cartão, então o cartão que a contém sobe acima dos vizinhos. */
+.exercicio:has(.ajustando) { z-index: 5; }
 .exercicio.feito {
   background: color-mix(in oklab, var(--feito) 10%, var(--superficie));
-  border-color: color-mix(in oklab, var(--feito) 35%, var(--borda));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--feito) 35%, var(--anel));
 }
 .exercicio.feito .nome { text-decoration: line-through; color: var(--texto-secundario); }
 
+/* As séries que faltam são o número grande; as repetições, a linha pequena embaixo. */
 .contador {
   position: relative;
   display: grid;
-  place-items: center;
-  min-height: 58px;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  width: 64px;
+  height: 64px;
   padding: 0;
   overflow: hidden;
-  border: 1px solid var(--borda);
+  border: 0;
   border-radius: var(--raio-interno-carta);
   background: var(--superficie-alta);
   font-variant-numeric: tabular-nums;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
+  /* O gesto de arrastar é do app, não do navegador: sem isto a lista rola e o ajuste é
+     cancelado no primeiro milímetro. O preço é não dar para rolar a lista pelo contador. */
+  touch-action: none;
 }
+.contador.ajustando { overflow: visible; }
 
 /* O preenchimento sobe com as séries já feitas. Uma cor só ganhando altura, e não uma cor por
    etapa: lavanda já significa concluído no app, e hue nova criaria significado novo. */
@@ -201,37 +279,22 @@ header { padding-block: 16px 0; padding-inline: 16px; }
   background: color-mix(in oklab, var(--feito) 28%, var(--superficie-alta));
 }
 .contador[data-feito="1"]::before { display: none; }
+.contador > * { position: relative; }
 
-/* Empilhados na mesma célula, e acima do preenchimento. */
-.contador > * { grid-area: 1 / 1; position: relative; }
-
-/* Marca d'água no canto, sangrando na borda de propósito, escura para ler como sombra e não
-   como texto. Num tema escuro não existe sombra legível, então ela é textura e não informação:
-   quem carrega quantas séries faltam é a altura do preenchimento, mais o aria-label do botão.
-   Ela aparece mais conforme a lavanda sobe atrás, que é o efeito desejado. */
-.fantasma {
-  position: absolute;
-  inset-inline-end: -2px;
-  bottom: -8px;
-  color: var(--contorno);
-  opacity: 0.55;
-  font-weight: 700;
-  font-size: 50px;
+.serie {
+  color: var(--texto);
+  font-weight: 800;
+  font-size: 28px;
   line-height: 1;
 }
-/* --texto e não --texto-secundario: sobre o preenchimento cheio o secundário reprova AA. */
-/* O contorno é o que deixa as duas camadas ocuparem o mesmo centro sem disputar. paint-order
-   põe o traço atrás do preenchimento, senão ele engorda a letra por dentro. */
+/* --texto e não --texto-secundario: sobre o preenchimento parcial o secundário reprova AA. */
 .reps {
   color: var(--texto);
-  font-weight: 700;
-  font-size: 19px;
-  line-height: 1.3;
-  paint-order: stroke fill;
-  -webkit-text-stroke: 3px var(--contorno);
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1;
 }
-/* Sem contorno no concluído: ali o texto já é escuro sobre lavanda, e o traço só o engrossaria. */
-.reps.feito { font-size: 21px; -webkit-text-stroke: 0; }
+.serie.feito { font-size: 15px; font-weight: 700; }
 
 /* Todo alvo de toque longo precisa disto, senão segurar seleciona o texto em vez de disparar o gesto. */
 .contador, .descricao, .aba {
@@ -239,7 +302,8 @@ header { padding-block: 16px 0; padding-inline: 16px; }
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
-.contador[data-feito="1"] { background: var(--feito); border-color: var(--feito); color: var(--feito-texto); }
+.contador[data-feito="1"] { background: var(--feito); color: var(--feito-texto); }
+.contador[data-feito="1"] .serie { color: var(--feito-texto); }
 
 /* min-width: 0 em item de grid, senão o conteúdo sem quebra estica a faixa além da tela. */
 .descricao {
@@ -266,91 +330,229 @@ header { padding-block: 16px 0; padding-inline: 16px; }
   text-wrap: balance;
 }
 
-/* 1.45 e não menos: com três grupos a linha quebra em duas na largura de celular. */
+/* Só grupos, e equipamento fora do padrão. Aparelho, vídeo e observação moram no visor. */
 .grupos {
-  display: flex;
-  align-items: start;
-  gap: 6px;
-  min-width: 0;
-  margin-top: 6px;
+  margin-top: 4px;
   font-size: 13px;
   line-height: 1.45;
   color: var(--texto-secundario);
   text-wrap: pretty;
 }
-/* 1px de alinhamento óptico: centra o ícone de 16px na primeira linha de texto, não no bloco. */
-.equipamento { flex: none; margin-top: 1px; line-height: 0; }
-.equipamento svg { width: 16px; height: 16px; }
-/* Só o ícone esmaece no cartão feito. Ele é decorativo e tem aria-hidden, então nenhum texto
-   perde contraste: a 80% de opacidade o texto cairia para 4,62:1, o par mais fraco do app. */
-.exercicio.feito .equipamento { opacity: 0.6; }
-
-/* O número do aparelho é identidade, não contagem. Numa faixa de largura cheia na base da
-   miniatura ele lia como "X fotos", que é a linguagem de contador de imagem. */
-/* Maiúscula por CSS e não no dado: `em pé` e `step` continuam crus no fichas.js, e o número
-   não é afetado. */
-.aparelho::first-letter { text-transform: uppercase; }
-.aparelho {
-  flex: none;
-  padding-inline: 7px;
-  border-radius: 999px;
-  background: var(--superficie-alta);
-  color: var(--texto);
-  font-weight: 700;
-  white-space: nowrap;
-}
 
 .foto {
-  width: 58px;
-  height: 58px;
+  width: 64px;
+  height: 64px;
   padding: 0;
-  border: 1px solid var(--borda);
+  border: 0;
   border-radius: var(--raio-interno-carta);
   background: var(--superficie-alta);
+  color: var(--texto-secundario);
   overflow: hidden;
   display: grid;
   place-items: center;
 }
+/* Contorno de imagem: branco puro a 10% em tema escuro, desenhado por dentro para abraçar o raio. */
+.foto img, #visor-quadro img, .vaga-quadro img { outline: 1px solid rgb(255 255 255 / 0.1); outline-offset: -1px; }
 .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.foto svg { width: 24px; height: 24px; }
+.foto svg { width: 22px; height: 22px; }
 
+/* Largura fixa, não máxima: o visor troca de conteúdo a cada vaga, e com max-width ele
+   encolhia e crescia a cada toque. */
 dialog {
   margin: auto;
-  max-width: min(340px, calc(100vw - 32px));
-  padding: 12px;
-  border: 1px solid var(--borda);
+  width: min(340px, calc(100vw - 32px));
+  padding: 14px;
+  border: 0;
   border-radius: var(--raio-painel);
   background: var(--superficie);
+  box-shadow: 0 0 0 1px var(--anel-forte);
   color: var(--texto);
 }
-dialog::backdrop { background: color-mix(in oklab, var(--noite-900, #0D0E17) 85%, transparent); }
-dialog h2 { margin: 4px 0 12px; font-size: 16px; line-height: 1.3; text-wrap: balance; }
-dialog p { margin: 0 0 16px; color: var(--texto-secundario); }
-.acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.acoes-empilhadas { display: grid; gap: 12px; }
+dialog[open]::backdrop { background: color-mix(in oklab, var(--noite-900, #0D0E17) 85%, transparent); }
+dialog h2 { margin: 2px 0 10px; font-size: 16px; line-height: 1.3; text-wrap: balance; }
+dialog p { margin: 0 0 16px; color: var(--texto-secundario); font-size: 15px; }
+/* Cancelar do tamanho do texto e a ação principal com o resto: metade a metade não cabia
+   "Resetar progresso" numa linha. */
+.acoes { display: grid; grid-template-columns: auto 1fr; gap: 10px; }
+/* Botão escondido continua sendo filho, então :only-child não serve. */
+.acoes:has(> [hidden]) > :not([hidden]) { grid-column: 1 / -1; }
+.acoes-empilhadas { display: grid; gap: 10px; }
+.largo { width: 100%; margin-top: 10px; }
 
-/* Uma coluna por valor, todas do mesmo tamanho. Um toque escolhe e fecha, sem rolagem, sem
-   confirmar e sem conta de posição. */
-#roda {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  gap: 8px;
+/* A fita nasce dentro do contador e o cobre, transbordando para cima e para baixo: o ajuste
+   acontece onde o dedo está, e não numa caixa no meio da tela. */
+.fita {
+  --linha: 44px;
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: calc(5 * var(--linha));
+  translate: 0 -50%;
+  overflow: hidden;
+  border-radius: var(--raio-interno-carta);
+  /* Fundo do app, e não a superfície do cartão: a fita flutua acima da lista e precisa ler como
+     outra camada. A sombra é o que a descola dos cartões que ela cobre. */
+  background: var(--fundo);
+  box-shadow: 0 0 0 2px var(--acento), 0 10px 30px rgb(0 0 0 / 0.55);
 }
-.opcao {
-  min-height: var(--alvo);
-  padding-inline: 4px;
-  border: 1px solid var(--borda);
-  border-radius: var(--raio-interno-painel);
-  background: var(--superficie-alta);
-  color: var(--texto);
+/* Véu do fundo por cima dos números, em vez de máscara na fita: máscara comeria o anel de acento,
+   e máscara na coluna viajaria com ela em vez de ficar parada na borda. */
+.fita::before, .fita::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: var(--linha);
+  z-index: 1;
+  pointer-events: none;
+}
+.fita::before { top: 0; background: linear-gradient(var(--fundo), transparent); }
+.fita::after { bottom: 0; background: linear-gradient(transparent, var(--fundo)); }
+
+/* O recuo de duas linhas é o que põe o primeiro valor no centro quando o desvio é zero. */
+.fita-coluna {
+  display: grid;
+  grid-auto-rows: var(--linha);
+  padding-block: calc(2 * var(--linha));
+  translate: 0 var(--desvio, 0px);
+}
+.fita-valor {
+  display: grid;
+  place-items: center;
+  color: var(--texto-secundario);
+  opacity: 0.4;
   font-weight: 700;
-  font-size: 17px;
+  font-size: 26px;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-/* Mesmo tratamento da aba selecionada, que é o padrão de "escolhido" que o app já tem. */
-.opcao[aria-current="true"] { border-color: var(--acento); color: var(--acento); }
+.fita-valor.feito { font-size: 15px; }
+.fita-valor.escolhido { color: var(--texto); opacity: 1; }
 
-#visor-meta { margin-block: -8px 12px; font-size: 13px; font-weight: 600; }
-#visor img { display: block; max-width: 100%; max-height: 70vh; border-radius: var(--raio-interno-painel); outline: 1px solid rgb(255 255 255 / 0.1); }
-#visor .acoes { margin-top: 12px; }
+#visor-meta { margin-block: -6px 12px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* 36vh e não 70: abaixo da foto ainda vêm a tira de vagas, a observação e três botões, e tudo
+   isso precisa caber sem rolar num celular de 667px de altura. */
+#visor-quadro {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  min-height: 160px;
+  overflow: hidden;
+  border-radius: var(--raio-interno-painel);
+  background: var(--superficie-alta);
+  color: var(--texto-secundario);
+  font-size: 13px;
+  text-align: center;
+}
+/* Com foto, a caixa some e sobra a imagem centrada: foto de celular é retrato, e dentro de uma
+   caixa larga ela ficava boiando com moldura em volta. A caixa é só o estado vazio. */
+#visor-quadro:has(img) { background: none; }
+#visor-quadro img { display: block; max-width: 100%; max-height: 36vh; border-radius: var(--raio-interno-painel); }
+/* A foto grande é botão: toque abre em tela cheia. O botão some atrás da imagem. */
+.ampliar { display: block; padding: 0; border: 0; border-radius: var(--raio-interno-painel); background: none; cursor: zoom-in; }
+
+/* Tela cheia de verdade: sem margem, raio, anel nem teto de altura do <dialog> nativo. */
+#tela-cheia {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: var(--fundo);
+  box-shadow: none;
+  overflow: hidden;
+}
+/* touch-action: none entrega pinça e arrasto ao app, senão o navegador amplia a página inteira. */
+#zoom {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+#zoom img {
+  max-width: 100%;
+  max-height: 100%;
+  transform-origin: center;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+.tela-cheia-barra {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, color-mix(in oklab, var(--fundo) 85%, transparent), transparent);
+  pointer-events: none;
+}
+.tela-cheia-barra > * { pointer-events: auto; }
+.tela-cheia-barra p { margin: 0; min-width: 0; font-size: 14px; font-weight: 600; color: var(--texto); text-wrap: balance; }
+#visor-quadro svg { width: 32px; height: 32px; }
+
+/* Três quadrados fixos, um por vaga, sempre visíveis: a tira é o que conta quantas vagas
+   existem e quais estão vazias. A escolhida leva o anel de ação, como a opção do seletor. */
+#vagas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.vaga {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--texto-secundario);
+  font-size: 11px;
+  font-weight: 600;
+}
+.vaga-quadro {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: var(--raio-interno-painel);
+  background: var(--superficie-alta);
+  box-shadow: 0 0 0 1px var(--anel);
+}
+.vaga-quadro img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vaga-quadro svg { width: 20px; height: 20px; }
+.vaga[aria-current="true"] { color: var(--texto); }
+.vaga[aria-current="true"] .vaga-quadro { box-shadow: 0 0 0 2px var(--acento); }
+
+.rotulo { display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600; color: var(--texto-secundario); }
+/* 16px no campo, senão o Safari do iPhone dá zoom na página inteira ao focar. */
+#observacao {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--raio-interno-painel);
+  background: var(--superficie-alta);
+  box-shadow: 0 0 0 1px var(--anel);
+  color: var(--texto);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  resize: none;
+  /* Cresce com o texto onde o navegador sabe; onde não sabe, ficam as duas linhas do rows. */
+  field-sizing: content;
+  min-height: calc(2 * 1.4em + 20px);
+}
+#observacao::placeholder { color: var(--texto-secundario); }

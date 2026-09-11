@@ -256,6 +256,15 @@ const Banco = (function () {
 
   const apagarFoto = (exId, vaga) => apagar("fotos", `${exId}:${vaga}`);
 
+  // Só o campo, por cima do exercício que já existe: o editor da fase 4 vai escrever os outros
+  // campos do mesmo registro, e substituir o objeto inteiro apagaria o que ele gravou.
+  async function salvarObservacao(exId, observacao) {
+    if (!db) return;
+    const anterior = await pegar("exercicios", exId);
+    if (!anterior) return;
+    gravar("exercicios", exId, { ...anterior, observacao });
+  }
+
   // Safari lança ao tocar em localStorage numa origem opaca, e o Chrome não. Daí o try.
   function lerPreferencia(chave) {
     try {
@@ -277,7 +286,7 @@ const Banco = (function () {
     abrir, disponivel, semear,
     listarExercicios, lerSessaoDeHoje, salvarSerie, encerrarSessao, resetarTreino,
     lerCiclo, iniciarCiclo, letrasConcluidas,
-    lerFotos, salvarFoto, apagarFoto,
+    lerFotos, salvarFoto, apagarFoto, salvarObservacao,
     lerPreferencia, gravarPreferencia
   };
 })();

@@ -16,7 +16,7 @@ const ESPERADO = [
   ["cartões", /class="exercicio/g, 7],
   ["abas", /class="aba"/g, 3],
   ["perfis", /name="perfil"/g, 2],
-  ["diálogos", /<dialog id=/g, 5]
+  ["diálogos", /<dialog id=/g, 6]
 ];
 
 // Cada caso roda num perfil de Chrome novo, então o IndexedDB nasce limpo. A migração precisa

@@ -1,18 +1,6 @@
 // Traço de 1.5px porque o ícone fica ao lado de texto de peso 400, e currentColor porque um SVG
 // só é recolorido por estado, nunca trocado por outro arquivo.
-const svg = (miolo) =>
-  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${miolo}</svg>`;
-
-const ICONE_CAMERA = svg(`<path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2a1.5 1.5 0 0 0 1.2-.6l.9-1.2a1.5 1.5 0 0 1 1.2-.6h4a1.5 1.5 0 0 1 1.2.6l.9 1.2a1.5 1.5 0 0 0 1.2.6h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5Z"/><circle cx="12" cy="13" r="3.5"/>`);
-
-// Silhuetas propositalmente diferentes entre si, porque a 16px o que distingue é o contorno
-// geral, não o detalhe: moldura com pilha, barra com pesos, polia com pegador, e anel.
-const ICONES_EQUIPAMENTO = {
-  maquina: svg(`<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M8 10h8M8 14h8"/>`),
-  halteres: svg(`<rect x="3.5" y="8.5" width="4" height="7" rx="1.25"/><rect x="16.5" y="8.5" width="4" height="7" rx="1.25"/><path d="M7.5 12h9"/>`),
-  cabo: svg(`<path d="M12 3v3.5"/><path d="M12 6.5 6.8 17.6a1.6 1.6 0 0 0 1.5 2.3h7.4a1.6 1.6 0 0 0 1.5-2.3Z"/>`),
-  anilha: svg(`<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/>`)
-};
+const ICONE_CAMERA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2a1.5 1.5 0 0 0 1.2-.6l.9-1.2a1.5 1.5 0 0 1 1.2-.6h4a1.5 1.5 0 0 1 1.2.6l.9 1.2a1.5 1.5 0 0 0 1.2.6h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5Z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
 
 // O dado guarda o valor cru, minúsculo e sem acento; a tela mostra a palavra como um nativo
 // escreve, com diacrítico completo e maiúscula inicial.
@@ -26,9 +14,14 @@ const NOME_DO_GRUPO = {
 const LETRAS = Object.keys(TREINOS);
 const ESPERA_TOQUE_LONGO = 400;
 const VAGA_DA_MAQUINA = 0;
+// Três vagas fixas por exercício: a capa e dois ajustes da máquina que são mais visuais do que
+// descritíveis na observação. Sem lista crescente, sem capa escolhida, sem limite para explicar.
+const VAGAS = ["Máquina", "Ajuste 1", "Ajuste 2"];
 
 const restantes = new Map();
+// exId para lista de object URL por vaga. Lista esparsa: vaga sem foto é buraco.
 const fotos = new Map();
+let vagaAtiva = VAGA_DA_MAQUINA;
 let perfilAtivo = Banco.lerPreferencia("perfil") ?? "sun";
 let letraAtiva = LETRAS[0];
 let concluidas = new Set();
@@ -36,7 +29,6 @@ let exercicios = [];
 let cartoes = [];
 // Toque em aba enquanto a anterior ainda carrega: só a última escolha pode desenhar a lista.
 let geracao = 0;
-let alvoRoda = null;
 let alvoVisor = null;
 let alvoExercicio = null;
 let alvoTreino = null;
@@ -47,13 +39,19 @@ const lista = document.getElementById("lista");
 const secaoCiclo = document.getElementById("ciclo");
 const aviso = document.getElementById("aviso");
 const camera = document.getElementById("camera");
-const dialogoRoda = document.getElementById("dialogo-roda");
-const roda = document.getElementById("roda");
-const rodaTitulo = document.getElementById("roda-titulo");
 const visor = document.getElementById("visor");
 const visorTitulo = document.getElementById("visor-titulo");
 const visorMeta = document.getElementById("visor-meta");
-const visorImg = visor.querySelector("img");
+const visorQuadro = document.getElementById("visor-quadro");
+const vagas = document.getElementById("vagas");
+const observacao = document.getElementById("observacao");
+const visorApagar = document.getElementById("visor-apagar");
+const visorTrocar = document.getElementById("visor-trocar");
+const dialogoApagar = document.getElementById("dialogo-apagar");
+const telaCheia = document.getElementById("tela-cheia");
+const telaCheiaTitulo = document.getElementById("tela-cheia-titulo");
+const zoom = document.getElementById("zoom");
+const zoomImg = zoom.querySelector("img");
 const dialogoRecomecar = document.getElementById("dialogo-recomecar");
 const dialogoExercicio = document.getElementById("dialogo-exercicio");
 const dialogoTreino = document.getElementById("dialogo-treino");
@@ -83,24 +81,34 @@ async function adotarBanco() {
 }
 
 async function carregarFotos() {
-  for (const [exId, vagas] of await Banco.lerFotos()) {
-    const foto = vagas[VAGA_DA_MAQUINA];
-    if (foto) fotos.set(exId, URL.createObjectURL(foto));
+  for (const [exId, porVaga] of await Banco.lerFotos()) {
+    fotos.set(exId, porVaga.map((foto) => URL.createObjectURL(foto)));
   }
 }
+
+const fotoDa = (exercicio, vaga) => fotos.get(exercicio.id)?.[vaga];
+const capaDe = (exercicio) => fotoDa(exercicio, VAGA_DA_MAQUINA);
 
 const faltam = (exercicio) => restantes.get(exercicio.id) ?? exercicio.series;
 const letraFeita = (letra) => concluidas.has(letra);
 const rotulo = (faltando, reps) => (faltando === 0 ? "feito" : `${faltando}×${reps}`);
 
-const gruposDe = (exercicio) => exercicio.grupos.map((grupo) => NOME_DO_GRUPO[grupo]).join(" · ");
+// O equipamento entra como mais um item da lista, não como ícone: quatro silhuetas a 16px não
+// se distinguiam, e a de cabo lia como figura humana. Máquina é o padrão e fica implícita na
+// tela, porque na maioria dos cartões ela só empurrava a linha para duas; o leitor de tela ouve.
+const EQUIPAMENTO_PADRAO = "maquina";
+const etiquetasDe = (exercicio, { tudo = false } = {}) =>
+  [
+    ...(tudo || exercicio.equipamento !== EQUIPAMENTO_PADRAO ? [NOME_DO_EQUIPAMENTO[exercicio.equipamento]] : []),
+    ...exercicio.grupos.map((grupo) => NOME_DO_GRUPO[grupo])
+  ].join(" · ");
 
-// As séries que faltam ficam atrás, grandes e mais apagadas, e as repetições na frente, nítidas.
-// Sinal multiplicação, não a letra x: é o que um nativo lê como "doze vezes".
+// As séries que faltam são o número grande, e as repetições a linha pequena embaixo.
+// Sinal de multiplicação, não a letra x: é o que um nativo lê como "doze vezes".
 const rotuloDoContador = (faltando, reps) =>
   faltando === 0
-    ? `<span class="reps feito">Feito</span>`
-    : `<span class="fantasma" aria-hidden="true">${faltando}</span><span class="reps">${reps} rep</span>`;
+    ? `<span class="serie feito">Feito</span>`
+    : `<span class="serie">${faltando}</span><span class="reps">×${reps}</span>`;
 
 function refrescar() {
   cartoes.forEach((cartao) => cartao.atualizar());
@@ -115,7 +123,7 @@ async function definir(exercicio, valor) {
   Banco.salvarSerie(perfilAtivo, letraAtiva, exercicio.id, valor);
 
   const letra = letraAtiva;
-  cartoes[exercicios.indexOf(exercicio)]?.atualizar();
+  cartoes[exercicios.indexOf(exercicio)]?.atualizar({ animar: true });
   aviso.textContent = `${exercicio.nome}: ${rotulo(valor, exercicio.reps)}.`;
 
   if (exercicios.every((outro) => faltam(outro) === 0)) {
@@ -220,6 +228,7 @@ function atualizarAbas() {
     const concluido = letraFeita(letra);
     botao.setAttribute("aria-selected", ativa);
     botao.tabIndex = ativa ? 0 : -1;
+    if (ativa) abas.style.setProperty("--ativa", posicao);
     botao.innerHTML = concluido ? `${letra} <span class="marca" aria-hidden="true">✓</span>` : letra;
     botao.setAttribute("aria-label", [
       `Treino ${letra}`,
@@ -261,16 +270,14 @@ function criarCartao(exercicio) {
   const meio = document.createElement("button");
   meio.type = "button";
   meio.className = "descricao";
-  // O ícone é aria-hidden, então o nome do equipamento e os grupos entram aqui, senão quem usa
-  // leitor de tela perde a informação que a fase 2 acrescentou.
-  meio.setAttribute("aria-label",
-    `${exercicio.nome}. ${NOME_DO_EQUIPAMENTO[exercicio.equipamento]}, ${gruposDe(exercicio)}. ` +
-    `Aparelho ${exercicio.aparelho}, vídeo ${exercicio.cod}. Resetar progresso.`);
+  // Toque curto abre o visor, o mesmo destino da foto. O toque longo é atalho para o reset, que
+  // também está no visor como botão, e é por ali que o teclado chega nele.
   const segurouNome = ligarToqueLongo(meio, () => abrirResetExercicio(exercicio));
   meio.onclick = () => {
     if (segurouNome()) return;
-    abrirResetExercicio(exercicio);
+    abrirVisor(exercicio);
   };
+  meio.setAttribute("aria-label", `${exercicio.nome}. ${etiquetasDe(exercicio, { tudo: true })}. Abrir detalhes e fotos.`);
 
   const nome = document.createElement("div");
   nome.className = "nome";
@@ -278,25 +285,25 @@ function criarCartao(exercicio) {
 
   const grupos = document.createElement("div");
   grupos.className = "grupos";
-  grupos.innerHTML =
-    `<span class="equipamento">${ICONES_EQUIPAMENTO[exercicio.equipamento]}</span>` +
-    `<b class="aparelho"></b>`;
-  grupos.querySelector(".aparelho").textContent = exercicio.aparelho;
-  grupos.append(Object.assign(document.createElement("span"), { textContent: gruposDe(exercicio) }));
+  grupos.textContent = etiquetasDe(exercicio);
 
   meio.append(nome, grupos);
 
   const foto = document.createElement("button");
   foto.type = "button";
   foto.className = "foto";
+  foto.onclick = () => abrirVisor(exercicio);
 
   const cartao = {
     item,
-    atualizar() {
+    // Só quem mudou anima, e só quando mudou: montar a lista inteira com entrada seria
+    // animação de carga, que não diz nada.
+    atualizar({ animar = false } = {}) {
       const faltando = faltam(exercicio);
       item.classList.toggle("feito", faltando === 0);
       contador.dataset.feito = faltando === 0 ? "1" : "0";
       contador.innerHTML = rotuloDoContador(faltando, exercicio.reps);
+      if (animar) contador.querySelector(".serie").classList.add("entrando");
       // O preenchimento sobe com o que já foi executado, não com o que falta.
       contador.style.setProperty("--progresso", `${((exercicio.series - faltando) / exercicio.series) * 100}%`);
       contador.setAttribute("aria-label",
@@ -304,12 +311,11 @@ function criarCartao(exercicio) {
           ? `${exercicio.nome}: feito. Use as setas para ajustar.`
           : `${exercicio.nome}: ${rotulo(faltando, exercicio.reps)} restantes. Tocar para baixar uma série, setas para ajustar.`);
 
-      const salva = fotos.get(exercicio.id);
-      foto.innerHTML = salva ? `<img src="${salva}" alt="">` : ICONE_CAMERA;
-      foto.setAttribute("aria-label", salva
-        ? `Ver foto da máquina de ${exercicio.nome}`
-        : `Tirar foto da máquina de ${exercicio.nome}`);
-      foto.onclick = salva ? () => abrirVisor(exercicio) : () => tirarFoto(exercicio);
+      const capa = capaDe(exercicio);
+      foto.innerHTML = capa ? `<img src="${capa}" alt="">` : ICONE_CAMERA;
+      foto.setAttribute("aria-label", capa
+        ? `Fotos da máquina de ${exercicio.nome}`
+        : `Fotos da máquina de ${exercicio.nome}, nenhuma ainda`);
     }
   };
 
@@ -318,11 +324,62 @@ function criarCartao(exercicio) {
   return cartao;
 }
 
+// Segurar o contador e arrastar muda o valor no lugar, como o seletor de hora do celular. A fita
+// de números nasce dentro do próprio contador, cobrindo-o, e acompanha o dedo. Não é diálogo: o
+// ajuste acontece onde o dedo está, e soltar confirma.
 function ligarContador(contador, exercicio) {
-  const segurou = ligarToqueLongo(contador, () => abrirRoda(exercicio));
+  let ajuste = null;
+  let cronometro;
+  let ajustou = false;
+  let origem = 0;
 
+  const desistir = () => clearTimeout(cronometro);
+
+  contador.addEventListener("pointerdown", (evento) => {
+    origem = evento.clientY;
+    ajustou = false;
+    cronometro = setTimeout(() => {
+      ajuste = { origem, inicial: faltam(exercicio), valor: faltam(exercicio) };
+      // Ponteiro sintético não existe para o navegador, e capturá-lo lança.
+      try { contador.setPointerCapture(evento.pointerId); } catch { /* gesto sem captura */ }
+      abrirFita(contador, exercicio, ajuste.valor);
+      navigator.vibrate?.(10);
+    }, ESPERA_TOQUE_LONGO);
+  });
+
+  contador.addEventListener("pointermove", (evento) => {
+    // Antes do gesto pegar, dedo que anda é rolagem da lista, não ajuste.
+    if (!ajuste) {
+      if (Math.abs(evento.clientY - origem) > 10) desistir();
+      return;
+    }
+    const continuo = Math.min(exercicio.series,
+      Math.max(0, ajuste.inicial + (ajuste.origem - evento.clientY) / PASSO_DO_AJUSTE));
+    ajuste.valor = Math.round(continuo);
+    moverFita(continuo, ajuste.valor);
+  });
+
+  const soltar = () => {
+    desistir();
+    if (!ajuste) return;
+    const valor = ajuste.valor;
+    ajuste = null;
+    ajustou = true;
+    fecharFita(contador);
+    definir(exercicio, valor);
+  };
+  contador.addEventListener("pointerup", soltar);
+  contador.addEventListener("pointercancel", soltar);
+  contador.addEventListener("pointerleave", desistir);
+  contador.addEventListener("contextmenu", (evento) => evento.preventDefault());
+
+  // O pointerup do gesto ainda gera um clique. Sem esta guarda, o ajuste seria seguido de uma
+  // série a menos. A marca é consumida na leitura, senão o clique do Enter morreria depois.
   contador.addEventListener("click", () => {
-    if (segurou()) return;
+    if (ajustou) {
+      ajustou = false;
+      return;
+    }
     definir(exercicio, Math.max(0, faltam(exercicio) - 1));
   });
 
@@ -335,31 +392,43 @@ function ligarContador(contador, exercicio) {
   });
 }
 
-function abrirRoda(exercicio) {
-  alvoRoda = exercicio;
-  const atual = faltam(exercicio);
+// Uma linha da fita por unidade, e o dedo anda com ela: 44px de arrasto muda o valor em um.
+const PASSO_DO_AJUSTE = 44;
+let fita = null;
 
-  rodaTitulo.textContent = `Séries restantes: ${exercicio.nome}`;
-  roda.replaceChildren(...Array.from({ length: exercicio.series + 1 }, (_, valor) => {
-    const opcao = document.createElement("button");
-    opcao.type = "button";
-    opcao.className = "opcao";
-    opcao.textContent = valor === 0 ? "Feito" : String(valor);
-    opcao.setAttribute("aria-label",
-      valor === 0 ? `Marcar ${exercicio.nome} como feito` : `${rotulo(valor, exercicio.reps)} restantes`);
-    if (valor === atual) opcao.setAttribute("aria-current", "true");
-    opcao.onclick = () => dialogoRoda.close(String(valor));
-    return opcao;
+function abrirFita(contador, exercicio, valor) {
+  fita = document.createElement("div");
+  fita.className = "fita";
+  // O contador guarda o rótulo de acessibilidade, e a fita é o desenho do mesmo número.
+  fita.setAttribute("aria-hidden", "true");
+
+  const coluna = document.createElement("div");
+  coluna.className = "fita-coluna";
+  coluna.append(...Array.from({ length: exercicio.series + 1 }, (_, opcao) => {
+    const linha = document.createElement("span");
+    linha.className = opcao === 0 ? "fita-valor feito" : "fita-valor";
+    linha.textContent = opcao === 0 ? "Feito" : String(opcao);
+    return linha;
   }));
 
-  dialogoRoda.returnValue = "";
-  dialogoRoda.showModal();
+  fita.append(coluna);
+  contador.classList.add("ajustando");
+  contador.append(fita);
+  moverFita(valor, valor);
 }
 
-dialogoRoda.addEventListener("close", () => {
-  if (dialogoRoda.returnValue === "") return;
-  definir(alvoRoda, Number(dialogoRoda.returnValue));
-});
+function moverFita(continuo, escolhido) {
+  const coluna = fita?.firstElementChild;
+  if (!coluna) return;
+  coluna.style.setProperty("--desvio", `${-continuo * PASSO_DO_AJUSTE}px`);
+  [...coluna.children].forEach((linha, opcao) => linha.classList.toggle("escolhido", opcao === escolhido));
+}
+
+function fecharFita(contador) {
+  contador.classList.remove("ajustando");
+  fita?.remove();
+  fita = null;
+}
 
 function abrirResetExercicio(exercicio) {
   alvoExercicio = exercicio;
@@ -398,32 +467,238 @@ dialogoTreino.addEventListener("close", async () => {
   }
 });
 
+// O quadro vazio também abre o visor, e não a câmera direto: o número do vídeo mora aqui, e ele
+// precisa estar ao alcance justamente onde ainda não há foto.
 function abrirVisor(exercicio) {
   alvoVisor = exercicio;
-  visorTitulo.textContent = `Máquina de ${exercicio.nome}`;
+  vagaAtiva = VAGA_DA_MAQUINA;
+  visorTitulo.textContent = exercicio.nome;
   // Informação de consulta, não de execução: no cartão o número do aparelho basta, e o do vídeo
   // só interessa a quem parou para olhar.
   visorMeta.textContent = `Aparelho ${exercicio.aparelho} · Vídeo ${exercicio.cod}`;
-  visorImg.src = fotos.get(exercicio.id);
+  observacao.value = exercicio.observacao ?? "";
+  desenharVisor();
   visor.showModal();
 }
 
-document.getElementById("visor-fechar").onclick = () => visor.close();
-document.getElementById("visor-trocar").onclick = () => {
-  visor.close();
-  tirarFoto(alvoVisor);
+function desenharVisor() {
+  const exercicio = alvoVisor;
+  const atual = fotoDa(exercicio, vagaAtiva);
+  const nomeDaVaga = VAGAS[vagaAtiva].toLowerCase();
+
+  visorQuadro.innerHTML = atual
+    ? `<button type="button" class="ampliar" aria-label="Ampliar a foto de ${nomeDaVaga}"><img src="${atual}" alt=""></button>`
+    : `${ICONE_CAMERA}<span>Nenhuma foto de ${nomeDaVaga} ainda</span>`;
+  if (atual) visorQuadro.querySelector(".ampliar").onclick = () => abrirTelaCheia(exercicio, vagaAtiva);
+
+  vagas.replaceChildren(...VAGAS.map((nome, vaga) => {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "vaga";
+    const url = fotoDa(exercicio, vaga);
+    botao.innerHTML =
+      `<span class="vaga-quadro">${url ? `<img src="${url}" alt="">` : ICONE_CAMERA}</span>` +
+      `<span class="vaga-nome">${nome}</span>`;
+    botao.setAttribute("aria-label", url ? nome : `${nome}, sem foto`);
+    if (vaga === vagaAtiva) botao.setAttribute("aria-current", "true");
+    botao.onclick = () => {
+      vagaAtiva = vaga;
+      desenharVisor();
+    };
+    return botao;
+  }));
+
+  visorTrocar.textContent = atual ? "Trocar foto" : "Tirar foto";
+  visorApagar.hidden = !atual;
+}
+
+const refrescarVisor = (exercicio) => {
+  if (visor.open && alvoVisor === exercicio) desenharVisor();
 };
 
-function tirarFoto(exercicio) {
+function abrirTelaCheia(exercicio, vaga) {
+  telaCheiaTitulo.textContent = `${exercicio.nome} · ${VAGAS[vaga]}`;
+  zoomImg.src = fotoDa(exercicio, vaga);
+  reiniciarZoom();
+  telaCheia.showModal();
+}
+
+document.getElementById("tela-cheia-fechar").onclick = () => telaCheia.close();
+
+// Pinça, arrasto e toque duplo na mão, por pointer events. A pinça nativa não serve: ela amplia a
+// página inteira, diálogo junto. O ponto sob os dedos fica parado: a translação é recalculada a
+// partir de onde esse ponto estava na imagem quando o gesto começou.
+const ESCALA_MAXIMA = 5;
+const ESCALA_DO_TOQUE_DUPLO = 2.5;
+const INTERVALO_TOQUE_DUPLO = 300;
+let escala = 1;
+let deslocamento = { x: 0, y: 0 };
+const ponteiros = new Map();
+let gesto = null;
+let ultimoToque = { em: 0, x: 0, y: 0 };
+
+function reiniciarZoom() {
+  escala = 1;
+  deslocamento = { x: 0, y: 0 };
+  ponteiros.clear();
+  gesto = null;
+  aplicarZoom();
+}
+
+function aplicarZoom() {
+  // Ampliada, a imagem não pode deixar borda vazia no meio da tela; em escala 1 fica centrada.
+  const area = zoom.getBoundingClientRect();
+  const folgaX = Math.max(0, (zoomImg.offsetWidth * escala - area.width) / 2);
+  const folgaY = Math.max(0, (zoomImg.offsetHeight * escala - area.height) / 2);
+  deslocamento.x = Math.min(folgaX, Math.max(-folgaX, deslocamento.x));
+  deslocamento.y = Math.min(folgaY, Math.max(-folgaY, deslocamento.y));
+  zoomImg.style.transform = `translate(${deslocamento.x}px, ${deslocamento.y}px) scale(${escala})`;
+}
+
+const centroDaArea = () => {
+  const area = zoom.getBoundingClientRect();
+  return { x: area.left + area.width / 2, y: area.top + area.height / 2 };
+};
+
+// Ponto da tela para ponto da imagem, na escala e deslocamento de agora.
+function pontoNaImagem(ponto) {
+  const centro = centroDaArea();
+  return { x: (ponto.x - centro.x - deslocamento.x) / escala, y: (ponto.y - centro.y - deslocamento.y) / escala };
+}
+
+// Escolhe a escala nova e desloca para que `fixo` da imagem continue sob `ponto` da tela.
+function ampliarEm(ponto, fixo, novaEscala) {
+  const centro = centroDaArea();
+  escala = Math.min(ESCALA_MAXIMA, Math.max(1, novaEscala));
+  deslocamento = { x: ponto.x - centro.x - fixo.x * escala, y: ponto.y - centro.y - fixo.y * escala };
+  aplicarZoom();
+}
+
+const meioDe = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+const distanciaDe = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+function iniciarGesto() {
+  const dedos = [...ponteiros.values()];
+  if (dedos.length >= 2) {
+    const meio = meioDe(dedos[0], dedos[1]);
+    gesto = { distancia: distanciaDe(dedos[0], dedos[1]), escala, fixo: pontoNaImagem(meio) };
+  } else if (dedos.length === 1) {
+    gesto = { origem: dedos[0], deslocamento: { ...deslocamento } };
+  } else {
+    gesto = null;
+  }
+}
+
+zoom.addEventListener("pointerdown", (evento) => {
+  zoom.setPointerCapture(evento.pointerId);
+  ponteiros.set(evento.pointerId, { x: evento.clientX, y: evento.clientY });
+  iniciarGesto();
+});
+
+zoom.addEventListener("pointermove", (evento) => {
+  if (!ponteiros.has(evento.pointerId)) return;
+  ponteiros.set(evento.pointerId, { x: evento.clientX, y: evento.clientY });
+  const dedos = [...ponteiros.values()];
+  if (dedos.length >= 2 && gesto?.distancia) {
+    const meio = meioDe(dedos[0], dedos[1]);
+    ampliarEm(meio, gesto.fixo, gesto.escala * (distanciaDe(dedos[0], dedos[1]) / gesto.distancia));
+  } else if (dedos.length === 1 && gesto?.origem && escala > 1) {
+    deslocamento = {
+      x: gesto.deslocamento.x + dedos[0].x - gesto.origem.x,
+      y: gesto.deslocamento.y + dedos[0].y - gesto.origem.y
+    };
+    aplicarZoom();
+  }
+});
+
+function soltar(evento) {
+  const dedo = ponteiros.get(evento.pointerId);
+  ponteiros.delete(evento.pointerId);
+
+  // Toque é dedo que desceu e subiu quase no mesmo lugar; arrasto não conta.
+  const agora = Date.now();
+  const foiToque = evento.type === "pointerup" && dedo && ponteiros.size === 0 && gesto?.origem
+    && distanciaDe(dedo, gesto.origem) < 10;
+  if (foiToque && agora - ultimoToque.em < INTERVALO_TOQUE_DUPLO && distanciaDe(dedo, ultimoToque) < 30) {
+    ampliarEm(dedo, pontoNaImagem(dedo), escala > 1 ? 1 : ESCALA_DO_TOQUE_DUPLO);
+    ultimoToque = { em: 0, x: 0, y: 0 };
+  } else if (foiToque) {
+    ultimoToque = { em: agora, ...dedo };
+  }
+
+  // Sem pinça sobrando e quase no tamanho natural: encaixa em 1, senão fica um resto de zoom que
+  // não se vê e só atrapalha o arrasto.
+  if (ponteiros.size === 0 && escala < 1.05) {
+    escala = 1;
+    deslocamento = { x: 0, y: 0 };
+    aplicarZoom();
+  }
+  iniciarGesto();
+}
+zoom.addEventListener("pointerup", soltar);
+zoom.addEventListener("pointercancel", soltar);
+
+zoom.addEventListener("wheel", (evento) => {
+  evento.preventDefault();
+  const ponto = { x: evento.clientX, y: evento.clientY };
+  ampliarEm(ponto, pontoNaImagem(ponto), escala * Math.exp(-evento.deltaY * 0.002));
+}, { passive: false });
+
+document.getElementById("visor-fechar").onclick = () => visor.close();
+document.getElementById("visor-resetar").onclick = () => abrirResetExercicio(alvoVisor);
+visorTrocar.onclick = () => tirarFoto(alvoVisor, vagaAtiva);
+
+visorApagar.onclick = () => {
+  document.getElementById("apagar-corpo").textContent =
+    `A foto de ${VAGAS[vagaAtiva].toLowerCase()} de ${alvoVisor.nome} sai deste aparelho.`;
+  dialogoApagar.returnValue = "";
+  dialogoApagar.showModal();
+};
+
+dialogoApagar.addEventListener("close", () => {
+  if (dialogoApagar.returnValue !== "apagar") return;
+  const exercicio = alvoVisor;
+  const vaga = vagaAtiva;
+  Banco.apagarFoto(exercicio.id, vaga);
+  const porVaga = fotos.get(exercicio.id) ?? [];
+  URL.revokeObjectURL(porVaga[vaga]);
+  delete porVaga[vaga];
+  cartoes[exercicios.indexOf(exercicio)]?.atualizar();
+  refrescarVisor(exercicio);
+  aviso.textContent = `Foto de ${VAGAS[vaga].toLowerCase()} de ${exercicio.nome} apagada.`;
+});
+
+// Salva ao sair do campo. Enter conclui em vez de quebrar linha: observação é "banco 4, pino 7",
+// não texto corrido, e no celular é o que fecha o teclado.
+observacao.addEventListener("change", () => {
+  const exercicio = alvoVisor;
+  const texto = observacao.value.trim();
+  exercicio.observacao = texto;
+  Banco.salvarObservacao(exercicio.id, texto);
+  aviso.textContent = texto
+    ? `Observação de ${exercicio.nome} salva.`
+    : `Observação de ${exercicio.nome} apagada.`;
+});
+observacao.addEventListener("keydown", (evento) => {
+  if (evento.key !== "Enter" || evento.shiftKey) return;
+  evento.preventDefault();
+  observacao.blur();
+});
+
+function tirarFoto(exercicio, vaga) {
   camera.value = "";
   camera.onchange = async () => {
     const arquivo = camera.files[0];
     if (!arquivo) return;
     const reduzida = await reduzir(arquivo);
-    Banco.salvarFoto(exercicio.id, VAGA_DA_MAQUINA, reduzida);
-    fotos.set(exercicio.id, URL.createObjectURL(reduzida));
+    Banco.salvarFoto(exercicio.id, vaga, reduzida);
+    const porVaga = fotos.get(exercicio.id) ?? [];
+    if (porVaga[vaga]) URL.revokeObjectURL(porVaga[vaga]);
+    porVaga[vaga] = URL.createObjectURL(reduzida);
+    fotos.set(exercicio.id, porVaga);
     cartoes[exercicios.indexOf(exercicio)]?.atualizar();
-    aviso.textContent = `Foto salva para ${exercicio.nome}.`;
+    refrescarVisor(exercicio);
+    aviso.textContent = `Foto de ${VAGAS[vaga].toLowerCase()} de ${exercicio.nome} salva.`;
   };
   camera.click();
 }
