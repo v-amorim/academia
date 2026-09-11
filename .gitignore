@@ -1,2 +1,6 @@
+# Documentos de trabalho, fora do versionamento por conterem contexto pessoal. Ficam no disco.
+BACKLOG.md
+CONVENCOES.md
+
 # Capturas de tela do Playwright, geradas durante a inspeção visual.
 .playwright-mcp/
