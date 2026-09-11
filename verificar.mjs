@@ -12,9 +12,14 @@ import { pathToFileURL } from "node:url";
 const PASTA = resolve(import.meta.dirname ?? new URL(".", import.meta.url).pathname);
 const ARQUIVOS_JS = ["fichas.js", "banco.js", "app.js", "sonda.js", "sw.js"];
 
+// Quantos treinos e quantos exercícios saem da semente, não de um número escrito aqui: o app
+// aceita de um treino em diante, e a suíte não pode ser o que trava isso em três.
+const TREINOS = new Function(`${readFileSync(join(PASTA, "fichas.js"), "utf8")}; return TREINOS;`)();
+const LETRAS = Object.keys(TREINOS);
+
 const ESPERADO = [
-  ["cartões", /class="exercicio/g, 7],
-  ["abas", /class="aba"/g, 3],
+  ["cartões", /class="exercicio/g, TREINOS[LETRAS[0]].length],
+  ["abas", /class="aba"/g, LETRAS.length],
   ["perfis", /name="perfil"/g, 2],
   ["diálogos", /<dialog id=/g, 6]
 ];
@@ -106,8 +111,11 @@ function servidor(aoReceber) {
     if (url.pathname === "/sonda") {
       const caso = url.searchParams.get("caso");
       const injecao = `<script src="/sonda.js"></script><script>Sonda.rodar(${JSON.stringify(caso)})</script>`;
+      // A página do `preparar` não sobe o app, mas carrega a semente: as chaves do banco legado
+      // são montadas com os nomes de treino de hoje, e escrevê-las à mão travaria a suíte em ABC.
       const pagina = caso === "preparar"
-        ? `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>preparar</title></head><body>${injecao}</body></html>`
+        ? `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>preparar</title></head>`
+          + `<body><script src="/fichas.js"></script>${injecao}</body></html>`
         : marcacao.replace("</body>", `${injecao}\n</body>`);
       resposta.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(pagina);
       return;

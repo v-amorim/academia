@@ -766,6 +766,7 @@ for (const caixa of document.querySelectorAll("dialog")) {
   document.getElementById("sem-banco").hidden = temBanco;
   perfis.append(...Object.entries(PERFIS).map(criarPerfil));
   abas.append(...LETRAS.map(criarAba));
+  abas.style.setProperty("--quantas", LETRAS.length);
   navigator.storage?.persist?.();
   // Duas APIs de plataforma fora do banco.js, as duas aqui e as duas ignorando o retorno. O
   // registro falha calado por file://, que não tem origem segura, e é o comportamento esperado:

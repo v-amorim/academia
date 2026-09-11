@@ -16,6 +16,26 @@ const Sonda = (function () {
     return false;
   }
 
+  // Quantos treinos existem e como se chamam sai da semente. A suíte aceita ABC, ABCD ou um
+  // treino só, e o app tem que aceitar junto.
+  //
+  // A guarda existe porque o caso `preparar` roda numa página sem o app: lá não há TREINOS nem
+  // LETRAS, e ler direto derrubaria o arquivo inteiro antes de `rodar` ser chamado.
+  const CATALOGO = typeof TREINOS === "undefined" ? {} : TREINOS;
+  const NOMES = Object.keys(CATALOGO);
+  const PRIMEIRA = NOMES[0];
+  const SEGUNDA = NOMES[1];
+  const ULTIMA = NOMES[NOMES.length - 1];
+  // A migração precisa de dois treinos fundos o bastante para ter as posições que ela usa, então
+  // escolhe o último que tenha, em vez de supor que todo treino é grande.
+  const FUNDA = [...NOMES].reverse().find((letra) => CATALOGO[letra].length >= 3 && letra !== NOMES[0]) ?? NOMES[0];
+  const quantosExercicios = () => NOMES.reduce((total, letra) => total + CATALOGO[letra].length, 0);
+  const DO_PRIMEIRO = CATALOGO[PRIMEIRA]?.length ?? 0;
+  // O rótulo cheio de cada exercício sai da própria semente: nem todo treino é 3x12.
+  const cheioDe = (letra) => CATALOGO[letra].map((exercicio) => `${exercicio.series}×${exercicio.reps}`);
+  const primeiroCheio = () => cheioDe(PRIMEIRA)[0];
+  const umAMenos = () => `${CATALOGO[PRIMEIRA][0].series - 1}×${CATALOGO[PRIMEIRA][0].reps}`;
+
   const cartoes = () => [...document.querySelectorAll(".exercicio")];
 
   // O contador tem o número que falta em cima e as repetições embaixo, então o rótulo é remontado
@@ -49,48 +69,52 @@ const Sonda = (function () {
   }
 
   async function comportamento() {
-    if (!(await aguardar(() => cartoes().length === 7, "os cartões de A"))) return;
+    if (!(await aguardar(() => cartoes().length === DO_PRIMEIRO, "os cartões do primeiro treino"))) return;
 
     confere("banco disponível por http", document.getElementById("sem-banco").hidden);
-    confere("21 exercícios semeados",
-      (await Banco.listarExercicios("A")).length + (await Banco.listarExercicios("B")).length +
-      (await Banco.listarExercicios("C")).length === 21);
-    confere("aba A nasce ativa", abaDe("A").getAttribute("aria-selected") === "true");
+    confere("o catálogo inteiro é semeado",
+      (await Promise.all(NOMES.map((l) => Banco.listarExercicios(l))))
+        .reduce((total, lista) => total + lista.length, 0) === quantosExercicios());
+    confere("a primeira aba nasce ativa", abaDe(PRIMEIRA).getAttribute("aria-selected") === "true");
     confere("nenhuma aba concluída", !document.querySelector(".aba .marca"));
 
     cartoes()[0].querySelector(".contador").click();
     await respira();
-    confere("um toque desce uma série", contadores()[0] === "2×12", contadores()[0]);
-    confere("a série baixada é anunciada", avisoDiz("2×12"));
+    confere("um toque desce uma série", contadores()[0] === umAMenos(), contadores()[0]);
+    confere("a série baixada é anunciada", avisoDiz(umAMenos()));
 
     await baixarAte(cartoes()[0], "Feito");
     confere("zerado mostra feito", contadores()[0] === "Feito", contadores()[0]);
     confere("cartão zerado ganha a classe feito", cartoes()[0].classList.contains("feito"));
-    confere("uma aba não conclui por um exercício", !abaDe("A").querySelector(".marca"));
+    confere("uma aba não conclui por um exercício", !abaDe(PRIMEIRA).querySelector(".marca"));
 
     for (const item of cartoes().slice(1)) await baixarAte(item, "Feito");
     await respira(250);
-    confere("zerar o último encerra o treino", Boolean(abaDe("A").querySelector(".marca")));
+    confere("zerar o último encerra o treino", Boolean(abaDe(PRIMEIRA).querySelector(".marca")));
     confere("o encerramento automático é anunciado", avisoDiz("completo e gravado"),
       document.getElementById("aviso").textContent);
-    confere("o ciclo ainda não completou", document.getElementById("ciclo").hidden);
+    confere(SEGUNDA ? "o ciclo ainda não completou" : "com um treino só, concluí-lo fecha o ciclo",
+      document.getElementById("ciclo").hidden === Boolean(SEGUNDA));
 
-    const cheia = await Banco.lerSessaoDeHoje("sun", "A");
+    const cheia = await Banco.lerSessaoDeHoje("sun", PRIMEIRA);
     confere("sessão fica concluída no banco", cheia.sessao?.concluidoEm > 0);
-    confere("os sete registros ficam gravados", cheia.registros.size === 7, cheia.registros.size);
-    confere("A entra nas letras concluídas", (await Banco.letrasConcluidas("sun")).has("A"));
+    confere("todo exercício do treino fica gravado", cheia.registros.size === DO_PRIMEIRO, cheia.registros.size);
+    confere("a primeira letra entra nas concluídas", (await Banco.letrasConcluidas("sun")).has(PRIMEIRA));
 
-    abaDe("B").click();
-    await respira(250);
-    confere("trocar de aba carrega o outro treino",
-      cartoes()[0].querySelector(".nome").textContent === TREINOS.B[0].nome);
-    confere("treino não começado nasce cheio", contadores().every((texto) => texto === "3×12"));
+    // Só faz sentido com dois treinos ou mais. Com um, não há para onde trocar.
+    if (SEGUNDA) {
+      abaDe(SEGUNDA).click();
+      await respira(250);
+      confere("trocar de aba carrega o outro treino",
+        cartoes()[0].querySelector(".nome").textContent === CATALOGO[SEGUNDA][0].nome);
+      confere("treino não começado nasce cheio", contadores().join() === cheioDe(SEGUNDA).join(), contadores().join());
 
-    abaDe("A").click();
-    await respira(250);
-    confere("voltar para A mantém o feito", contadores().every((texto) => texto === "Feito"));
+      abaDe(PRIMEIRA).click();
+      await respira(250);
+      confere("voltar para a primeira mantém o feito", contadores().every((texto) => texto === "Feito"));
+    }
 
-    abaDe("A").click();
+    abaDe(PRIMEIRA).click();
     await respira();
     confere("a aba ativa abre o menu", menu().open);
     confere("o rótulo novo está no menu",
@@ -99,26 +123,30 @@ const Sonda = (function () {
     menu().querySelector('[value="resetar"]').click();
     await respira(250);
 
-    confere("reset volta ao total", contadores().every((texto) => texto === "3×12"), contadores().join(","));
-    confere("reset tira o visto da aba", !abaDe("A").querySelector(".marca"));
-    confere("reset não apaga registro", (await Banco.lerSessaoDeHoje("sun", "A")).registros.size === 7);
+    confere("reset volta ao total", contadores().join() === cheioDe(PRIMEIRA).join(), contadores().join());
+    confere("reset tira o visto da aba", !abaDe(PRIMEIRA).querySelector(".marca"));
+    confere("reset não apaga registro", (await Banco.lerSessaoDeHoje("sun", PRIMEIRA)).registros.size === DO_PRIMEIRO);
 
     // Treino parcial: um exercício desce, o resto é abandonado.
     cartoes()[0].querySelector(".contador").click();
     await respira();
-    await pelaAba("A", "encerrar");
-    confere("encerrar marca a aba", Boolean(abaDe("A").querySelector(".marca")));
+    await pelaAba(PRIMEIRA, "encerrar");
+    confere("encerrar marca a aba", Boolean(abaDe(PRIMEIRA).querySelector(".marca")));
     confere("o encerramento manual é anunciado", avisoDiz("encerrado e gravado"));
-    confere("encerrar não mexe no que está na tela", contadores()[0] === "2×12", contadores()[0]);
+    confere("encerrar não mexe no que está na tela", contadores()[0] === umAMenos(), contadores()[0]);
 
-    const parcial = await Banco.lerSessaoDeHoje("sun", "A");
-    const exerciciosA = await Banco.listarExercicios("A");
-    confere("treino parcial grava os sete", parcial.registros.size === 7, parcial.registros.size);
-    confere("o executado guarda o que sobrou", parcial.registros.get(exerciciosA[0].id).restantes === 2);
-    confere("o pulado guarda o total", parcial.registros.get(exerciciosA[1].id).restantes === 3);
+    const parcial = await Banco.lerSessaoDeHoje("sun", PRIMEIRA);
+    const exerciciosA = await Banco.listarExercicios(PRIMEIRA);
+    confere("treino parcial grava o treino inteiro", parcial.registros.size === DO_PRIMEIRO, parcial.registros.size);
+    confere("o executado guarda o que sobrou",
+      parcial.registros.get(exerciciosA[0].id).restantes === CATALOGO[PRIMEIRA][0].series - 1);
+    confere("o pulado guarda o total",
+      parcial.registros.get(exerciciosA[1].id).restantes === CATALOGO[PRIMEIRA][1].series);
 
-    for (const letra of ["B", "C"]) await pelaAba(letra, "encerrar");
-    confere("as três abas concluem", document.querySelectorAll(".aba .marca").length === 3);
+    for (const letra of NOMES.slice(1)) await pelaAba(letra, "encerrar");
+    confere("todas as abas concluem",
+      document.querySelectorAll(".aba .marca").length === NOMES.length,
+      document.querySelectorAll(".aba .marca").length);
     confere("o ciclo completo aparece", !document.getElementById("ciclo").hidden);
 
     document.getElementById("abrir-recomecar").click();
@@ -130,21 +158,21 @@ const Sonda = (function () {
 
     confere("recomeçar limpa os vistos", document.querySelectorAll(".aba .marca").length === 0);
     confere("recomeçar esconde a seção do ciclo", document.getElementById("ciclo").hidden);
-    confere("recomeçar volta para A", abaDe("A").getAttribute("aria-selected") === "true");
-    confere("recomeçar zera os contadores", contadores().every((texto) => texto === "3×12"));
+    confere("recomeçar volta para a primeira", abaDe(PRIMEIRA).getAttribute("aria-selected") === "true");
+    confere("recomeçar zera os contadores", contadores().join() === cheioDe(PRIMEIRA).join(), contadores().join());
     confere("recomeçar é anunciado", avisoDiz("recomeçado"));
-    confere("recomeçar não apaga sessão", (await Banco.lerSessaoDeHoje("sun", "A")).registros.size === 7);
+    confere("recomeçar não apaga sessão", (await Banco.lerSessaoDeHoje("sun", PRIMEIRA)).registros.size === DO_PRIMEIRO);
     confere("nada fica concluído depois do recomeço", (await Banco.letrasConcluidas("sun")).size === 0);
 
     cartoes()[0].querySelector(".contador").click();
     await respira();
     document.querySelector('input[value="shine"]').click();
     await respira(300);
-    confere("o outro perfil nasce cheio", contadores().every((texto) => texto === "3×12"));
+    confere("o outro perfil nasce cheio", contadores().join() === cheioDe(PRIMEIRA).join(), contadores().join());
     confere("a troca de perfil é anunciada", avisoDiz("Shine"));
     document.querySelector('input[value="sun"]').click();
     await respira(300);
-    confere("cada perfil volta com o próprio progresso", contadores()[0] === "2×12", contadores()[0]);
+    confere("cada perfil volta com o próprio progresso", contadores()[0] === umAMenos(), contadores()[0]);
 
     const banco = await new Promise((pronto) => {
       const pedido = indexedDB.open("academia");
@@ -161,9 +189,9 @@ const Sonda = (function () {
     // e apareceria de qualquer jeito; quem denuncia a sessão fora do ciclo é o banco.
     for (const item of cartoes()) await baixarAte(item, "Feito");
     await respira(300);
-    confere("A concluída de novo aparece na tela", Boolean(abaDe("A").querySelector(".marca")));
-    confere("A concluída de novo entra no ciclo corrente",
-      (await Banco.letrasConcluidas("sun")).has("A"));
+    confere("concluída de novo aparece na tela", Boolean(abaDe(PRIMEIRA).querySelector(".marca")));
+    confere("concluída de novo entra no ciclo corrente",
+      (await Banco.letrasConcluidas("sun")).has(PRIMEIRA));
 
     await instalacao();
   }
@@ -198,38 +226,45 @@ const Sonda = (function () {
   }
 
   async function teclado() {
-    if (!(await aguardar(() => cartoes().length === 7, "os cartões de A"))) return;
+    if (!(await aguardar(() => cartoes().length === DO_PRIMEIRO, "os cartões do primeiro treino"))) return;
     const tecla = (alvo, key) =>
       alvo.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
 
-    abaDe("A").focus();
-    confere("só a aba ativa é tabulável", abaDe("A").tabIndex === 0 && abaDe("B").tabIndex === -1);
+    abaDe(PRIMEIRA).focus();
 
-    tecla(abaDe("A"), "ArrowRight");
-    await respira(250);
-    confere("seta direita seleciona a próxima", abaDe("B").getAttribute("aria-selected") === "true");
-    confere("seta direita leva o foco junto", document.activeElement === abaDe("B"));
-    confere("a lista aponta para a aba certa",
-      document.getElementById("lista").getAttribute("aria-labelledby") === "aba-B");
+    // Navegar entre abas exige ter para onde ir. Com um treino só, a fileira nem aparece.
+    if (SEGUNDA) {
+      confere("só a aba ativa é tabulável", abaDe(PRIMEIRA).tabIndex === 0 && abaDe(SEGUNDA).tabIndex === -1);
 
-    tecla(abaDe("B"), "End");
-    await respira(250);
-    confere("End vai para a última", abaDe("C").getAttribute("aria-selected") === "true" && document.activeElement === abaDe("C"));
-    tecla(abaDe("C"), "Home");
-    await respira(250);
-    confere("Home volta para a primeira", abaDe("A").getAttribute("aria-selected") === "true" && document.activeElement === abaDe("A"));
+      tecla(abaDe(PRIMEIRA), "ArrowRight");
+      await respira(250);
+      confere("seta direita seleciona a próxima", abaDe(SEGUNDA).getAttribute("aria-selected") === "true");
+      confere("seta direita leva o foco junto", document.activeElement === abaDe(SEGUNDA));
+      confere("a lista aponta para a aba certa",
+        document.getElementById("lista").getAttribute("aria-labelledby") === `aba-${SEGUNDA}`);
+
+      tecla(abaDe(SEGUNDA), "End");
+      await respira(250);
+      confere("End vai para a última", abaDe(ULTIMA).getAttribute("aria-selected") === "true" && document.activeElement === abaDe(ULTIMA));
+      tecla(abaDe(ULTIMA), "Home");
+      await respira(250);
+      confere("Home volta para a primeira", abaDe(PRIMEIRA).getAttribute("aria-selected") === "true" && document.activeElement === abaDe(PRIMEIRA));
+    } else {
+      confere("com um treino só, a fileira de abas some da tela",
+        document.getElementById("abas").offsetParent === null);
+    }
 
     const contador = cartoes()[0].querySelector(".contador");
     contador.focus();
     tecla(contador, "ArrowDown");
     await respira();
-    confere("seta baixo desce uma série", contadores()[0] === "2×12", contadores()[0]);
+    confere("seta baixo desce uma série", contadores()[0] === umAMenos(), contadores()[0]);
     tecla(contador, "ArrowUp");
     await respira();
-    confere("seta cima sobe uma série", contadores()[0] === "3×12", contadores()[0]);
+    confere("seta cima sobe uma série", contadores()[0] === primeiroCheio(), contadores()[0]);
     tecla(contador, "ArrowUp");
     await respira();
-    confere("o contador não passa do total", contadores()[0] === "3×12", contadores()[0]);
+    confere("o contador não passa do total", contadores()[0] === primeiroCheio(), contadores()[0]);
 
     // Pelo gesto de verdade: segurar, arrastar, soltar. É o único teste que passa pelo toque longo.
     const alvo = cartoes()[0].querySelector(".contador");
@@ -261,7 +296,7 @@ const Sonda = (function () {
     arrastar(300 + PASSO);
     await respira(50);
     confere("arrastar para baixo baixa o valor", escolhido() === "2", escolhido());
-    confere("o contador só muda ao soltar", contadores()[0] === "3×12", contadores()[0]);
+    confere("o contador só muda ao soltar", contadores()[0] === primeiroCheio(), contadores()[0]);
     arrastar(300 + 2 * PASSO);
     await respira(50);
     confere("arrastar mais baixa mais", escolhido() === "1", escolhido());
@@ -281,7 +316,7 @@ const Sonda = (function () {
     confere("soltar fecha a fita", !fita());
     // O clique que o navegador gera depois do gesto sai junto no soltar(): se a guarda falhasse,
     // o valor aqui seria uma série a menos.
-    confere("soltar grava o valor, e o clique do gesto é engolido", contadores()[0] === "1×12", contadores()[0]);
+    confere("soltar grava o valor, e o clique do gesto é engolido", contadores()[0] === `1×${CATALOGO[PRIMEIRA][0].reps}`, contadores()[0]);
 
     // Dedo que anda antes dos 400ms é rolagem da lista, e não pode virar ajuste.
     segurar(300);
@@ -291,31 +326,31 @@ const Sonda = (function () {
     soltar(340);
     await respira(250);
 
-    abaDe("A").click();
+    abaDe(PRIMEIRA).click();
     await respira();
-    abaDe("A").click();
+    abaDe(PRIMEIRA).click();
     await respira(250);
     confere("o menu do treino abre", menu().open);
     // Clique em 0,0 cai fora da caixa de qualquer diálogo centralizado.
     menu().dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 0, clientY: 0 }));
     await respira(250);
     confere("tocar fora fecha o menu do treino", !menu().open);
-    confere("fechar o menu não encerra nem reseta", !abaDe("A").querySelector(".marca"));
+    confere("fechar o menu não encerra nem reseta", !abaDe(PRIMEIRA).querySelector(".marca"));
 
     cartoes()[0].querySelector(".descricao").click();
     await respira();
     const detalhes = document.getElementById("visor");
     confere("o meio do cartão abre o visor", detalhes.open);
     confere("o aparelho aparece no visor e não no cartão",
-      document.getElementById("visor-meta").textContent.includes(`Aparelho ${TREINOS.A[0].aparelho}`)
-        && !cartoes()[0].querySelector(".descricao").textContent.includes(String(TREINOS.A[0].aparelho)));
+      document.getElementById("visor-meta").textContent.includes(`Aparelho ${CATALOGO[PRIMEIRA][0].aparelho}`)
+        && !cartoes()[0].querySelector(".descricao").textContent.includes(String(CATALOGO[PRIMEIRA][0].aparelho)));
     document.getElementById("visor-resetar").click();
     await respira();
     const dialogo = document.getElementById("dialogo-exercicio");
     confere("o reset tem caminho sem toque longo, pelo visor", dialogo.open);
     dialogo.querySelector('[value="resetar"]').click();
     await respira(250);
-    confere("resetar pelo visor volta ao total", contadores()[0] === "3×12", contadores()[0]);
+    confere("resetar pelo visor volta ao total", contadores()[0] === primeiroCheio(), contadores()[0]);
     detalhes.close();
     await respira();
 
@@ -339,10 +374,10 @@ const Sonda = (function () {
   }
 
   async function migracao() {
-    if (!(await aguardar(() => cartoes().length === 7, "os cartões de A"))) return;
+    if (!(await aguardar(() => cartoes().length === DO_PRIMEIRO, "os cartões do primeiro treino"))) return;
 
-    const idA3 = (await Banco.listarExercicios("A"))[3].id;
-    const idC2 = (await Banco.listarExercicios("C"))[2].id;
+    const idA3 = (await Banco.listarExercicios(PRIMEIRA))[3].id;
+    const idC2 = (await Banco.listarExercicios(FUNDA))[2].id;
 
     const chaves = await new Promise((pronto) => {
       const pedido = indexedDB.open("academia");
@@ -361,7 +396,7 @@ const Sonda = (function () {
 
     confere("o cartão migrado mostra a foto", Boolean(cartoes()[3].querySelector(".foto img")));
     confere("cartão sem foto segue com a câmera", Boolean(cartoes()[0].querySelector(".foto svg")));
-    confere("o progresso por posição é descartado", rotuloDo(cartoes()[3]) === "3×12", rotuloDo(cartoes()[3]));
+    confere("o progresso por posição é descartado", rotuloDo(cartoes()[3]) === cheioDe(PRIMEIRA)[3], rotuloDo(cartoes()[3]));
 
     cartoes()[3].querySelector(".foto").click();
     await respira();
@@ -440,7 +475,7 @@ const Sonda = (function () {
     campo.dispatchEvent(new Event("change", { bubbles: true }));
     await respira(300);
     confere("a observação vai para o banco",
-      (await Banco.listarExercicios("A"))[3].observacao === "Banco 4, pino 7");
+      (await Banco.listarExercicios(PRIMEIRA))[3].observacao === "Banco 4, pino 7");
     confere("a observação não vaza para o cartão", !cartoes()[3].textContent.includes("pino"));
     confere("a observação é anunciada", avisoDiz("Observação"));
     document.getElementById("visor-fechar").click();
@@ -474,10 +509,14 @@ const Sonda = (function () {
       pedido.onsuccess = () => {
         const db = pedido.result;
         const transacao = db.transaction(["estado", "fotos"], "readwrite");
-        transacao.objectStore("estado").put(1, "sun:A3");
-        transacao.objectStore("fotos").put(new Blob(["foto do sun"], { type: "image/jpeg" }), "sun:A3");
-        transacao.objectStore("fotos").put(new Blob(["foto da shine"], { type: "image/jpeg" }), "shine:A3");
-        transacao.objectStore("fotos").put(new Blob(["foto do leg press"], { type: "image/jpeg" }), "sun:C2");
+        // A chave velha era perfil mais letra do treino mais posição na lista. A letra sai da
+        // semente de hoje, senão a suíte volta a exigir que os treinos se chamem A, B e C.
+        const noQuarto = `${PRIMEIRA}3`;
+        const noTerceiro = `${FUNDA}2`;
+        transacao.objectStore("estado").put(1, `sun:${noQuarto}`);
+        transacao.objectStore("fotos").put(new Blob(["foto do sun"], { type: "image/jpeg" }), `sun:${noQuarto}`);
+        transacao.objectStore("fotos").put(new Blob(["foto da shine"], { type: "image/jpeg" }), `shine:${noQuarto}`);
+        transacao.objectStore("fotos").put(new Blob(["foto do leg press"], { type: "image/jpeg" }), `sun:${noTerceiro}`);
         transacao.oncomplete = () => {
           db.close();
           confere("banco na versão 1 preparado", true);
