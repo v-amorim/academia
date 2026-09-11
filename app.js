@@ -467,12 +467,27 @@ function abrirVisor(exercicio) {
   alvoVisor = exercicio;
   vagaAtiva = VAGA_DA_MAQUINA;
   visorTitulo.textContent = exercicio.nome;
-  // Informação de consulta, não de execução: no cartão o número do aparelho basta, e o do vídeo
-  // só interessa a quem parou para olhar.
-  visorMeta.textContent = `Aparelho ${exercicio.aparelho} · Vídeo ${exercicio.cod}`;
+  montarMeta(exercicio);
   observacao.value = exercicio.observacao ?? "";
   desenharVisor();
   visor.showModal();
+}
+
+// Informação de consulta, não de execução, e por isso mora no visor. Os valores viram chip, e o
+// rótulo fica apagado: quem abriu isto veio atrás do número, não da palavra.
+const valorEmChip = (texto) =>
+  Object.assign(document.createElement("b"), { className: "valor", textContent: texto });
+
+// `16/25` na origem quer dizer dois aparelhos onde dá para fazer o mesmo exercício, então a tela
+// escreve "ou". Montado por nó, e não por innerHTML: na fase 4 esse texto vem do editor.
+function montarMeta(exercicio) {
+  const partes = [document.createTextNode("Aparelho ")];
+  exercicio.aparelho.split("/").forEach((valor, posicao) => {
+    if (posicao) partes.push(document.createTextNode(" ou "));
+    partes.push(valorEmChip(valor.trim()));
+  });
+  partes.push(document.createTextNode(" · Vídeo "), valorEmChip(exercicio.cod));
+  visorMeta.replaceChildren(...partes);
 }
 
 function desenharVisor() {

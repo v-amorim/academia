@@ -12,7 +12,9 @@ const TREINOS = {
     { id: "5c0b7b51-9148-427a-8817-62a755d092f0", nome: "Crucifixo invertido no voador",     aparelho: "27",    equipamento: "maquina",  series: 3, reps: 12, cod: 1085, grupos: ["ombro", "costas"] },
     { id: "895b05a8-4c94-4fa4-ad69-69273ed3bd33", nome: "Remada articulada aberta",          aparelho: "5",     equipamento: "maquina",  series: 3, reps: 12, cod: 273,  grupos: ["costas"] },
     { id: "231f9a6f-65fd-434c-a62e-0f1787494fd4", nome: "Rosca direta com halteres",         aparelho: "em pé", equipamento: "halteres", series: 3, reps: 12, cod: 101,  grupos: ["biceps"] },
-    { id: "b65648a8-199e-464d-be8e-78b5f2935c6f", nome: "Rosca direta com barra W no cabo",  aparelho: "17",    equipamento: "cabo",     series: 3, reps: 12, cod: 119,  grupos: ["biceps"] }
+    // Fica na abreviação crua: ninguém confirmou se `CB I.` é cabo inferior, e chutar por extenso
+    // seria afirmar na tela algo que não se sabe. Quem treina reconhece a sigla.
+    { id: "b65648a8-199e-464d-be8e-78b5f2935c6f", nome: "Rosca direta W CB I.",              aparelho: "17",    equipamento: "cabo",     series: 3, reps: 12, cod: 119,  grupos: ["biceps"] }
   ],
   B: [
     { id: "473347d7-babd-41cf-a0fb-ac0222f6a3f4", nome: "Voador aberto",                     aparelho: "27",    equipamento: "maquina",  series: 3, reps: 12, cod: 1076, grupos: ["peito"] },

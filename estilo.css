@@ -451,7 +451,27 @@ dialog p { margin: 0 0 16px; color: var(--texto-secundario); font-size: 15px; }
 .fita-valor.feito { font-size: 15px; }
 .fita-valor.escolhido { color: var(--texto); opacity: 1; }
 
-#visor-meta { margin-block: -6px 12px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* O rótulo apaga e o valor vira chip. Destaque por forma e brilho, nunca por hue nova: o azul
+   deste app quer dizer "clicável", e pintar número estático de azul manda tocar no que não toca. */
+#visor-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-block: -6px 12px;
+  color: var(--texto-secundario);
+  font-size: 13px;
+  font-weight: 600;
+}
+.valor {
+  padding-inline: 8px;
+  border-radius: 999px;
+  background: var(--superficie-alta);
+  box-shadow: 0 0 0 1px var(--anel);
+  color: var(--texto);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 
 /* 36vh e não 70: abaixo da foto ainda vêm a tira de vagas, a observação e três botões, e tudo
    isso precisa caber sem rolar num celular de 667px de altura. */
