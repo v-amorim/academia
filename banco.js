@@ -9,8 +9,8 @@ const Banco = (function () {
   // prazo é o único jeito de sair. Aparelho lento pode estourar o prazo e abrir depois: nesse
   // caso o banco é adotado em vez de descartado.
   const PRAZO_ABERTURA = 2500;
-  const VERSAO = 7;
-  const DEPOSITOS = ["treinos", "exercicios", "sessoes", "registros", "ciclo", "fotos"];
+  const VERSAO = 8;
+  const DEPOSITOS = ["treinos", "exercicios", "sessoes", "registros", "ciclo", "circulo", "fotos"];
   const TAMANHO_ID = 36;
 
   // Identificador do projeto, não segredo: quem protege é a regra do Firestore mais o login.
@@ -25,7 +25,9 @@ const Banco = (function () {
   // O Firebase exige e-mail, e ninguém aqui tem caixa: a conta é o usuário mais este domínio,
   // e a tela só mostra o que vem antes do arroba.
   const DOMINIO_DAS_CONTAS = "academia.local";
-  const NA_NUVEM = ["treinos", "exercicios", "sessoes", "registros", "ciclo"];
+  const NA_NUVEM = ["treinos", "exercicios", "sessoes", "registros", "ciclo", "circulo"];
+  // Depósitos de um documento só por perfil: o ciclo em curso e o círculo em que ele está.
+  const DOCUMENTO_UNICO = new Set(["ciclo", "circulo"]);
   // Quanto a abertura espera o primeiro snapshot de cada coleção, que vem do cache quando há
   // um, e quanto o seed espera pelo servidor antes de desistir.
   const PRAZO_ESPELHO = 2500;
@@ -57,7 +59,7 @@ const Banco = (function () {
 
       // A versão 6 recomeçou o aparelho do zero: o Sun e a Shine passaram para a nuvem, e o que
       // havia antes era treino de teste. Dali em diante, subir de versão só cria o depósito que
-      // falta: a 7 trouxe os treinos como dado.
+      // falta: a 7 trouxe os treinos como dado, e a 8 o círculo.
       pedido.onupgradeneeded = (evento) => {
         const banco = pedido.result;
         if (evento.oldVersion < 6) for (const nome of [...banco.objectStoreNames]) banco.deleteObjectStore(nome);
@@ -157,9 +159,9 @@ const Banco = (function () {
   // A chave do espelho é a mesma do IndexedDB, para a lógica lá embaixo ler os dois motores do
   // mesmo jeito. No id do documento o perfil sai, porque o branch já o carrega.
   const idDoDocumento = (perfil, deposito, chave) =>
-    deposito === "ciclo" ? "atual" : deposito === "exercicios" ? chave : chave.slice(perfil.length + 1);
+    DOCUMENTO_UNICO.has(deposito) ? "atual" : deposito === "exercicios" ? chave : chave.slice(perfil.length + 1);
   const chaveDoEspelho = (perfil, deposito, id) =>
-    deposito === "ciclo" ? perfil : deposito === "exercicios" ? id : `${perfil}:${id}`;
+    DOCUMENTO_UNICO.has(deposito) ? perfil : deposito === "exercicios" ? id : `${perfil}:${id}`;
 
   const colecao = (branch, deposito) => firestore.collection(`perfis/${branch.uid}/${deposito}`);
 
@@ -624,6 +626,59 @@ const Banco = (function () {
 
   const iniciarCiclo = (perfil) => gravar(perfil, "ciclo", perfil, { iniciadoEm: Date.now() });
 
+  // Um círculo é um código de convite e quem entrou com ele. Cada membro escreve só o próprio
+  // documento em `circulos/{codigo}/membros/{uid}` e guarda o código no próprio branch, então
+  // ninguém escreve no documento de ninguém, e a regra deixa ler o branch de quem divide o código.
+  // Só existe na nuvem: o exemplo e o visitante não têm com quem dividir.
+  const LETRAS_DO_CODIGO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const TAMANHO_DO_CODIGO = 6;
+  const gerarCodigo = () => Array.from(crypto.getRandomValues(new Uint8Array(TAMANHO_DO_CODIGO)),
+    (byte) => LETRAS_DO_CODIGO[byte % LETRAS_DO_CODIGO.length]).join("");
+  const membrosDe = (codigo) => firestore.collection(`circulos/${codigo}/membros`);
+
+  const lerCirculo = async (perfil) => (await pegar(perfil, "circulo", perfil))?.codigo ?? null;
+
+  function entrarNoCirculo(perfil, codigo, nome) {
+    const branch = branches.get(perfil);
+    if (!branch) return Promise.resolve(null);
+    const limpo = codigo.trim().toUpperCase();
+    membrosDe(limpo).doc(branch.uid).set({ nome, entrouEm: Date.now() }).catch(escritaFalhou);
+    gravar(perfil, "circulo", perfil, { codigo: limpo });
+    return Promise.resolve(limpo);
+  }
+
+  const criarCirculo = (perfil, nome) => entrarNoCirculo(perfil, gerarCodigo(), nome);
+
+  async function sairDoCirculo(perfil) {
+    const codigo = await lerCirculo(perfil);
+    if (codigo === null) return;
+    membrosDe(codigo).doc(branches.get(perfil).uid).delete().catch(escritaFalhou);
+    apagar(perfil, "circulo", perfil);
+  }
+
+  // codigo -> { membros: uid -> dados, pronto }. Espelho como o do branch: assina uma vez e
+  // responde no primeiro snapshot ou no prazo.
+  const circulos = new Map();
+
+  function lerMembros(codigo) {
+    if (!firestore) return Promise.resolve([]);
+    if (!circulos.has(codigo)) {
+      const membros = new Map();
+      const primeiro = new Promise((chegou) => {
+        membrosDe(codigo).onSnapshot({ includeMetadataChanges: true }, (foto) => {
+          for (const mudanca of foto.docChanges()) {
+            if (mudanca.type === "removed") membros.delete(mudanca.doc.id);
+            else membros.set(mudanca.doc.id, mudanca.doc.data());
+          }
+          chegou();
+        }, chegou);
+      });
+      circulos.set(codigo, { membros, pronto: comPrazo(primeiro, PRAZO_ESPELHO) });
+    }
+    const circulo = circulos.get(codigo);
+    return circulo.pronto.then(() => [...circulo.membros].map(([uid, dados]) => ({ uid, ...dados })));
+  }
+
   // Treino feito é sessão concluída depois do início do ciclo. O ciclo é só esse cursor, e é
   // por isso que recomeçar não apaga sessão nenhuma.
   async function letrasConcluidas(perfil) {
@@ -768,6 +823,7 @@ const Banco = (function () {
     cargasAnteriores, historico, arquivarExercicio, reativarExercicio, seedHistorico,
     encerrarSessao, resetarTreino,
     lerCiclo, iniciarCiclo, letrasConcluidas,
+    lerCirculo, criarCirculo, entrarNoCirculo, sairDoCirculo, lerMembros,
     chaveDaFoto, lerFotos, salvarFoto, apagarFoto, migrarChavesDeFoto, sincronizarFotos,
     salvarObservacao, salvarRepeticoes,
     lerPreferencia, gravarPreferencia

@@ -203,7 +203,7 @@ const Sonda = (function () {
         pronto(info);
       };
     });
-    confere("banco na versão 7", banco.versao === 7, banco.versao);
+    confere("banco na versão 8", banco.versao === 8, banco.versao);
     confere("o depósito estado morreu", !banco.depositos.includes("estado"), banco.depositos.join(","));
 
     // Concluir de novo no mesmo dia, depois de recomeçar o ciclo. O visto da aba vem da memória
@@ -920,6 +920,39 @@ const Sonda = (function () {
 
     confere("a Shine não está em lugar nenhum deste aparelho", (await Banco.listarExercicios(PRIMEIRA, "shine")).length === 0
       && gravados(`perfis/${CONTAS.shine}`).length === 0);
+
+    // Círculo: o Sun cria, a Shine entra com o código do outro aparelho, e o Sun passa a ler a
+    // ficha dela por um branch só de leitura. Cada um escreve só o próprio documento de membro.
+    confere("sem círculo, o perfil não tem código", (await Banco.lerCirculo("sun")) === null);
+    const codigo = await Banco.criarCirculo("sun", "Sun");
+    await respira(50);
+    confere("criar gera um código de seis letras sem ambiguidade", /^[A-HJ-NP-Z2-9]{6}$/.test(codigo), codigo);
+    confere("o criador vira membro pelo próprio documento",
+      firebase.dados.get(`circulos/${codigo}/membros/${CONTAS.sun}`)?.nome === "Sun");
+    confere("o código fica no branch do dono", firebase.dados.get(`${branch}/circulo/atual`)?.codigo === codigo
+      && (await Banco.lerCirculo("sun")) === codigo);
+    confere("ninguém escreveu fora do próprio documento",
+      gravados("circulos/").every((caminho) => caminho === `circulos/${codigo}/membros/${CONTAS.sun}`));
+
+    firebase.deFora(`circulos/${codigo}/membros/${CONTAS.shine}`, { nome: "Shine", entrouEm: 2 });
+    const membros = await Banco.lerMembros(codigo);
+    confere("os membros chegam com uid e nome", membros.length === 2
+      && membros.some((m) => m.uid === CONTAS.shine && m.nome === "Shine"), JSON.stringify(membros));
+
+    const daShine = TREINOS_SHINE.A[2];
+    firebase.deFora(`perfis/${CONTAS.shine}/exercicios/${daShine.id}`, { ...daShine, letra: "A", ordem: 0, perfis: ["shine"] });
+    confere("o branch de um membro abre só para ler", (await Banco.ligarNuvem("membro:shine", CONTAS.shine)) === true);
+    confere("a ficha do membro sai do espelho dele, e não da do Sun",
+      (await Banco.listarExercicios("A", "membro:shine")).map((e) => e.id).join() === daShine.id
+      && (await Banco.listarExercicios(PRIMEIRA, "sun")).every((e) => e.id !== daShine.id));
+
+    await Banco.sairDoCirculo("sun");
+    await respira(50);
+    confere("sair apaga o próprio documento de membro e o código do branch",
+      !firebase.dados.has(`circulos/${codigo}/membros/${CONTAS.sun}`) && (await Banco.lerCirculo("sun")) === null);
+    confere("sair não toca no documento do outro membro", firebase.dados.has(`circulos/${codigo}/membros/${CONTAS.shine}`));
+    // O que foi posto de fora no branch da Shine sai daqui, para o seed sem servidor abaixo medir um branch vazio.
+    firebase.dados.delete(`perfis/${CONTAS.shine}/exercicios/${daShine.id}`);
 
     // Espelho que só viu o cache não é base para o seed: poderia escrever por cima de edição que
     // ainda não chegou do servidor.
