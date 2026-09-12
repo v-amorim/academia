@@ -32,10 +32,9 @@ const tituloDoTreino = (letra) => {
 const ESPERA_TOQUE_LONGO = 400;
 // Abaixo disto o dedo ainda está parado: é tremor de quem segura, não gesto.
 const FOLGA_DO_DEDO = 10;
+// A foto mora na vaga 0 desde que havia três por exercício. As vagas de ajuste saíram em
+// 2026-09-12, porque a tira ocupava o visor; detalhe de ajuste vai na observação. A chave ficou.
 const VAGA_DA_MAQUINA = 0;
-// Três vagas fixas por exercício: a capa e dois ajustes da máquina que são mais visuais do que
-// descritíveis na observação. Sem lista crescente, sem capa escolhida, sem limite para explicar.
-const VAGAS = ["Equipamento", "Ajuste 1", "Ajuste 2"];
 
 const restantes = new Map();
 // exId para a carga digitada hoje, e exId para a carga dos outros dias, da mais nova para a mais
@@ -45,7 +44,6 @@ const minutosDeHoje = new Map();
 const historicoDeCarga = new Map();
 // exId para lista de object URL por vaga. Lista esparsa: vaga sem foto é buraco.
 const fotos = new Map();
-let vagaAtiva = VAGA_DA_MAQUINA;
 let perfilAtivo = Banco.lerPreferencia("perfil") ?? "sun";
 let letraAtiva = LETRAS[0];
 let concluidas = new Set();
@@ -67,7 +65,6 @@ const visor = document.getElementById("visor");
 const visorTitulo = document.getElementById("visor-titulo");
 const visorMeta = document.getElementById("visor-meta");
 const visorQuadro = document.getElementById("visor-quadro");
-const vagas = document.getElementById("vagas");
 const observacao = document.getElementById("observacao");
 const repeticoes = document.getElementById("repeticoes");
 const repeticoesRotulo = document.getElementById("repeticoes-rotulo");
@@ -1093,7 +1090,6 @@ dialogoTreino.addEventListener("close", async () => {
 // precisa estar ao alcance justamente onde ainda não há foto.
 function abrirVisor(exercicio) {
   alvoVisor = exercicio;
-  vagaAtiva = VAGA_DA_MAQUINA;
   visorTitulo.textContent = exercicio.nome;
   montarMeta(exercicio);
   observacao.value = exercicio.observacao ?? "";
@@ -1103,6 +1099,8 @@ function abrirVisor(exercicio) {
   repeticoesRotulo.hidden = ehAerobico(exercicio);
   desenharVisor();
   visor.showModal();
+  // Sem isto o foco cai no campo de repetições, e o celular abre o teclado só de abrir o visor.
+  visor.focus();
 }
 
 // Repetições por série mudam de exercício para exercício, e a ficha da academia muda de vez em
@@ -1142,30 +1140,12 @@ function montarMeta(exercicio) {
 
 function desenharVisor() {
   const exercicio = alvoVisor;
-  const atual = fotoDa(exercicio, vagaAtiva);
-  const nomeDaVaga = VAGAS[vagaAtiva].toLowerCase();
+  const atual = fotoDa(exercicio, VAGA_DA_MAQUINA);
 
   visorQuadro.innerHTML = atual
-    ? `<button type="button" class="ampliar" aria-label="Ampliar a foto de ${nomeDaVaga}"><img src="${atual}" alt=""></button>`
-    : `${ICONE_CAMERA}<span>Nenhuma foto de ${nomeDaVaga} ainda</span>`;
-  if (atual) visorQuadro.querySelector(".ampliar").onclick = () => abrirTelaCheia(exercicio, vagaAtiva);
-
-  vagas.replaceChildren(...VAGAS.map((nome, vaga) => {
-    const botao = document.createElement("button");
-    botao.type = "button";
-    botao.className = "vaga";
-    const url = fotoDa(exercicio, vaga);
-    botao.innerHTML =
-      `<span class="vaga-quadro">${url ? `<img src="${url}" alt="">` : ICONE_CAMERA}</span>` +
-      `<span class="vaga-nome">${nome}</span>`;
-    botao.setAttribute("aria-label", url ? nome : `${nome}, sem foto`);
-    if (vaga === vagaAtiva) botao.setAttribute("aria-current", "true");
-    botao.onclick = () => {
-      vagaAtiva = vaga;
-      desenharVisor();
-    };
-    return botao;
-  }));
+    ? `<button type="button" class="ampliar" aria-label="Ampliar a foto"><img src="${atual}" alt=""></button>`
+    : `${ICONE_CAMERA}<span>Nenhuma foto ainda</span>`;
+  if (atual) visorQuadro.querySelector(".ampliar").onclick = () => abrirTelaCheia(exercicio, VAGA_DA_MAQUINA);
 
   visorApagar.hidden = !atual;
 }
@@ -1175,7 +1155,7 @@ const refrescarVisor = (exercicio) => {
 };
 
 function abrirTelaCheia(exercicio, vaga) {
-  telaCheiaTitulo.textContent = `${exercicio.nome} · ${VAGAS[vaga]}`;
+  telaCheiaTitulo.textContent = exercicio.nome;
   zoomImg.src = fotoDa(exercicio, vaga);
   reiniciarZoom();
   telaCheia.showModal();
@@ -1304,12 +1284,12 @@ zoom.addEventListener("wheel", (evento) => {
 
 document.getElementById("visor-fechar").onclick = () => visor.close();
 document.getElementById("visor-resetar").onclick = () => abrirResetExercicio(alvoVisor);
-visorGaleria.onclick = () => escolherFoto(alvoVisor, vagaAtiva, seletorDaGaleria);
-visorCamera.onclick = () => escolherFoto(alvoVisor, vagaAtiva, seletorDaCamera);
+visorGaleria.onclick = () => escolherFoto(alvoVisor, VAGA_DA_MAQUINA, seletorDaGaleria);
+visorCamera.onclick = () => escolherFoto(alvoVisor, VAGA_DA_MAQUINA, seletorDaCamera);
 
 visorApagar.onclick = () => {
   document.getElementById("apagar-corpo").textContent =
-    `A foto de ${VAGAS[vagaAtiva].toLowerCase()} de ${alvoVisor.nome} sai deste aparelho.`;
+    `A foto de ${alvoVisor.nome} sai deste aparelho.`;
   dialogoApagar.returnValue = "";
   dialogoApagar.showModal();
 };
@@ -1317,14 +1297,14 @@ visorApagar.onclick = () => {
 dialogoApagar.addEventListener("close", () => {
   if (dialogoApagar.returnValue !== "apagar") return;
   const exercicio = alvoVisor;
-  const vaga = vagaAtiva;
+  const vaga = VAGA_DA_MAQUINA;
   Banco.apagarFoto(Banco.chaveDaFoto(exercicio), vaga);
   const porVaga = fotos.get(Banco.chaveDaFoto(exercicio)) ?? [];
   URL.revokeObjectURL(porVaga[vaga]);
   delete porVaga[vaga];
   cartaoPorId.get(exercicio.id)?.atualizar();
   refrescarVisor(exercicio);
-  aviso.textContent = `Foto de ${VAGAS[vaga].toLowerCase()} de ${exercicio.nome} apagada.`;
+  aviso.textContent = `Foto de ${exercicio.nome} apagada.`;
 });
 
 // Salva ao sair do campo. Enter conclui em vez de quebrar linha: observação é "banco 4, pino 7",
@@ -1357,7 +1337,7 @@ function escolherFoto(exercicio, vaga, seletor) {
     fotos.set(Banco.chaveDaFoto(exercicio), porVaga);
     cartaoPorId.get(exercicio.id)?.atualizar();
     refrescarVisor(exercicio);
-    aviso.textContent = `Foto de ${VAGAS[vaga].toLowerCase()} de ${exercicio.nome} salva.`;
+    aviso.textContent = `Foto de ${exercicio.nome} salva.`;
   };
   seletor.click();
 }

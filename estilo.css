@@ -90,7 +90,7 @@ button {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .contador, .foto, .aba, .primario, .secundario, .exercicio, .vaga, .vaga-quadro, .carga-valor, #perfis label {
+  .contador, .foto, .aba, .primario, .secundario, .exercicio, .carga-valor, #perfis label {
     transition-property: background-color, box-shadow, color, scale, opacity;
     transition-duration: 120ms;
     transition-timing-function: var(--curva);
@@ -99,7 +99,6 @@ button {
   .contador::before { transition: height 150ms var(--curva); }
   .contador:active, .foto:active, .aba:active, .primario:active, .secundario:active,
   .carga-valor:active, #perfis label:active,
-  .vaga:active .vaga-quadro { scale: 0.96; }
   /* Ajustando, o contador não encolhe: a fita que o cobre ficaria fora de lugar. */
   .contador.ajustando:active { scale: 1; }
 
@@ -628,11 +627,11 @@ footer {
   place-items: center;
 }
 /* Contorno de imagem: branco puro a 10% em tema escuro, desenhado por dentro para abraçar o raio. */
-.foto img, #visor-quadro img, .vaga-quadro img { outline: 1px solid rgb(255 255 255 / 0.1); outline-offset: -1px; }
+.foto img, #visor-quadro img { outline: 1px solid rgb(255 255 255 / 0.1); outline-offset: -1px; }
 .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .foto svg { width: 22px; height: 22px; }
 
-/* Largura fixa, não máxima: o visor troca de conteúdo a cada vaga, e com max-width ele
+/* Largura fixa, não máxima: o visor troca de conteúdo a cada exercício, e com max-width ele
    encolhia e crescia a cada toque. */
 dialog {
   margin: auto;
@@ -726,7 +725,7 @@ dialog p { margin: 0 0 16px; color: var(--texto-secundario); font-size: 15px; }
   font-variant-numeric: tabular-nums;
 }
 
-/* 36vh e não 70: abaixo da foto ainda vêm a tira de vagas, a observação e três botões, e tudo
+/* 36vh e não 70: abaixo da foto ainda vêm as repetições, a observação e quatro botões, e tudo
    isso precisa caber sem rolar num celular de 667px de altura. */
 #visor-quadro {
   display: grid;
@@ -959,40 +958,6 @@ summary.historico-resumo { cursor: pointer; }
 .tela-cheia-barra > * { pointer-events: auto; }
 .tela-cheia-barra p { margin: 0; min-width: 0; font-size: 14px; font-weight: 600; color: var(--texto); text-wrap: balance; }
 #visor-quadro svg { width: 32px; height: 32px; }
-
-/* Três quadrados fixos, um por vaga, sempre visíveis: a tira é o que conta quantas vagas
-   existem e quais estão vazias. A escolhida leva o anel de ação, como a opção do seletor. */
-#vagas {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 10px;
-}
-.vaga {
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--texto-secundario);
-  font-size: 11px;
-  font-weight: 600;
-}
-.vaga-quadro {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  overflow: hidden;
-  border-radius: var(--raio-interno-painel);
-  background: var(--superficie-alta);
-  box-shadow: 0 0 0 1px var(--anel);
-}
-.vaga-quadro img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.vaga-quadro svg { width: 20px; height: 20px; }
-.vaga[aria-current="true"] { color: var(--texto); }
-.vaga[aria-current="true"] .vaga-quadro { box-shadow: 0 0 0 2px var(--acento); }
 
 .rotulo { display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600; color: var(--texto-secundario); }
 /* 16px no campo, senão o Safari do iPhone dá zoom na página inteira ao focar. */
