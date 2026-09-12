@@ -48,6 +48,9 @@
      dizer "deu certo", e gastar hue nova em cada significado parecido é o que enche a tela. */
   --ganho: var(--lavanda-300);
   --queda: var(--rosa-300);
+  /* Os dois easter eggs da marca: o coração da Shine e o sol do Sun. */
+  --coracao: var(--rosa-300);
+  --sol: var(--ambar-400);
 
   --raio-carta: 16px;
   --raio-painel: 24px;
@@ -163,6 +166,19 @@ header {
   background: none;
 }
 .logo { display: block; }
+/* Easter eggs: um coração em cima do haltere para a Shine, um sol para o Sun. Glifos de texto,
+   como o ✓ da aba, centrados sobre a barra. O \FE0E pede o desenho de texto, não o emoji. */
+#abrir-menu { position: relative; }
+#abrir-menu.com-coracao::after, #abrir-menu.com-sol::after {
+  position: absolute;
+  top: 1px;
+  left: 50%;
+  translate: -50% 0;
+  font-size: 12px;
+  line-height: 1;
+}
+#abrir-menu.com-coracao::after { content: "♥\FE0E"; color: var(--coracao); }
+#abrir-menu.com-sol::after { content: "☀\FE0E"; color: var(--sol); }
 
 /* Coluna: o aviso e a seção do ciclo em cima, e o carrossel ocupando o que sobra. min-height: 0
    porque item de flex não encolhe abaixo do conteúdo sem isso, e aí o painel nunca rolaria. */

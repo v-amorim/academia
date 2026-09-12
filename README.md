@@ -191,13 +191,13 @@ config:
     pieOuterStrokeColor: "#252A42"
 ---
 pie showData
-  title 249 conferências, medidas em 2026-09-11
+  title 251 conferências, medidas em 2026-09-11
   "Comportamento" : 58
   "Carga e histórico" : 52
   "Teclado e gestos" : 41
   "Perfil de exemplo" : 25
   "Nuvem" : 17
-  "Visitante e login" : 14
+  "Visitante e login" : 16
   "Sintaxe" : 6
   "Arrasto com o mouse" : 5
   "Editor de treino" : 26

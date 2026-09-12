@@ -110,6 +110,9 @@ async function aplicarUsuario(uid) {
     await Banco.ligarNuvem(perfil, CONTAS[perfil]);
   }
   perfis.hidden = usuario !== "admin";
+  // Easter eggs: a marca ganha um coração quando é a Shine que entrou, e um sol quando é o Sun.
+  document.getElementById("abrir-menu").classList.toggle("com-coracao", usuario === "shine");
+  document.getElementById("abrir-menu").classList.toggle("com-sol", usuario === "sun");
   const lembrado = Banco.lerPreferencia("perfil");
   perfilAtivo = permitidos.includes(lembrado) ? lembrado : permitidos[0];
   perfis.querySelector(`input[value="${perfilAtivo}"]`).checked = true;
@@ -1808,10 +1811,11 @@ const loginErro = document.getElementById("login-erro");
 const loginConfirmar = document.getElementById("login-confirmar");
 
 const nomeDoUsuario = () => PERFIS[usuario] ?? "Admin";
+const ENFEITE = { shine: " ♥", sun: " ☀" };
 
 function atualizarMenu() {
   quemEntrou.textContent = usuario
-    ? `Você entrou como ${nomeDoUsuario()}.`
+    ? `Você entrou como ${nomeDoUsuario()}${ENFEITE[usuario] ?? ""}.`
     : "Sem login. Este é o perfil de exemplo, salvo só neste aparelho.";
   botaoEntrar.hidden = Boolean(usuario);
   botaoSair.hidden = !usuario;

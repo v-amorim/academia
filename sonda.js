@@ -921,9 +921,15 @@ const Sonda = (function () {
     confere("a Sun abre no próprio treino", nomes()[0] === CATALOGO[PRIMEIRA][0].nome, nomes()[0]);
     confere("a entrada é anunciada", avisoDiz("Sun"), document.getElementById("aviso").textContent);
     confere("a Sun não vê o rodapé de perfis", !rodapeVisivel());
+    const coracao = () => getComputedStyle(document.getElementById("abrir-menu"), "::after").content.includes("♥");
+    const sol = () => getComputedStyle(document.getElementById("abrir-menu"), "::after").content.includes("☀");
+    confere("a marca do Sun tem um sol, e não coração", sol() && !coracao());
+    await Banco.entrar("shine", "lua");
+    await aguardar(() => document.getElementById("menu-quem").textContent.includes("Shine") || coracao(), "a Shine entrar");
+    confere("a marca da Shine ganha um coração, e o sol vai embora", coracao() && !sol());
 
     await abrirMenu();
-    confere("o menu diz quem entrou", quem().includes("Sun"), quem());
+    confere("o menu diz quem entrou, com o coração dela", quem().includes("Shine ♥"), quem());
     confere("o menu oferece sair", !document.getElementById("menu-sair").hidden);
     document.getElementById("menu-sair").click();
     if (!(await aguardar(() => cartoes().length === doExemplo.length, "a volta ao exemplo"))) return;
