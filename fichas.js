@@ -1,4 +1,4 @@
-// Os ids são fixos no código, nunca sorteados em execução: os dois celulares semeiam o mesmo
+// Os ids são fixos no código, nunca sorteados em execução: os dois celulares fazem o seed do mesmo
 // catálogo compartilhado, e id gerado em cada aparelho duplicaria os 21 exercícios na nuvem.
 //
 // O nome diz o equipamento quando ele não é máquina, porque a tela não mostra isso em outro
@@ -69,5 +69,12 @@ const ARQUIVADOS_EXEMPLO = [
 // O catálogo é de quem treina. Sun e Shine dividem o mesmo, que é o da academia; o Exemplo tem o
 // seu, para poder ser mexido à vontade sem tocar no treino de verdade de ninguém.
 const PERFIS = { sun: "Sun", shine: "Shine", example: "Exemplo" };
-const DONOS_DO_CATALOGO = ["sun", "shine"];
 const DONO_DO_EXEMPLO = ["example"];
+
+// UID de cada conta no Firebase. Não é segredo: a regra do Firestore já os carrega, e é ela
+// quem protege. O admin não tem perfil próprio, ele escolhe de quem é o treino na tela.
+const CONTAS = {
+  admin: "AgQFNVKztZbn72zzti2EESvbzM83",
+  sun: "SmKRdOOcHQaZc8lE16srwiFl81m1",
+  shine: "CpJtwfknmbcjrkySbMmqfSsNYd22"
+};

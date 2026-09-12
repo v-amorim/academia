@@ -1,7 +1,13 @@
 # Documentos de trabalho, fora do versionamento por conterem contexto pessoal. Ficam no disco.
+# O CLAUDE.md acompanha os dois: ele é o ponto de entrada que aponta para eles, e apontar de um
+# repositório público para arquivo que ninguém tem seria promessa quebrada.
 BACKLOG.md
 CONVENCOES.md
+CLAUDE.md
 
 # Capturas de tela do Playwright, geradas durante a inspeção visual.
 .playwright-mcp/
 
+
+# Fila do que vai ser apagado. Esvaziada de uma vez, no fim do trabalho.
+a_apagar/

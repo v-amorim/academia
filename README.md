@@ -5,7 +5,7 @@
 # Sunshine
 
 Contador de séries para treino de academia.
-Instalável, sem servidor, sem build, e abre sem rede.
+Instalável, sem build, abre sem rede, e o histórico segue a pessoa entre aparelhos.
 
 [**Abrir o app**][app]
 
@@ -13,7 +13,8 @@ Instalável, sem servidor, sem build, e abre sem rede.
 
 ## O mapa
 
-Uma camada só conhece o armazenamento. O resto fala em exercício, sessão e vaga de foto.
+Uma camada só conhece o armazenamento. O resto fala em exercício, sessão e vaga de foto. Quem
+entrou treina na nuvem; quem só abriu o link vê um perfil de exemplo que fica no aparelho.
 
 ```mermaid
 ---
@@ -70,6 +71,7 @@ flowchart TB
     fichas["`fichas.js`"]
     banco["`banco.js`"]
     idb[("`IndexedDB`")]
+    nuvem[("`Firestore`")]
   end
 
   subgraph offline["Sem rede"]
@@ -77,22 +79,19 @@ flowchart TB
     cache[("`Cache do navegador`")]
   end
 
-  nuvem(["`Nuvem, na fase seguinte`"])
-
   html --> app
   app -->|"exercício, sessão, foto"| banco
-  fichas -->|"semeia o que falta"| banco
-  banco --> idb
+  fichas -->|"seed do que falta"| banco
+  banco -->|"exemplo e fotos"| idb
+  banco -->|"quem entrou"| nuvem
   html -.-> sw
   sw --> cache
-  banco -.->|"troca de camada"| nuvem
 
   class app router
-  class nuvem ghost
 ```
 
 Cilindro é armazenamento, retângulo é arquivo do app, contorno amarelo é quem decide a quem
-chamar, tracejado é o que ainda não existe.
+chamar.
 
 ## O treino de hoje é o próprio histórico
 
@@ -192,14 +191,14 @@ config:
     pieOuterStrokeColor: "#252A42"
 ---
 pie showData
-  title 218 conferências, medidas em 2026-09-11
+  title 206 conferências, medidas em 2026-09-11
   "Comportamento" : 54
   "Carga e histórico" : 50
   "Teclado e gestos" : 41
-  "Migração de banco antigo" : 37
   "Perfil de exemplo" : 20
-  "Limpeza de perfil" : 7
-  "Sintaxe" : 5
+  "Nuvem" : 17
+  "Visitante e login" : 14
+  "Sintaxe" : 6
   "Montagem em file://" : 4
 ```
 
@@ -219,7 +218,8 @@ resultado por `fetch`. Os casos rodam três de cada vez, cada um no seu perfil d
 | Trocar de treino     | Toque na letra, deslize como quem vira página, ou as setas do teclado                                                             |
 | Detalhe do exercício | Aparelho, código do vídeo, três fotos da máquina, da câmera ou da galeria, e um campo para as regulagens                          |
 | Foto em tela cheia   | Pinça, arrasto e toque duplo                                                                                                      |
-| Três perfis          | Dois que dividem o catálogo da academia, e um de exemplo com treino e histórico próprios                                          |
+| Login                | Usuário e senha, uma vez por aparelho. Cada pessoa vê só o próprio treino; quem só abre o link vê o perfil de exemplo             |
+| Dois aparelhos       | O treino gravado num celular aparece no outro, e o app continua funcionando sem sinal                                             |
 
 ## Por que assim
 
@@ -231,6 +231,8 @@ resultado por `fetch`. Os casos rodam três de cada vez, cada um no seu perfil d
 | Trocar de treino por scroll snap                    | Um painel por treino num trilho. O conteúdo segue o dedo, volta sozinho no meio do gesto, e a física é a do sistema  |
 | Remover exercício é arquivar                        | O peso foi levantado. Ele sai da lista do dia, continua no histórico, e volta pelo botão que está lá                 |
 | Rede primeiro na navegação, cache primeiro no resto | Versão nova aparece já na primeira abertura com sinal, e abrir rápido na academia vale mais que o CSS da última hora |
+| Firestore lido por espelho em memória               | Com sinal ruim, `get()` espera o servidor por segundos. O app assina cada coleção e responde do espelho, na hora     |
+| Um branch por pessoa, e o exemplo fica local        | Ninguém escreve no documento de outro, então dois celulares offline nunca colidem. O visitante interage e nada sobe   |
 | `<dialog>` nativo                                   | Prisão de foco, Escape, foco de volta no gatilho e fundo inerte vêm de graça                                         |
 
 ## Rodar
@@ -254,11 +256,12 @@ node verificar.mjs
 <summary>O que a suíte cobre, e o que ela não alcança</summary>
 
 Nenhum número fica escrito nela: quantos treinos, quantos exercícios, quantas séries e quantas
-repetições saem da semente. Trocar o catálogo por quatro treinos de nomes livres, ou por um treino
+repetições saem do seed. Trocar o catálogo por quatro treinos de nomes livres, ou por um treino
 só, mantém a suíte verde.
 
 Cobre contador, ajuste por arrasto, encerramento, reset, ciclo, perfis, fotos, observação, zoom,
-teclado, instalação e a subida de um banco de versão antiga com fotos gravadas.
+teclado, instalação, login e a nuvem. O Firebase é de mentira, em memória: a suíte nunca fala com
+o projeto de verdade.
 
 É validada por mutação: quebra-se uma linha de propósito e confere-se que a asserção certa fica
 vermelha.
@@ -279,16 +282,18 @@ acrescente em `CAMINHOS_CHROME`.
 | `index.html`    | Só a marcação                                                        |
 | `estilo.css`    | Tokens de cor e todo o estilo                                        |
 | `mulish.woff2`  | A fonte, servida do próprio repositório para funcionar sem rede      |
-| `fichas.js`     | Os exercícios, os perfis e o treino de exemplo                       |
-| `banco.js`      | Acesso a dado. Único arquivo que toca IndexedDB e localStorage       |
+| `fichas.js`     | Os exercícios, os perfis, o treino de exemplo e as contas            |
+| `banco.js`      | Acesso a dado. Único arquivo que toca IndexedDB, localStorage e Firebase |
 | `app.js`        | Tela, gestos e diálogos                                              |
+| `vendor/`       | O SDK do Firebase, em script clássico, guardado para abrir sem rede  |
 | `sonda.js`      | As asserções que rodam com o app montado no navegador                |
+| `sonda-firebase.js` | O Firebase de mentira que a suíte injeta no lugar do SDK         |
 | `sw.js`         | Service worker. Guarda o app para abrir sem rede                     |
 | `manifest.json` | Nome, cores e ícones da instalação                                   |
 | `icone.svg`     | Fonte dos ícones. Os PNG saem dele                                   |
 | `verificar.mjs` | Verificação sem celular. Serve o app, sobe o Chrome e lê o resultado |
 
-A ordem dos scripts em `index.html` importa: `fichas.js`, depois `banco.js`, depois `app.js`.
+A ordem dos scripts em `index.html` importa: `vendor/`, depois `fichas.js`, `banco.js` e `app.js`.
 
 </details>
 

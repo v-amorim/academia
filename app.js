@@ -70,24 +70,50 @@ const dialogoRecomecar = document.getElementById("dialogo-recomecar");
 const dialogoExercicio = document.getElementById("dialogo-exercicio");
 const dialogoTreino = document.getElementById("dialogo-treino");
 
-// Sem banco a tela nasce da semente e o contador funciona só na memória. O aviso âmbar do topo
+// Sem banco a tela nasce do seed e o contador funciona só na memória. O aviso âmbar do topo
 // é quem conta que nada será salvo; desligar o contador esconderia o app de quem abre o arquivo.
+const catalogoDe = (perfil) => (perfil === "example" ? TREINOS_EXEMPLO : TREINOS);
 const exerciciosDe = (letra) =>
-  Banco.disponivel() ? Banco.listarExercicios(letra, perfilAtivo) : Promise.resolve(TREINOS[letra]);
+  Banco.disponivel() ? Banco.listarExercicios(letra, perfilAtivo) : Promise.resolve(catalogoDe(perfilAtivo)[letra] ?? []);
 
-// Os dois catálogos: o da academia, que é do Sun e da Shine, e o do Exemplo, que existe para o
-// app abrir cheio sem tocar no treino de verdade de ninguém. O histórico de exemplo vem junto, e
-// só na primeira vez.
-async function semearTudo() {
-  await Banco.semear(TREINOS, DONOS_DO_CATALOGO);
-  await Banco.semear(TREINOS_EXEMPLO, DONO_DO_EXEMPLO, ARQUIVADOS_EXEMPLO);
-  await Banco.semearHistorico("example", TREINOS_EXEMPLO, ARQUIVADOS_EXEMPLO);
+// Só o catálogo de quem está na tela: na nuvem cada perfil tem o seu, e quem não é admin não
+// pode escrever no dos outros. O histórico de exemplo vem junto, e só na primeira vez.
+async function seedPerfil(perfil) {
+  if (perfil === "example") {
+    await Banco.seed(TREINOS_EXEMPLO, DONO_DO_EXEMPLO, ARQUIVADOS_EXEMPLO);
+    await Banco.seedHistorico("example", TREINOS_EXEMPLO, ARQUIVADOS_EXEMPLO);
+  } else {
+    await Banco.seed(TREINOS, [perfil]);
+  }
+}
+
+// Quem entrou decide o que a tela mostra. Sem login é o exemplo. Sun e Shine abrem no próprio
+// treino. Só o admin vê o rodapé de perfis: para quem não é admin, os demais nem existem.
+const PAPEL_POR_UID = Object.fromEntries(Object.entries(CONTAS).map(([papel, uid]) => [uid, papel]));
+let usuario = null;
+
+async function aplicarUsuario(uid) {
+  usuario = PAPEL_POR_UID[uid] ?? null;
+  const permitidos = usuario === "admin" ? Object.keys(PERFIS) : usuario ? [usuario] : ["example"];
+  for (const perfil of permitidos.filter((outro) => outro !== "example")) {
+    await Banco.ligarNuvem(perfil, CONTAS[perfil]);
+  }
+  perfis.hidden = usuario !== "admin";
+  const lembrado = Banco.lerPreferencia("perfil");
+  perfilAtivo = permitidos.includes(lembrado) ? lembrado : permitidos[0];
+  perfis.querySelector(`input[value="${perfilAtivo}"]`).checked = true;
+
+  await seedPerfil(perfilAtivo);
+  concluidas = await Banco.letrasConcluidas(perfilAtivo);
+  await carregarTreinos();
+  irPara(LETRAS.find((letra) => !letraFeita(letra)) ?? LETRAS[0], false);
+  atualizarMenu();
 }
 
 // O que o usuário marcou enquanto o banco não abria vence o que estava gravado, e é gravado por cima.
 async function adotarBanco() {
   const pendentes = new Map(restantes);
-  await semearTudo();
+  await seedPerfil(perfilAtivo);
   await carregarFotos();
 
   for (const letra of LETRAS) {
@@ -270,6 +296,7 @@ async function trocarPerfil(valor) {
   perfilAtivo = valor;
   Banco.gravarPreferencia("perfil", valor);
   restantes.clear();
+  await seedPerfil(valor);
   concluidas = await Banco.letrasConcluidas(valor);
   await carregarTreinos();
   irPara(LETRAS.find((letra) => !letraFeita(letra)) ?? LETRAS[0], false);
@@ -559,7 +586,15 @@ function criarCartao(exercicio, posicao) {
   chip.className = "carga-valor";
 
   const campo = criarCampo(exercicio, "carga");
-  chip.onclick = () => abrirCampoDaCarga(exercicio, chip, campo);
+  // Mesma gramática do contador: toque faz, segurar ajusta. No dedo o chip é pequeno demais para
+  // ser alvo, e tocar nele querendo baixar série abria o teclado. Pelo teclado o clique chega
+  // com detail 0, e aí o chip continua sendo o caminho para a carga.
+  const segurouChip = ligarToqueLongo(chip, () => abrirCampoDaCarga(exercicio, chip, campo));
+  chip.onclick = (evento) => {
+    if (segurouChip()) return;
+    if (evento.detail === 0) return abrirCampoDaCarga(exercicio, chip, campo);
+    contador.click();
+  };
   ligarCampoDaCarga(exercicio, chip, campo);
 
   bloco.append(contador);
@@ -657,11 +692,11 @@ function rumoDaCarga(exercicio) {
 // O ícone é enfeite do que o rótulo já diz por extenso: quem lê por leitor de tela ouve a
 // diferença em quilos, que na caixa não caberia.
 function rotuloDaCarga(exercicio, carga, rumo) {
-  if (carga === undefined) return `Adicionar a carga de ${exercicio.nome}`;
+  if (carga === undefined) return `Carga de ${exercicio.nome}: nenhuma. Segurar para digitar.`;
   const anterior = ultimaCarga(exercicio);
   const comparacao = rumo === 0 ? ""
     : ` ${comSinal(diferencaEntre(cargasDeHoje.get(exercicio.id), anterior.carga))} ${unidadeDe(exercicio)} desde ${emDia(anterior.data)}.`;
-  return `Carga de ${exercicio.nome}: ${emMedida(carga, unidadeDe(exercicio))}.${comparacao} Tocar para mudar.`;
+  return `Carga de ${exercicio.nome}: ${emMedida(carga, unidadeDe(exercicio))}.${comparacao} Segurar para mudar.`;
 }
 
 const texto = (conteudo) => document.createTextNode(conteudo);
@@ -1120,7 +1155,7 @@ observacao.addEventListener("change", () => {
   const exercicio = alvoVisor;
   const texto = observacao.value.trim();
   exercicio.observacao = texto;
-  Banco.salvarObservacao(exercicio.id, texto);
+  Banco.salvarObservacao(perfilAtivo, exercicio.id, texto);
   aviso.textContent = texto
     ? `Observação de ${exercicio.nome} salva.`
     : `Observação de ${exercicio.nome} apagada.`;
@@ -1421,7 +1456,67 @@ function progressaoDe(serie, unidade) {
   return bloco;
 }
 
-document.getElementById("abrir-historico").onclick = abrirHistorico;
+const menu = document.getElementById("menu");
+const quemEntrou = document.getElementById("menu-quem");
+const botaoEntrar = document.getElementById("menu-entrar");
+const botaoSair = document.getElementById("menu-sair");
+const login = document.getElementById("login");
+const loginUsuario = document.getElementById("login-usuario");
+const loginSenha = document.getElementById("login-senha");
+const loginErro = document.getElementById("login-erro");
+const loginConfirmar = document.getElementById("login-confirmar");
+
+const nomeDoUsuario = () => PERFIS[usuario] ?? "Admin";
+
+function atualizarMenu() {
+  quemEntrou.textContent = usuario
+    ? `Você entrou como ${nomeDoUsuario()}.`
+    : "Sem login. Este é o perfil de exemplo, salvo só neste aparelho.";
+  botaoEntrar.hidden = Boolean(usuario);
+  botaoSair.hidden = !usuario;
+}
+
+document.getElementById("abrir-menu").onclick = () => {
+  atualizarMenu();
+  menu.showModal();
+};
+document.getElementById("menu-historico").onclick = () => {
+  menu.close();
+  abrirHistorico();
+};
+botaoEntrar.onclick = () => {
+  menu.close();
+  login.querySelector("form").reset();
+  loginErro.hidden = true;
+  login.showModal();
+};
+botaoSair.onclick = async () => {
+  menu.close();
+  await Banco.sair();
+  aviso.textContent = "Você saiu. De volta ao perfil de exemplo.";
+};
+document.getElementById("login-cancelar").onclick = () => login.close();
+
+// O Firebase devolve códigos, e a tela devolve uma frase só para credencial errada: dizer se o
+// que falhou foi o usuário ou a senha é ajuda para quem está chutando.
+login.querySelector("form").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  loginErro.hidden = true;
+  loginConfirmar.disabled = true;
+  try {
+    await Banco.entrar(loginUsuario.value.trim(), loginSenha.value);
+    login.close();
+    aviso.textContent = `Você entrou como ${nomeDoUsuario()}.`;
+  } catch (falha) {
+    loginErro.textContent = falha?.code === "auth/network-request-failed"
+      ? "Sem conexão para entrar. Tente com sinal."
+      : "Usuário ou senha errados.";
+    loginErro.hidden = false;
+  } finally {
+    loginConfirmar.disabled = false;
+  }
+});
+
 document.getElementById("historico-fechar").onclick = () => painelDoHistorico.close();
 buscaDoHistorico.addEventListener("input", desenharHistorico);
 
@@ -1444,9 +1539,7 @@ for (const caixa of document.querySelectorAll("dialog")) {
 
 (async () => {
   const temBanco = await Banco.abrir(adotarBanco);
-  await semearTudo();
   await carregarFotos();
-  concluidas = await Banco.letrasConcluidas(perfilAtivo);
 
   document.getElementById("sem-banco").hidden = temBanco;
   perfis.append(...Object.entries(PERFIS).map(criarPerfil));
@@ -1457,6 +1550,7 @@ for (const caixa of document.querySelectorAll("dialog")) {
   // registro falha calado por file://, que não tem origem segura, e é o comportamento esperado:
   // aberto como arquivo o app roda sem guardar nada, service worker inclusive.
   navigator.serviceWorker?.register("sw.js").catch(() => { /* sem origem segura */ });
-  letraAtiva = LETRAS.find((letra) => !letraFeita(letra)) ?? LETRAS[0];
-  await carregarTreinos();
+  // A tela só monta depois que o Firebase disse quem está logado. Entrar e sair passam pelo
+  // mesmo caminho: cada mudança de usuário remonta a tela do perfil certo.
+  await new Promise((pronto) => Banco.aoMudarUsuario((uid) => pronto(aplicarUsuario(uid))));
 })();

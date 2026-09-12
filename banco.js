@@ -1,17 +1,42 @@
-// Camada de acesso a dado. Nenhuma outra parte do app toca indexedDB ou localStorage direto.
-// Na fase 6 este é o único arquivo reescrito, trocando IndexedDB por Firestore.
+// Camada de acesso a dado. Nenhuma outra parte do app toca indexedDB, localStorage ou Firebase.
+//
+// Dois motores atrás da mesma API. O local é IndexedDB e guarda o perfil de exemplo e as fotos,
+// que nunca sobem. O da nuvem é o Firestore, um branch por perfil, e responde leitura por um
+// espelho em memória alimentado por onSnapshot: com sinal ruim, um get() esperaria o servidor
+// por segundos antes de cair para o cache, e a tela ficaria parada.
 const Banco = (function () {
   // Em origem opaca (arquivo aberto direto) o open() nunca lança nem dispara evento, então o
   // prazo é o único jeito de sair. Aparelho lento pode estourar o prazo e abrir depois: nesse
   // caso o banco é adotado em vez de descartado.
   const PRAZO_ABERTURA = 2500;
-  const VERSAO = 5;
+  const VERSAO = 6;
   const DEPOSITOS = ["exercicios", "sessoes", "registros", "ciclo", "fotos"];
   const TAMANHO_ID = 36;
 
+  // Identificador do projeto, não segredo: quem protege é a regra do Firestore mais o login.
+  const FIREBASE = {
+    apiKey: "AIzaSyBT7Nr5VeqRcSZZiRAptjw-tqf6wbqCEFQ",
+    authDomain: "academia-f31b3.firebaseapp.com",
+    projectId: "academia-f31b3",
+    storageBucket: "academia-f31b3.firebasestorage.app",
+    messagingSenderId: "1010277815534",
+    appId: "1:1010277815534:web:1bcb0648c39f5a6894cfff"
+  };
+  // O Firebase exige e-mail, e ninguém aqui tem caixa: a conta é o usuário mais este domínio,
+  // e a tela só mostra o que vem antes do arroba.
+  const DOMINIO_DAS_CONTAS = "academia.local";
+  const NA_NUVEM = ["exercicios", "sessoes", "registros", "ciclo"];
+  // Quanto a abertura espera o primeiro snapshot de cada coleção, que vem do cache quando há
+  // um, e quanto o seed espera pelo servidor antes de desistir.
+  const PRAZO_ESPELHO = 2500;
+  const PRAZO_SERVIDOR = 4000;
+
   let db = null;
+  let auth = null;
+  let firestore = null;
 
   function abrir(aoAbrirTarde) {
+    iniciarFirebase();
     return new Promise((resolver) => {
       let respondido = false;
       const responder = (aberto) => {
@@ -30,43 +55,13 @@ const Banco = (function () {
         return responder(null);
       }
 
-      pedido.onupgradeneeded = (evento) => {
+      // A versão 6 recomeça o aparelho do zero: o Sun e a Shine passaram para a nuvem, e o que
+      // havia antes era treino de teste. Depósito velho é apagado e recriado, o exemplo refaz o seed
+      // sozinho, e foto de verdade nunca existiu, porque a câmera só rodou em emulação.
+      pedido.onupgradeneeded = () => {
         const banco = pedido.result;
-        const veioDa = evento.oldVersion;
-        for (const nome of DEPOSITOS) {
-          if (!banco.objectStoreNames.contains(nome)) banco.createObjectStore(nome);
-        }
-        // O progresso por posição na lista morreu com o id estável. A foto sobrevive: fica com
-        // a chave velha e é remapeada no semear(), que é quem conhece a ordem dos exercícios.
-        if (banco.objectStoreNames.contains("estado")) banco.deleteObjectStore("estado");
-
-        // Da 3 para a 4 o exercício passou a dizer de quem ele é. Quem já tinha catálogo tinha o
-        // da academia, que é do Sun e da Shine: sem esta linha eles apareceriam também no perfil
-        // de exemplo, que nasce nesta mesma versão.
-        if (veioDa > 0 && veioDa < 4 && pedido.transaction && banco.objectStoreNames.contains("exercicios")) {
-          const alvo = pedido.transaction.objectStore("exercicios");
-          const busca = alvo.openCursor();
-          busca.onsuccess = () => {
-            const cursor = busca.result;
-            if (!cursor) return;
-            if (!cursor.value?.perfis) alvo.put({ ...cursor.value, perfis: ["sun", "shine"] }, cursor.key);
-            cursor.continue();
-          };
-        }
-
-        // Da 4 para a 5, o treino do Sun e da Shine recomeça do zero: o que estava gravado eram
-        // cargas de teste, escritas enquanto o app era construído, e elas iam para o ar como se
-        // fossem treino de verdade. Só sessão e registro saem; foto e observação são do exercício,
-        // e não do perfil, então ficam. O perfil de exemplo não é tocado.
-        if (veioDa > 0 && veioDa < 5 && pedido.transaction) {
-          for (const deposito of ["sessoes", "registros", "ciclo"]) {
-            if (!banco.objectStoreNames.contains(deposito)) continue;
-            const alvo = pedido.transaction.objectStore(deposito);
-            for (const perfil of ["sun", "shine"]) {
-              alvo.delete(deposito === "ciclo" ? perfil : IDBKeyRange.bound(`${perfil}:`, `${perfil}:￿`));
-            }
-          }
-        }
+        for (const nome of banco.objectStoreNames) banco.deleteObjectStore(nome);
+        for (const nome of DEPOSITOS) banco.createObjectStore(nome);
       };
       pedido.onsuccess = () => {
         if (!respondido) return responder(pedido.result);
@@ -80,51 +75,192 @@ const Banco = (function () {
 
   const disponivel = () => db !== null;
 
-  function ler(deposito, faixa) {
-    if (!db) return Promise.resolve([]);
-    return new Promise((resolver) => {
-      const transacao = db.transaction(deposito, "readonly");
-      const alvo = transacao.objectStore(deposito);
-      const chaves = alvo.getAllKeys(faixa);
-      const valores = alvo.getAll(faixa);
-      valores.onsuccess = () => resolver(chaves.result.map((chave, i) => [chave, valores.result[i]]));
-      // Sem estes dois, transação que falha deixa a promessa pendurada e a tela nunca monta.
-      transacao.onerror = () => resolver([]);
-      transacao.onabort = () => resolver([]);
-    });
+  // Faixa de chave em forma neutra, inclusiva nas duas pontas. O motor local a traduz para
+  // IDBKeyRange; o da nuvem filtra o espelho com ela.
+  const faixaLocal = (faixa) => (faixa ? IDBKeyRange.bound(faixa.de, faixa.ate) : undefined);
+  const dentro = (chave, faixa) => !faixa || (chave >= faixa.de && chave <= faixa.ate);
+  const doPerfil = (perfil) => ({ de: `${perfil}:`, ate: `${perfil}:￿` });
+
+  // O primeiro argumento é o perfil, que o motor local ignora: a chave dele já carrega o perfil.
+  const Local = {
+    ler(_, deposito, faixa) {
+      if (!db) return Promise.resolve([]);
+      return new Promise((resolver) => {
+        const transacao = db.transaction(deposito, "readonly");
+        const alvo = transacao.objectStore(deposito);
+        const chaves = alvo.getAllKeys(faixaLocal(faixa));
+        const valores = alvo.getAll(faixaLocal(faixa));
+        valores.onsuccess = () => resolver(chaves.result.map((chave, i) => [chave, valores.result[i]]));
+        // Sem estes dois, transação que falha deixa a promessa pendurada e a tela nunca monta.
+        transacao.onerror = () => resolver([]);
+        transacao.onabort = () => resolver([]);
+      });
+    },
+
+    pegar(_, deposito, chave) {
+      if (!db) return Promise.resolve(undefined);
+      return new Promise((resolver) => {
+        const transacao = db.transaction(deposito, "readonly");
+        const pedido = transacao.objectStore(deposito).get(chave);
+        pedido.onsuccess = () => resolver(pedido.result);
+        transacao.onerror = () => resolver(undefined);
+        transacao.onabort = () => resolver(undefined);
+      });
+    },
+
+    gravar(_, deposito, chave, valor) {
+      db?.transaction(deposito, "readwrite").objectStore(deposito).put(valor, chave);
+    },
+
+    apagar(_, deposito, chave) {
+      db?.transaction(deposito, "readwrite").objectStore(deposito).delete(chave);
+    },
+
+    // Uma transação para o lote inteiro, e a promessa espera o commit: quem grava 21 exercícios
+    // e depois lê precisa que a leitura veja o que acabou de entrar.
+    gravarLote(_, deposito, pares) {
+      if (!db || pares.length === 0) return Promise.resolve();
+      return new Promise((resolver) => {
+        const transacao = db.transaction(deposito, "readwrite");
+        const alvo = transacao.objectStore(deposito);
+        for (const [chave, valor] of pares) alvo.put(valor, chave);
+        transacao.oncomplete = () => resolver();
+        transacao.onerror = () => resolver();
+        transacao.onabort = () => resolver();
+      });
+    },
+
+    confiavel: () => Promise.resolve(true)
+  };
+
+  function iniciarFirebase() {
+    // Em file:// não há origem, e o Auth e a persistência do Firestore recusam trabalhar.
+    if (typeof firebase === "undefined" || !/^https?:$/.test(location.protocol)) return;
+    try {
+      firebase.initializeApp(FIREBASE);
+      auth = firebase.auth();
+      firestore = firebase.firestore();
+      firestore.settings({ ignoreUndefinedProperties: true, merge: true });
+      firestore.enablePersistence({ synchronizeTabs: true }).catch(() => { /* aba dupla ou navegador sem suporte */ });
+    } catch {
+      auth = null;
+      firestore = null;
+    }
   }
 
-  function pegar(deposito, chave) {
-    if (!db) return Promise.resolve(undefined);
-    return new Promise((resolver) => {
-      const transacao = db.transaction(deposito, "readonly");
-      const pedido = transacao.objectStore(deposito).get(chave);
-      pedido.onsuccess = () => resolver(pedido.result);
-      transacao.onerror = () => resolver(undefined);
-      transacao.onabort = () => resolver(undefined);
-    });
+  // perfil -> { uid, espelho por depósito, e as duas promessas: a do primeiro snapshot de cada
+  // coleção, venha de onde vier, e a do primeiro que veio do servidor }
+  const branches = new Map();
+
+  // A chave do espelho é a mesma do IndexedDB, para a lógica lá embaixo ler os dois motores do
+  // mesmo jeito. No id do documento o perfil sai, porque o branch já o carrega.
+  const idDoDocumento = (perfil, deposito, chave) =>
+    deposito === "ciclo" ? "atual" : deposito === "exercicios" ? chave : chave.slice(perfil.length + 1);
+  const chaveDoEspelho = (perfil, deposito, id) =>
+    deposito === "ciclo" ? perfil : deposito === "exercicios" ? id : `${perfil}:${id}`;
+
+  const colecao = (branch, deposito) => firestore.collection(`perfis/${branch.uid}/${deposito}`);
+
+  const comPrazo = (promessa, prazo) =>
+    Promise.race([promessa.then(() => true), new Promise((pronto) => setTimeout(() => pronto(false), prazo))]);
+
+  // Liga um perfil ao branch de um usuário e passa a espelhá-lo. Resolve quando cada coleção
+  // respondeu uma vez, ou no prazo: offline com cache vazio, o snapshot vem vazio e na hora.
+  function ligarNuvem(perfil, uid) {
+    if (!firestore) return Promise.resolve(false);
+    if (branches.has(perfil)) return Promise.resolve(true);
+
+    const branch = { uid, espelho: Object.fromEntries(NA_NUVEM.map((deposito) => [deposito, new Map()])) };
+    const primeiras = [];
+    const doServidor = [];
+    for (const deposito of NA_NUVEM) {
+      let chegou;
+      let veioDoServidor;
+      primeiras.push(new Promise((pronto) => { chegou = pronto; }));
+      doServidor.push(new Promise((pronto) => { veioDoServidor = pronto; }));
+
+      colecao(branch, deposito).onSnapshot({ includeMetadataChanges: true }, (foto) => {
+        for (const mudanca of foto.docChanges()) {
+          const chave = chaveDoEspelho(perfil, deposito, mudanca.doc.id);
+          if (mudanca.type === "removed") branch.espelho[deposito].delete(chave);
+          else branch.espelho[deposito].set(chave, mudanca.doc.data());
+        }
+        chegou();
+        if (!foto.metadata.fromCache) veioDoServidor();
+      }, chegou);
+    }
+    branch.confiavel = comPrazo(Promise.all(doServidor), PRAZO_SERVIDOR);
+    branches.set(perfil, branch);
+    return comPrazo(Promise.all(primeiras), PRAZO_ESPELHO);
   }
 
-  function gravar(deposito, chave, valor) {
-    db?.transaction(deposito, "readwrite").objectStore(deposito).put(valor, chave);
+  const desligarNuvem = () => branches.clear();
+
+  const escritaFalhou = (falha) => console.warn("escrita recusada pela nuvem", falha?.code ?? falha);
+
+  // Escreve no espelho antes de mandar: quem grava e lê em seguida vê o que gravou, como no
+  // IndexedDB. Se a regra recusar, o SDK desfaz no cache e o snapshot tira do espelho.
+  const Nuvem = {
+    ler(perfil, deposito, faixa) {
+      const pares = [...branches.get(perfil).espelho[deposito]].filter(([chave]) => dentro(chave, faixa));
+      return Promise.resolve(pares.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+    },
+
+    pegar: (perfil, deposito, chave) => Promise.resolve(branches.get(perfil).espelho[deposito].get(chave)),
+
+    gravar(perfil, deposito, chave, valor) {
+      const branch = branches.get(perfil);
+      branch.espelho[deposito].set(chave, valor);
+      colecao(branch, deposito).doc(idDoDocumento(perfil, deposito, chave)).set(valor).catch(escritaFalhou);
+    },
+
+    apagar(perfil, deposito, chave) {
+      const branch = branches.get(perfil);
+      branch.espelho[deposito].delete(chave);
+      colecao(branch, deposito).doc(idDoDocumento(perfil, deposito, chave)).delete().catch(escritaFalhou);
+    },
+
+    gravarLote(perfil, deposito, pares) {
+      if (pares.length === 0) return Promise.resolve();
+      const branch = branches.get(perfil);
+      const lote = firestore.batch();
+      for (const [chave, valor] of pares) {
+        branch.espelho[deposito].set(chave, valor);
+        lote.set(colecao(branch, deposito).doc(idDoDocumento(perfil, deposito, chave)), valor);
+      }
+      lote.commit().catch(escritaFalhou);
+      return Promise.resolve();
+    },
+
+    // Fazer o seed por cima de um espelho que só viu o cache escreveria o seed por cima de edição
+    // que ainda não chegou. Falso quer dizer: sem seed nesta abertura.
+    confiavel: (perfil) => branches.get(perfil).confiavel
+  };
+
+  const motorDe = (perfil) => (branches.has(perfil) ? Nuvem : Local);
+
+  const ler = (perfil, deposito, faixa) => motorDe(perfil).ler(perfil, deposito, faixa);
+  const pegar = (perfil, deposito, chave) => motorDe(perfil).pegar(perfil, deposito, chave);
+  const gravar = (perfil, deposito, chave, valor) => motorDe(perfil).gravar(perfil, deposito, chave, valor);
+  const gravarLote = (perfil, deposito, pares) => motorDe(perfil).gravarLote(perfil, deposito, pares);
+
+  // Em minúsculas: o teclado do celular capitaliza a primeira letra, e a conta é `sun`, não `Sun`.
+  const conta = (usuario) => `${usuario.trim().toLowerCase()}@${DOMINIO_DAS_CONTAS}`;
+
+  async function entrar(usuario, senha) {
+    const { user } = await auth.signInWithEmailAndPassword(conta(usuario), senha);
+    return user.uid;
   }
 
-  function apagar(deposito, chave) {
-    db?.transaction(deposito, "readwrite").objectStore(deposito).delete(chave);
+  function sair() {
+    desligarNuvem();
+    return auth ? auth.signOut() : Promise.resolve();
   }
 
-  // Uma transação para o lote inteiro, e a promessa espera o commit: quem grava 21 exercícios
-  // e depois lê precisa que a leitura veja o que acabou de entrar.
-  function gravarLote(deposito, pares) {
-    if (!db || pares.length === 0) return Promise.resolve();
-    return new Promise((resolver) => {
-      const transacao = db.transaction(deposito, "readwrite");
-      const alvo = transacao.objectStore(deposito);
-      for (const [chave, valor] of pares) alvo.put(valor, chave);
-      transacao.oncomplete = () => resolver();
-      transacao.onerror = () => resolver();
-      transacao.onabort = () => resolver();
-    });
+  // Chama com o uid de quem está logado, ou null. Sem Firebase, chama uma vez com null.
+  function aoMudarUsuario(reagir) {
+    if (!auth) return reagir(null);
+    auth.onAuthStateChanged((usuario) => reagir(usuario?.uid ?? null));
   }
 
   const doisDigitos = (numero) => String(numero).padStart(2, "0");
@@ -137,64 +273,43 @@ const Banco = (function () {
 
   const chaveDaSessao = (perfil, letra) => `${perfil}:${hoje()}_${letra}`;
   const chaveDoRegistro = (sessao, exId) => `${sessao}:${exId}`;
-  const registrosDa = (sessao) => IDBKeyRange.bound(`${sessao}:`, `${sessao}:\uffff`);
+  const registrosDa = (sessao) => ({ de: `${sessao}:`, ate: `${sessao}:￿` });
 
   // Escreve o que ainda não existe, e nunca por cima: exercício que já está no banco pode ter
-  // observação, foto e edição, e a semente não é dona disso. Assim um catálogo novo, como o do
+  // observação, foto e edição, e o seed não é dono disso. Assim um catálogo novo, como o do
   // perfil de exemplo, chega a quem já usa o app, em vez de só a quem instala hoje.
-  async function semear(treinos, perfis, arquivados = []) {
-    if (!db) return;
+  //
+  // Um perfil por vez, porque na nuvem cada um tem o seu branch. No local os dois dividem o mesmo
+  // depósito, e a segunda volta já encontra tudo escrito.
+  async function seed(treinos, perfis, arquivados = []) {
+    if (!db && branches.size === 0) return;
 
-    const existentes = new Set((await ler("exercicios")).map(([chave]) => chave));
-    const pares = [];
-    for (const [letra, exercicios] of Object.entries(treinos)) {
-      exercicios.forEach((exercicio, ordem) => {
-        if (!existentes.has(exercicio.id)) pares.push([exercicio.id, { ...exercicio, letra, ordem, perfis }]);
-      });
-    }
-    arquivados.forEach((exercicio, posicao) => {
-      if (!existentes.has(exercicio.id)) {
-        pares.push([exercicio.id, { ...exercicio, ordem: 900 + posicao, perfis }]);
+    for (const perfil of perfis) {
+      if (!(await motorDe(perfil).confiavel(perfil))) continue;
+      const existentes = new Set((await ler(perfil, "exercicios")).map(([chave]) => chave));
+      const pares = [];
+      for (const [letra, exercicios] of Object.entries(treinos)) {
+        exercicios.forEach((exercicio, ordem) => {
+          if (!existentes.has(exercicio.id)) pares.push([exercicio.id, { ...exercicio, letra, ordem, perfis }]);
+        });
       }
-    });
-
-    await gravarLote("exercicios", pares);
-    await migrarFotos(treinos);
-  }
-
-  // A chave nova é id mais vaga, e o id tem comprimento fixo. A velha era perfil mais posição
-  // na lista, com prefixo curto. A posição do dois-pontos separa as duas gerações.
-  const ehChaveNova = (chave) => chave.indexOf(":") === TAMANHO_ID;
-
-  // A posição não sobrevive a exercício inserido no meio da lista, então a foto passou a ser
-  // chaveada por id e vaga. Foto do mesmo exercício em dois perfis vira duas vagas do mesmo
-  // exercício: a foto é da máquina física, e máquina não pertence a perfil.
-  async function migrarFotos(treinos) {
-    const antigas = (await ler("fotos")).filter(([chave]) => !ehChaveNova(chave));
-    if (antigas.length === 0) return;
-
-    const idPorPosicao = new Map();
-    for (const [letra, exercicios] of Object.entries(treinos)) {
-      exercicios.forEach((exercicio, indice) => idPorPosicao.set(`${letra}${indice}`, exercicio.id));
-    }
-
-    const proximaVaga = new Map();
-    for (const [chave, foto] of antigas) {
-      const exId = idPorPosicao.get(chave.slice(chave.indexOf(":") + 1));
-      if (!exId) continue;
-      const vaga = proximaVaga.get(exId) ?? 0;
-      proximaVaga.set(exId, vaga + 1);
-      gravar("fotos", `${exId}:${vaga}`, foto);
-      apagar("fotos", chave);
+      arquivados.forEach((exercicio, posicao) => {
+        if (!existentes.has(exercicio.id)) {
+          pares.push([exercicio.id, { ...exercicio, ordem: 900 + posicao, perfis }]);
+        }
+      });
+      await gravarLote(perfil, "exercicios", pares);
     }
   }
 
-  // Catálogo sem dono é de todo mundo: registro antigo que a migração não alcançou continua
-  // aparecendo, em vez de sumir da tela de quem o usa.
-  const ehDono = (exercicio, perfil) => !perfil || !exercicio.perfis || exercicio.perfis.includes(perfil);
+  // Na nuvem o dono é o branch, e o campo `perfis` do documento não manda em nada: um catálogo
+  // gravado com o rótulo errado continuaria sendo de quem está naquele branch. No local o campo
+  // é o que separa o exemplo do resto, e catálogo sem dono é de todo mundo.
+  const ehDono = (exercicio, perfil) =>
+    branches.has(perfil) || !perfil || !exercicio.perfis || exercicio.perfis.includes(perfil);
 
   async function listarExercicios(letra, perfil) {
-    const todos = await ler("exercicios");
+    const todos = await ler(perfil, "exercicios");
     return todos
       .map(([, exercicio]) => exercicio)
       .filter((exercicio) => exercicio.letra === letra && !exercicio.arquivado && ehDono(exercicio, perfil))
@@ -206,28 +321,30 @@ const Banco = (function () {
   async function lerSessaoDeHoje(perfil, letra) {
     const sessao = chaveDaSessao(perfil, letra);
     const registros = new Map();
-    for (const [chave, registro] of await ler("registros", registrosDa(sessao))) {
+    for (const [chave, registro] of await ler(perfil, "registros", registrosDa(sessao))) {
       registros.set(chave.slice(sessao.length + 1), registro);
     }
-    return { sessao: (await pegar("sessoes", sessao)) ?? null, registros };
+    return { sessao: (await pegar(perfil, "sessoes", sessao)) ?? null, registros };
   }
 
   async function garantirSessao(perfil, letra) {
     const sessao = chaveDaSessao(perfil, letra);
-    if (!(await pegar("sessoes", sessao))) {
-      gravar("sessoes", sessao, { perfil, letra, data: hoje(), iniciadoEm: Date.now(), concluidoEm: null });
+    if (!(await pegar(perfil, "sessoes", sessao))) {
+      gravar(perfil, "sessoes", sessao, { perfil, letra, data: hoje(), iniciadoEm: Date.now(), concluidoEm: null });
     }
     return sessao;
   }
 
+  const semMotor = (perfil) => !db && !branches.has(perfil);
+
   async function salvarSerie(perfil, letra, exId, restantes) {
-    if (!db) return;
+    if (semMotor(perfil)) return;
     const sessao = await garantirSessao(perfil, letra);
     const chave = chaveDoRegistro(sessao, exId);
     // Escreve por cima do que já existe em vez de substituir o registro: as fases seguintes
     // acrescentam campo aqui, o peso entre eles.
-    const anterior = (await pegar("registros", chave)) ?? {};
-    gravar("registros", chave, { ...anterior, exId, restantes, atualizadoEm: Date.now() });
+    const anterior = (await pegar(perfil, "registros", chave)) ?? {};
+    gravar(perfil, "registros", chave, { ...anterior, exId, restantes, atualizadoEm: Date.now() });
   }
 
   // Os dois números digitados do exercício, no mesmo registro das séries: `carga` é o peso da
@@ -237,23 +354,23 @@ const Banco = (function () {
   const CAMPOS_DIGITADOS = ["carga", "minutos"];
 
   async function salvarValor(perfil, letra, exId, campo, valor) {
-    if (!db || !CAMPOS_DIGITADOS.includes(campo)) return;
+    if (semMotor(perfil) || !CAMPOS_DIGITADOS.includes(campo)) return;
     const sessao = await garantirSessao(perfil, letra);
     const chave = chaveDoRegistro(sessao, exId);
-    const anterior = (await pegar("registros", chave))
-      ?? { exId, restantes: (await pegar("exercicios", exId))?.series ?? null };
-    gravar("registros", chave, { ...anterior, exId, [campo]: valor, atualizadoEm: Date.now() });
+    const anterior = (await pegar(perfil, "registros", chave))
+      ?? { exId, restantes: (await pegar(perfil, "exercicios", exId))?.series ?? null };
+    gravar(perfil, "registros", chave, { ...anterior, exId, [campo]: valor, atualizadoEm: Date.now() });
   }
 
   // Tira só o campo, e não o registro: as séries daquele dia continuam sendo histórico.
   async function apagarValor(perfil, letra, exId, campo) {
-    if (!db || !CAMPOS_DIGITADOS.includes(campo)) return;
+    if (semMotor(perfil) || !CAMPOS_DIGITADOS.includes(campo)) return;
     const chave = chaveDoRegistro(await garantirSessao(perfil, letra), exId);
-    const anterior = await pegar("registros", chave);
+    const anterior = await pegar(perfil, "registros", chave);
     if (!anterior) return;
     const sobrando = { ...anterior };
     delete sobrando[campo];
-    gravar("registros", chave, { ...sobrando, atualizadoEm: Date.now() });
+    gravar(perfil, "registros", chave, { ...sobrando, atualizadoEm: Date.now() });
   }
 
   // Varre os registros de um perfil e agrupa a carga por exercício, da mais nova para a mais
@@ -263,7 +380,7 @@ const Banco = (function () {
     const dia = hoje();
     const porExercicio = new Map();
 
-    for (const [chave, registro] of await ler("registros", IDBKeyRange.bound(`${perfil}:`, `${perfil}:￿`))) {
+    for (const [chave, registro] of await ler(perfil, "registros", doPerfil(perfil))) {
       if (registro?.carga == null && registro?.minutos == null) continue;
       // A chave é perfil, data, letra e id. A data vai do primeiro dois-pontos ao sublinhado, e
       // nome de treino pode ter sublinhado, mas a data não tem nenhum.
@@ -289,7 +406,7 @@ const Banco = (function () {
   // tela do mesmo jeito: a aba mostra o treino da pessoa, e não só o que ela anotou.
   async function historico(perfil) {
     const cargas = await cargasPorExercicio(perfil, false);
-    return (await ler("exercicios"))
+    return (await ler(perfil, "exercicios"))
       .map(([, exercicio]) => exercicio)
       .filter((exercicio) => ehDono(exercicio, perfil))
       .map((exercicio) => ({ exercicio, cargas: cargas.get(exercicio.id) ?? [] }))
@@ -298,24 +415,24 @@ const Banco = (function () {
 
   // Tira o exercício da lista do dia sem apagar nada: o que foi levantado continua no histórico,
   // e voltar é só desfazer esta marca. É o caminho que a fase 4 usa no lugar de remover.
-  async function arquivarExercicio(exId, quando = Date.now()) {
-    const exercicio = await pegar("exercicios", exId);
-    if (exercicio) gravar("exercicios", exId, { ...exercicio, arquivado: true, arquivadoEm: quando });
+  async function arquivarExercicio(perfil, exId, quando = Date.now()) {
+    const exercicio = await pegar(perfil, "exercicios", exId);
+    if (exercicio) gravar(perfil, "exercicios", exId, { ...exercicio, arquivado: true, arquivadoEm: quando });
   }
 
   // Reativar escolhe em qual treino ele volta, e ele entra no fim daquele treino: a posição
   // antiga não quer dizer nada depois que a lista andou.
   async function reativarExercicio(exId, letra, perfil) {
-    const exercicio = await pegar("exercicios", exId);
+    const exercicio = await pegar(perfil, "exercicios", exId);
     if (!exercicio) return;
     const doTreino = await listarExercicios(letra, perfil);
     const ultimaOrdem = doTreino.length === 0 ? -1 : Math.max(...doTreino.map((outro) => outro.ordem));
     const { arquivado, arquivadoEm, ...ativo } = exercicio;
-    gravar("exercicios", exId, { ...ativo, letra, ordem: ultimaOrdem + 1 });
+    gravar(perfil, "exercicios", exId, { ...ativo, letra, ordem: ultimaOrdem + 1 });
   }
 
   async function encerrarSessao(perfil, letra) {
-    if (!db) return;
+    if (semMotor(perfil)) return;
     const sessao = await garantirSessao(perfil, letra);
     const { registros } = await lerSessaoDeHoje(perfil, letra);
     const agora = Date.now();
@@ -328,16 +445,16 @@ const Banco = (function () {
         chaveDoRegistro(sessao, exercicio.id),
         { exId: exercicio.id, restantes: exercicio.series, atualizadoEm: agora }
       ]);
-    await gravarLote("registros", pulados);
+    await gravarLote(perfil, "registros", pulados);
 
-    gravar("sessoes", sessao, { ...(await pegar("sessoes", sessao)), concluidoEm: agora });
+    gravar(perfil, "sessoes", sessao, { ...(await pegar(perfil, "sessoes", sessao)), concluidoEm: agora });
   }
 
   // Reset é escrita nova, nunca exclusão: o registro é histórico, e histórico é append-only.
   // O iniciadoEm volta para agora porque a sessão recomeça, e é isso que a mantém dentro do
   // ciclo corrente quando o reset vem logo depois de recomeçar o ciclo.
   async function resetarTreino(perfil, letra) {
-    if (!db) return;
+    if (semMotor(perfil)) return;
     const sessao = await garantirSessao(perfil, letra);
     const agora = Date.now();
     // A carga do dia sobrevive: resetar é refazer o treino, não desdizer o peso que estava na
@@ -347,15 +464,15 @@ const Banco = (function () {
       chaveDoRegistro(sessao, exercicio.id),
       { ...registros.get(exercicio.id), exId: exercicio.id, restantes: exercicio.series, atualizadoEm: agora }
     ]);
-    await gravarLote("registros", totais);
-    gravar("sessoes", sessao, { ...(await pegar("sessoes", sessao)), iniciadoEm: agora, concluidoEm: null });
+    await gravarLote(perfil, "registros", totais);
+    gravar(perfil, "sessoes", sessao, { ...(await pegar(perfil, "sessoes", sessao)), iniciadoEm: agora, concluidoEm: null });
   }
 
   // Semanas de treino já feitas, para o perfil de exemplo abrir com o histórico cheio. Escreve
   // uma vez só, e nunca em perfil que já tem sessão: ninguém quer dado inventado por cima do seu.
-  async function semearHistorico(perfil, treinos, arquivados) {
-    if (!db) return;
-    const existentes = await ler("sessoes", IDBKeyRange.bound(`${perfil}:`, `${perfil}:￿`));
+  async function seedHistorico(perfil, treinos, arquivados) {
+    if (semMotor(perfil)) return;
+    const existentes = await ler(perfil, "sessoes", doPerfil(perfil));
     if (existentes.length > 0) return;
 
     const sessoes = [];
@@ -390,7 +507,7 @@ const Banco = (function () {
     // data em que saiu é o dia seguinte ao último em que foi feito.
     const ULTIMA_SEMANA_DELES = SEMANAS_DE_EXEMPLO - 2;
     arquivados.forEach((exercicio, posicao) => {
-      arquivarExercicio(exercicio.id, Date.now() - (ULTIMA_SEMANA_DELES * 7 - 1) * 24 * 3600 * 1000);
+      arquivarExercicio(perfil, exercicio.id, Date.now() - (ULTIMA_SEMANA_DELES * 7 - 1) * 24 * 3600 * 1000);
       for (let semana = SEMANAS_DE_EXEMPLO; semana >= ULTIMA_SEMANA_DELES; semana--) {
         const data = diaDeTras(semana * 7);
         const sessao = `${perfil}:${data}_${exercicio.letra}`;
@@ -408,11 +525,11 @@ const Banco = (function () {
       }
     });
 
-    await gravarLote("sessoes", sessoes);
-    await gravarLote("registros", registros);
+    await gravarLote(perfil, "sessoes", sessoes);
+    await gravarLote(perfil, "registros", registros);
     // O ciclo começa agora: sem isto as semanas passadas contariam como concluídas no ciclo
     // corrente, e o app abriria dizendo que já está tudo feito.
-    gravar("ciclo", perfil, { iniciadoEm: Date.now() });
+    gravar(perfil, "ciclo", perfil, { iniciadoEm: Date.now() });
   }
 
   const SEMANAS_DE_EXEMPLO = 8;
@@ -424,16 +541,16 @@ const Banco = (function () {
     return `${dia.getFullYear()}-${doisDigitos(dia.getMonth() + 1)}-${doisDigitos(dia.getDate())}`;
   }
 
-  const lerCiclo = async (perfil) => (await pegar("ciclo", perfil)) ?? { iniciadoEm: 0 };
+  const lerCiclo = async (perfil) => (await pegar(perfil, "ciclo", perfil)) ?? { iniciadoEm: 0 };
 
-  const iniciarCiclo = (perfil) => gravar("ciclo", perfil, { iniciadoEm: Date.now() });
+  const iniciarCiclo = (perfil) => gravar(perfil, "ciclo", perfil, { iniciadoEm: Date.now() });
 
   // Treino feito é sessão concluída depois do início do ciclo. O ciclo é só esse cursor, e é
   // por isso que recomeçar não apaga sessão nenhuma.
   async function letrasConcluidas(perfil) {
     const { iniciadoEm } = await lerCiclo(perfil);
     const feitas = new Set();
-    for (const [, sessao] of await ler("sessoes")) {
+    for (const [, sessao] of await ler(perfil, "sessoes")) {
       if (sessao.perfil === perfil && sessao.concluidoEm && sessao.iniciadoEm >= iniciadoEm) {
         feitas.add(sessao.letra);
       }
@@ -441,12 +558,12 @@ const Banco = (function () {
     return feitas;
   }
 
-  // A foto é da máquina, não do perfil, então não há perfil na chave. Devolve as vagas por
-  // exercício para o app nunca precisar montar chave de depósito.
+  // A foto é da máquina, não do perfil, então não há perfil na chave, e ela nunca sobe: fica no
+  // aparelho, sempre no motor local. Devolve as vagas por exercício para o app nunca precisar
+  // montar chave de depósito.
   async function lerFotos() {
     const porExercicio = new Map();
-    for (const [chave, foto] of await ler("fotos")) {
-      if (!ehChaveNova(chave)) continue;
+    for (const [chave, foto] of await Local.ler(null, "fotos")) {
       const exId = chave.slice(0, TAMANHO_ID);
       const vagas = porExercicio.get(exId) ?? [];
       vagas[Number(chave.slice(TAMANHO_ID + 1))] = foto;
@@ -455,17 +572,17 @@ const Banco = (function () {
     return porExercicio;
   }
 
-  const salvarFoto = (exId, vaga, foto) => gravar("fotos", `${exId}:${vaga}`, foto);
+  const salvarFoto = (exId, vaga, foto) => Local.gravar(null, "fotos", `${exId}:${vaga}`, foto);
 
-  const apagarFoto = (exId, vaga) => apagar("fotos", `${exId}:${vaga}`);
+  const apagarFoto = (exId, vaga) => Local.apagar(null, "fotos", `${exId}:${vaga}`);
 
   // Só o campo, por cima do exercício que já existe: o editor da fase 4 vai escrever os outros
   // campos do mesmo registro, e substituir o objeto inteiro apagaria o que ele gravou.
-  async function salvarObservacao(exId, observacao) {
-    if (!db) return;
-    const anterior = await pegar("exercicios", exId);
+  async function salvarObservacao(perfil, exId, observacao) {
+    if (semMotor(perfil)) return;
+    const anterior = await pegar(perfil, "exercicios", exId);
     if (!anterior) return;
-    gravar("exercicios", exId, { ...anterior, observacao });
+    gravar(perfil, "exercicios", exId, { ...anterior, observacao });
   }
 
   // Safari lança ao tocar em localStorage numa origem opaca, e o Chrome não. Daí o try.
@@ -486,9 +603,10 @@ const Banco = (function () {
   }
 
   return {
-    abrir, disponivel, semear,
+    abrir, disponivel, seed,
+    ligarNuvem, entrar, sair, aoMudarUsuario,
     listarExercicios, lerSessaoDeHoje, salvarSerie, salvarValor, apagarValor,
-    cargasAnteriores, historico, arquivarExercicio, reativarExercicio, semearHistorico,
+    cargasAnteriores, historico, arquivarExercicio, reativarExercicio, seedHistorico,
     encerrarSessao, resetarTreino,
     lerCiclo, iniciarCiclo, letrasConcluidas,
     lerFotos, salvarFoto, apagarFoto, salvarObservacao,

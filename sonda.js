@@ -16,22 +16,19 @@ const Sonda = (function () {
     return false;
   }
 
-  // Quantos treinos existem e como se chamam sai da semente. A suíte aceita ABC, ABCD ou um
+  // Quantos treinos existem e como se chamam sai do seed. A suíte aceita ABC, ABCD ou um
   // treino só, e o app tem que aceitar junto.
   //
-  // A guarda existe porque o caso `preparar` roda numa página sem o app: lá não há TREINOS nem
+  // A guarda existe porque o caso `prepararCarga` roda numa página sem o app: lá não há TREINOS nem
   // LETRAS, e ler direto derrubaria o arquivo inteiro antes de `rodar` ser chamado.
   const CATALOGO = typeof TREINOS === "undefined" ? {} : TREINOS;
   const NOMES = Object.keys(CATALOGO);
   const PRIMEIRA = NOMES[0];
   const SEGUNDA = NOMES[1];
   const ULTIMA = NOMES[NOMES.length - 1];
-  // A migração precisa de dois treinos fundos o bastante para ter as posições que ela usa, então
-  // escolhe o último que tenha, em vez de supor que todo treino é grande.
-  const FUNDA = [...NOMES].reverse().find((letra) => CATALOGO[letra].length >= 3 && letra !== NOMES[0]) ?? NOMES[0];
   const quantosExercicios = () => NOMES.reduce((total, letra) => total + CATALOGO[letra].length, 0);
   const DO_PRIMEIRO = CATALOGO[PRIMEIRA]?.length ?? 0;
-  // O rótulo cheio de cada exercício sai da própria semente: nem todo treino é 3x12.
+  // O rótulo cheio de cada exercício sai do próprio seed: nem todo treino é 3x12.
   const cheioDe = (letra) => CATALOGO[letra].map((exercicio) => `${exercicio.series}×${exercicio.reps}`);
   const primeiroCheio = () => cheioDe(PRIMEIRA)[0];
   const umAMenos = () => `${CATALOGO[PRIMEIRA][0].series - 1}×${CATALOGO[PRIMEIRA][0].reps}`;
@@ -55,6 +52,13 @@ const Sonda = (function () {
   const menu = () => document.getElementById("dialogo-treino");
   const avisoDiz = (trecho) => document.getElementById("aviso").textContent.includes(trecho);
 
+  // A marca abre o menu, e o histórico é um item dele.
+  async function abrirPeloMenu() {
+    document.getElementById("abrir-menu").click();
+    await respira(150);
+    document.getElementById("menu-historico").click();
+  }
+
   async function baixarAte(item, alvo) {
     while (rotuloDo(item) !== alvo) {
       item.querySelector(".contador").click();
@@ -77,7 +81,7 @@ const Sonda = (function () {
     if (!(await aguardar(() => cartoes().length === DO_PRIMEIRO, "os cartões do primeiro treino"))) return;
 
     confere("banco disponível por http", document.getElementById("sem-banco").hidden);
-    confere("o catálogo inteiro é semeado",
+    confere("o catálogo inteiro vem do seed",
       (await Promise.all(NOMES.map((l) => Banco.listarExercicios(l, "sun"))))
         .reduce((total, lista) => total + lista.length, 0) === quantosExercicios());
     confere("a primeira aba nasce ativa", abaDe(PRIMEIRA).getAttribute("aria-selected") === "true");
@@ -190,7 +194,7 @@ const Sonda = (function () {
         pronto(info);
       };
     });
-    confere("banco na versão 5", banco.versao === 5, banco.versao);
+    confere("banco na versão 6", banco.versao === 6, banco.versao);
     confere("o depósito estado morreu", !banco.depositos.includes("estado"), banco.depositos.join(","));
 
     // Concluir de novo no mesmo dia, depois de recomeçar o ciclo. O visto da aba vem da memória
@@ -420,134 +424,10 @@ const Sonda = (function () {
       semNome.map((elemento) => elemento.id || elemento.tagName).join(","));
   }
 
-  async function migracao() {
-    if (!(await aguardar(() => cartoes().length === DO_PRIMEIRO, "os cartões do primeiro treino"))) return;
-
-    const idA3 = (await Banco.listarExercicios(PRIMEIRA, "sun"))[3].id;
-    const idC2 = (await Banco.listarExercicios(FUNDA, "sun"))[2].id;
-
-    const chaves = await new Promise((pronto) => {
-      const pedido = indexedDB.open("academia");
-      pedido.onsuccess = () => {
-        const db = pedido.result;
-        const busca = db.transaction("fotos", "readonly").objectStore("fotos").getAllKeys();
-        busca.onsuccess = () => { const achadas = busca.result; db.close(); pronto(achadas); };
-      };
-    });
-
-    confere("nenhuma foto se perde na migração", chaves.length === 3, chaves.length);
-    confere("nenhuma chave velha sobra", chaves.every((chave) => chave.indexOf(":") === 36), chaves.join(" | "));
-    confere("foto dos dois perfis vira duas vagas",
-      chaves.includes(`${idA3}:0`) && chaves.includes(`${idA3}:1`));
-    confere("foto de um perfil só ocupa a vaga da máquina", chaves.includes(`${idC2}:0`));
-
-    confere("o cartão migrado mostra a foto", Boolean(cartoes()[3].querySelector(".foto img")));
-    confere("cartão sem foto segue com a câmera", Boolean(cartoes()[0].querySelector(".foto svg")));
-    confere("o progresso por posição é descartado", rotuloDo(cartoes()[3]) === cheioDe(PRIMEIRA)[3], rotuloDo(cartoes()[3]));
-
-    cartoes()[3].querySelector(".foto").click();
-    await respira();
-    const visor = document.getElementById("visor");
-    const fotoGrande = () => document.getElementById("visor-quadro").querySelector("img");
-    const vagas = () => [...document.querySelectorAll(".vaga")];
-    confere("o visor abre com a foto migrada", visor.open && fotoGrande()?.src.startsWith("blob:"));
-    confere("a tira tem três vagas", vagas().length === 3, vagas().length);
-    confere("a vaga da máquina nasce escolhida", vagas()[0].getAttribute("aria-current") === "true");
-    confere("a segunda foto migrada aparece na vaga 1", Boolean(vagas()[1].querySelector("img")));
-    confere("a vaga 2 está vazia", Boolean(vagas()[2].querySelector("svg")));
-
-    const capa = fotoGrande().src;
-    const telaCheia = document.getElementById("tela-cheia");
-    const ampliada = telaCheia.querySelector("img");
-    document.querySelector(".ampliar").click();
-    await respira();
-    confere("tocar na foto grande abre a tela cheia", telaCheia.open && ampliada.src === capa);
-    confere("a tela cheia diz de qual vaga é a foto",
-      document.getElementById("tela-cheia-titulo").textContent.includes("Máquina"));
-    const zoomArea = document.getElementById("zoom");
-    const meio = zoomArea.getBoundingClientRect();
-    zoomArea.dispatchEvent(new WheelEvent("wheel", { deltaY: -600, clientX: meio.left + meio.width / 2, clientY: meio.top + meio.height / 2, bubbles: true, cancelable: true }));
-    await respira(50);
-    const escalaDe = () => Number(ampliada.style.transform.match(/scale\(([\d.]+)\)/)?.[1] ?? 1);
-    confere("a roda do mouse amplia", escalaDe() > 1.5, ampliada.style.transform);
-    // Toque duplo por pointer events: dois pares de desce-e-sobe no mesmo ponto.
-    const ponto = { clientX: meio.left + meio.width / 2, clientY: meio.top + meio.height / 2, pointerId: 1, bubbles: true };
-    for (let vez = 0; vez < 2; vez++) {
-      zoomArea.dispatchEvent(new PointerEvent("pointerdown", ponto));
-      zoomArea.dispatchEvent(new PointerEvent("pointerup", ponto));
-      await respira(40);
-    }
-    confere("o toque duplo volta ao tamanho natural depois do zoom", escalaDe() === 1, ampliada.style.transform);
-    for (let vez = 0; vez < 2; vez++) {
-      zoomArea.dispatchEvent(new PointerEvent("pointerdown", ponto));
-      zoomArea.dispatchEvent(new PointerEvent("pointerup", ponto));
-      await respira(40);
-    }
-    confere("o toque duplo amplia a partir do natural", escalaDe() === 2.5, ampliada.style.transform);
-    document.getElementById("tela-cheia-fechar").click();
-    await respira();
-    confere("fechar a tela cheia volta ao visor", !telaCheia.open && visor.open);
-    document.querySelector(".ampliar").click();
-    await respira();
-    confere("a tela cheia reabre sem zoom", escalaDe() === 1, ampliada.style.transform);
-    document.getElementById("tela-cheia-fechar").click();
-    await respira();
-
-    vagas()[1].click();
-    await respira();
-    confere("tocar na vaga troca a foto grande", fotoGrande().src !== capa && fotoGrande().src.startsWith("blob:"));
-    confere("o botão fala em trocar quando há foto", document.getElementById("visor-trocar").textContent === "Trocar foto");
-
-    vagas()[2].click();
-    await respira();
-    confere("vaga vazia mostra o convite", !fotoGrande() && document.getElementById("visor-quadro").textContent.includes("Nenhuma foto"));
-    confere("o botão fala em adicionar quando não há foto", document.getElementById("visor-trocar").textContent === "Adicionar foto");
-    confere("sem foto não há o que apagar", document.getElementById("visor-apagar").hidden);
-
-    vagas()[1].click();
-    await respira();
-    document.getElementById("visor-apagar").click();
-    await respira();
-    const apagar = document.getElementById("dialogo-apagar");
-    confere("apagar pede confirmação", apagar.open);
-    apagar.querySelector('[value="apagar"]').click();
-    await respira(300);
-    confere("apagar tira a foto do banco", !(await Banco.lerFotos()).get(idA3)?.[1]);
-    confere("apagar mantém a capa", Boolean((await Banco.lerFotos()).get(idA3)?.[0]));
-    confere("a vaga apagada volta a mostrar a câmera", Boolean(vagas()[1].querySelector("svg")));
-    confere("apagar é anunciado", avisoDiz("apagada"));
-
-    const campo = document.getElementById("observacao");
-    campo.value = "Banco 4, pino 7";
-    campo.dispatchEvent(new Event("change", { bubbles: true }));
-    await respira(300);
-    confere("a observação vai para o banco",
-      (await Banco.listarExercicios(PRIMEIRA, "sun"))[3].observacao === "Banco 4, pino 7");
-    confere("a observação não vaza para o cartão", !cartoes()[3].textContent.includes("pino"));
-    confere("a observação é anunciada", avisoDiz("Observação"));
-    document.getElementById("visor-fechar").click();
-    await respira();
-
-    cartoes()[0].querySelector(".foto").click();
-    await respira();
-    confere("o quadro vazio abre o visor, e não a câmera", visor.open && document.getElementById("visor-trocar").textContent === "Adicionar foto");
-    confere("o vídeo está ao alcance sem foto", document.getElementById("visor-meta").textContent.includes("Vídeo"));
-    document.getElementById("visor-fechar").click();
-    await respira();
-
-    document.querySelector('input[value="shine"]').click();
-    await respira(300);
-    confere("a foto é a mesma nos dois perfis", Boolean(cartoes()[3].querySelector(".foto img")));
-    cartoes()[3].querySelector(".descricao").click();
-    await respira();
-    confere("a observação é a mesma nos dois perfis", campo.value === "Banco 4, pino 7", campo.value);
-    document.getElementById("visor-fechar").click();
-    await respira();
-  }
-
   // Dois treinos de dias passados, para a carga ter de onde ser herdada e com o que ser
-  // comparada. Monta chave de depósito à mão, como o preparar da migração: é a única maneira de
-  // existir passado antes de o app abrir, e o formato está coberto pelas asserções logo abaixo.
+  // comparada. Escreve direto no Firestore de mentira, no branch do Sun, com os ids de documento
+  // que o banco.js monta: é a única maneira de existir passado antes de o app abrir, e o formato
+  // está coberto pelas asserções do caso Nuvem.
   const diasAtras = (quantos) => {
     const dia = new Date();
     dia.setDate(dia.getDate() - quantos);
@@ -559,46 +439,28 @@ const Sonda = (function () {
   const SEMANA_PASSADA = diasAtras(7);
   const emDia = (data) => `${data.slice(8)}/${data.slice(5, 7)}`;
 
-  function prepararCarga() {
-    return new Promise((pronto) => {
-      // Já na versão de hoje: num banco mais velho, a subida de versão limparia justamente o
-      // histórico do Sun que este caso precisa ter para herdar a carga.
-      const pedido = indexedDB.open("academia", 5);
-      pedido.onupgradeneeded = () => {
-        for (const nome of ["exercicios", "sessoes", "registros", "ciclo", "fotos"]) {
-          pedido.result.createObjectStore(nome);
-        }
-      };
-      pedido.onsuccess = () => {
-        const db = pedido.result;
-        const transacao = db.transaction(["sessoes", "registros", "ciclo"], "readwrite");
-        const sessoes = transacao.objectStore("sessoes");
-        const registros = transacao.objectStore("registros");
-        const primeiro = CATALOGO[PRIMEIRA][0].id;
-        const segundo = CATALOGO[PRIMEIRA][1].id;
+  async function prepararCarga() {
+    const banco = firebase.firestore();
+    const branch = `perfis/${CONTAS.sun}`;
+    const primeiro = CATALOGO[PRIMEIRA][0].id;
+    const segundo = CATALOGO[PRIMEIRA][1].id;
 
-        // O ciclo começa agora, senão os treinos de semana passada contam como concluídos no
-        // ciclo corrente e o app abre no treino seguinte em vez de no primeiro.
-        transacao.objectStore("ciclo").put({ iniciadoEm: Date.now() }, "sun");
+    // O ciclo começa agora, senão os treinos de semana passada contam como concluídos no
+    // ciclo corrente e o app abre no treino seguinte em vez de no primeiro.
+    await banco.collection(`${branch}/ciclo`).doc("atual").set({ iniciadoEm: Date.now() });
 
-        for (const [data, carga] of [[SEMANA_PASSADA, 40], [ANTEONTEM, 45]]) {
-          const sessao = `sun:${data}_${PRIMEIRA}`;
-          sessoes.put({ perfil: "sun", letra: PRIMEIRA, data, iniciadoEm: 1, concluidoEm: 2 }, sessao);
-          registros.put({ exId: primeiro, restantes: 0, carga, atualizadoEm: 2 }, `${sessao}:${primeiro}`);
-          // O segundo exercício passou os dois dias sem carga: é quem prova que o cartão sem
-          // histórico continua convidando em vez de herdar do vizinho.
-          registros.put({ exId: segundo, restantes: 0, atualizadoEm: 2 }, `${sessao}:${segundo}`);
-        }
-
-        transacao.oncomplete = () => {
-          db.close();
-          confere("dois treinos passados preparados", true);
-          pronto();
-        };
-        transacao.onerror = () => { confere("dois treinos passados preparados", false, "transação falhou"); pronto(); };
-      };
-      pedido.onerror = () => { confere("dois treinos passados preparados", false, pedido.error?.name); pronto(); };
-    });
+    for (const [data, carga] of [[SEMANA_PASSADA, 40], [ANTEONTEM, 45]]) {
+      const sessao = `${data}_${PRIMEIRA}`;
+      await banco.collection(`${branch}/sessoes`).doc(sessao)
+        .set({ perfil: "sun", letra: PRIMEIRA, data, iniciadoEm: 1, concluidoEm: 2 });
+      await banco.collection(`${branch}/registros`).doc(`${sessao}:${primeiro}`)
+        .set({ exId: primeiro, restantes: 0, carga, atualizadoEm: 2 });
+      // O segundo exercício passou os dois dias sem carga: é quem prova que o cartão sem
+      // histórico continua convidando em vez de herdar do vizinho.
+      await banco.collection(`${branch}/registros`).doc(`${sessao}:${segundo}`)
+        .set({ exId: segundo, restantes: 0, atualizadoEm: 2 });
+    }
+    confere("dois treinos passados preparados", firebase.dados.size === 7, firebase.dados.size);
   }
 
   async function carga() {
@@ -629,9 +491,23 @@ const Sonda = (function () {
     confere("baixar uma série grava a carga herdada", (await noBanco(0)) === 45, await noBanco(0));
     confere("exercício intocado segue sem carga no banco", (await noBanco(1)) === undefined, await noBanco(1));
 
+    // Toque de dedo no chip é o mesmo que no contador: baixa uma série e não abre teclado nenhum.
+    // O clique sintético do `.click()` chega com detail 0, que é o do teclado, e esse abre o campo.
+    const antesDoToque = contadores()[0];
+    chipDe(0).dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    await respira();
+    confere("tocar no chip baixa uma série, como no contador", contadores()[0] !== antesDoToque && campoDe(0).hidden, contadores()[0]);
+    chipDe(0).dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 10, clientY: 10, pointerId: 1 }));
+    await respira(ESPERA_TOQUE_LONGO + 100);
+    chipDe(0).dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientX: 10, clientY: 10, pointerId: 1 }));
+    chipDe(0).dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    await respira();
+    confere("segurar o chip abre o campo", !campoDe(0).hidden && document.activeElement === campoDe(0));
+    campoDe(0).dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await respira();
     chipDe(0).click();
     await respira();
-    confere("tocar no chip abre o campo", !campoDe(0).hidden && document.activeElement === campoDe(0));
+    confere("pelo teclado o chip abre o campo", !campoDe(0).hidden && document.activeElement === campoDe(0));
     // O hidden não esconde elemento com display declarado pelo autor, e sem a regra que corrige
     // isso o chip fica na tela junto do campo, com a caixa ganhando uma faixa a mais.
     confere("o chip some enquanto o campo está aberto",
@@ -712,7 +588,7 @@ const Sonda = (function () {
     confere("a carga é de quem treinou, e não da máquina",
       chipDe(0).textContent === "+kg", chipDe(0).textContent);
 
-    document.getElementById("abrir-historico").click();
+    await abrirPeloMenu();
     await respira(300);
     confere("o histórico segue o perfil de quem está treinando",
       document.querySelectorAll(".historico-linha .historico-sem").length
@@ -734,7 +610,7 @@ const Sonda = (function () {
     };
 
     confere("o histórico nasce fechado", !painel.open);
-    document.getElementById("abrir-historico").click();
+    await abrirPeloMenu();
     await respira(300);
     confere("a marca do topo abre o histórico", painel.open);
 
@@ -786,36 +662,6 @@ const Sonda = (function () {
     confere("fechar o histórico volta para o treino", !painel.open);
   }
 
-  // Escreve um banco na versão 1, com o formato de chave que existia antes do id estável.
-  function preparar() {
-    return new Promise((pronto) => {
-      const pedido = indexedDB.open("academia", 1);
-      pedido.onupgradeneeded = () => {
-        pedido.result.createObjectStore("estado");
-        pedido.result.createObjectStore("fotos");
-      };
-      pedido.onsuccess = () => {
-        const db = pedido.result;
-        const transacao = db.transaction(["estado", "fotos"], "readwrite");
-        // A chave velha era perfil mais letra do treino mais posição na lista. A letra sai da
-        // semente de hoje, senão a suíte volta a exigir que os treinos se chamem A, B e C.
-        const noQuarto = `${PRIMEIRA}3`;
-        const noTerceiro = `${FUNDA}2`;
-        transacao.objectStore("estado").put(1, `sun:${noQuarto}`);
-        transacao.objectStore("fotos").put(new Blob(["foto do sun"], { type: "image/jpeg" }), `sun:${noQuarto}`);
-        transacao.objectStore("fotos").put(new Blob(["foto da shine"], { type: "image/jpeg" }), `shine:${noQuarto}`);
-        transacao.objectStore("fotos").put(new Blob(["foto do leg press"], { type: "image/jpeg" }), `sun:${noTerceiro}`);
-        transacao.oncomplete = () => {
-          db.close();
-          confere("banco na versão 1 preparado", true);
-          pronto();
-        };
-        transacao.onerror = () => { confere("banco na versão 1 preparado", false, "transação falhou"); pronto(); };
-      };
-      pedido.onerror = () => { confere("banco na versão 1 preparado", false, pedido.error?.name); pronto(); };
-    });
-  }
-
   // O perfil de exemplo nasce com treino próprio, histórico de semanas e dois exercícios fora do
   // treino. É o único lugar onde a volta ao treino pode ser exercitada sem inventar dado.
   async function exemplo() {
@@ -838,7 +684,7 @@ const Sonda = (function () {
     confere("o exemplo abre com carga herdada das semanas passadas",
       cartoes()[0].querySelector(".carga-valor").dataset.vazio === "0",
       cartoes()[0].querySelector(".carga-valor").textContent);
-    // Semente que inventa peso em flexão é semente errada, e passaria despercebida na tela.
+    // Seed que inventa peso em flexão é seed errado, e passaria despercebido na tela.
     const deCorpo = doExemplo[letrasDoExemplo[0]].findIndex((exercicio) => exercicio.tipo === "corpo");
     confere("exercício de peso do corpo não ganha carga inventada",
       deCorpo < 0 || !cartoes()[deCorpo].querySelector(".carga-valor"),
@@ -868,7 +714,7 @@ const Sonda = (function () {
       await respira(300);
     }
 
-    document.getElementById("abrir-historico").click();
+    await abrirPeloMenu();
     await respira(400);
     const fora = [...document.querySelectorAll(".historico-treino")]
       .find((titulo) => titulo.textContent === "Fora do treino");
@@ -917,59 +763,131 @@ const Sonda = (function () {
       (await Banco.historico("example")).find((linha) => linha.exercicio.nome === oQueVolta).cargas.length > 0);
   }
 
-  // Um banco na versão 4, com treino gravado para os três perfis. É o estado de quem já usava o
-  // app antes da limpeza.
-  function prepararLimpeza() {
-    return new Promise((pronto) => {
-      const pedido = indexedDB.open("academia", 4);
-      pedido.onupgradeneeded = () => {
-        for (const nome of ["exercicios", "sessoes", "registros", "ciclo", "fotos"]) {
-          if (!pedido.result.objectStoreNames.contains(nome)) pedido.result.createObjectStore(nome);
-        }
-      };
-      pedido.onsuccess = () => {
-        const db = pedido.result;
-        const transacao = db.transaction(["sessoes", "registros", "ciclo", "fotos"], "readwrite");
-        const exId = CATALOGO[PRIMEIRA][0].id;
-        // Cada perfil com um exercício do catálogo dele: o histórico filtra por dono, e um
-        // registro do Sun gravado no Exemplo simplesmente não apareceria.
-        const doExemplo = Object.values(TREINOS_EXEMPLO)[0][0].id;
+  // O motor da nuvem, sobre o Firebase de mentira do sonda-firebase.js. O app já abriu no
+  // motor local; aqui o Sun é ligado ao branch dele e tudo que ele grava tem que ir parar lá, e
+  // só lá.
+  async function nuvem() {
+    // A página abre sem login, então o que está na tela é o exemplo, no motor local.
+    if (!(await aguardar(() => cartoes().length > 0, "os cartões do exemplo"))) return;
 
-        for (const perfil of ["sun", "shine", "example"]) {
-          const sessao = `${perfil}:${ANTEONTEM}_${PRIMEIRA}`;
-          const dele = perfil === "example" ? doExemplo : exId;
-          transacao.objectStore("sessoes").put({ perfil, letra: PRIMEIRA, data: ANTEONTEM, iniciadoEm: 1, concluidoEm: 2 }, sessao);
-          transacao.objectStore("registros").put({ exId: dele, restantes: 0, carga: 40, atualizadoEm: 2 }, `${sessao}:${dele}`);
-          transacao.objectStore("ciclo").put({ iniciadoEm: 1 }, perfil);
-        }
-        // A foto é do exercício, não do perfil: ela tem que sobreviver à limpeza.
-        transacao.objectStore("fotos").put(new Blob(["foto"], { type: "image/jpeg" }), `${exId}:0`);
+    const agora = new Date();
+    const dois = (n) => String(n).padStart(2, "0");
+    const HOJE = `${agora.getFullYear()}-${dois(agora.getMonth() + 1)}-${dois(agora.getDate())}`;
+    const gravados = (prefixo) => [...firebase.dados.keys()].filter((caminho) => caminho.startsWith(prefixo));
+    const branch = `perfis/${CONTAS.sun}`;
+    const primeiro = CATALOGO[PRIMEIRA][0];
 
-        transacao.oncomplete = () => { db.close(); confere("banco na versão 4 preparado", true); pronto(); };
-        transacao.onerror = () => { confere("banco na versão 4 preparado", false, "transação falhou"); pronto(); };
-      };
-      pedido.onerror = () => { confere("banco na versão 4 preparado", false, pedido.error?.name); pronto(); };
-    });
+    const recusa = await Banco.entrar("sun", "errada").then(() => null, (falha) => falha.code);
+    confere("senha errada é recusada com o código do Auth", recusa === "auth/invalid-credential", recusa);
+    const uid = await Banco.entrar("sun", "sol");
+    confere("entrar devolve o uid da conta", uid === CONTAS.sun, uid);
+
+    confere("ligar o perfil ao branch espera o espelho", (await Banco.ligarNuvem("sun", uid)) === true);
+    await Banco.seed(TREINOS, ["sun"]);
+    confere("o seed vai para o branch do Sun",
+      gravados(`${branch}/exercicios/`).length === quantosExercicios(), gravados(`${branch}/exercicios/`).length);
+    confere("e não abre branch para ninguém mais",
+      gravados("perfis/").every((caminho) => caminho.startsWith(branch)),
+      gravados("perfis/").filter((caminho) => !caminho.startsWith(branch)).join(" "));
+    confere("a leitura do Sun sai do espelho, com o catálogo inteiro",
+      (await Banco.listarExercicios(PRIMEIRA, "sun")).length === DO_PRIMEIRO);
+
+    await Banco.salvarSerie("sun", PRIMEIRA, primeiro.id, 2);
+    const registro = firebase.dados.get(`${branch}/registros/${HOJE}_${PRIMEIRA}:${primeiro.id}`);
+    confere("a série vira documento no branch, sem o perfil no id", registro?.restantes === 2, JSON.stringify(registro));
+    confere("a sessão nasce junto", Boolean(firebase.dados.get(`${branch}/sessoes/${HOJE}_${PRIMEIRA}`)));
+    confere("a leitura vê a escrita na hora",
+      (await Banco.lerSessaoDeHoje("sun", PRIMEIRA)).registros.get(primeiro.id)?.restantes === 2);
+
+    await Banco.salvarValor("sun", PRIMEIRA, primeiro.id, "carga", 40);
+    const doHistorico = (await Banco.historico("sun")).find((linha) => linha.exercicio.id === primeiro.id);
+    confere("a carga entra no histórico do Sun", doHistorico?.cargas[0]?.carga === 40, JSON.stringify(doHistorico?.cargas));
+
+    await Banco.encerrarSessao("sun", PRIMEIRA);
+    confere("encerrar conclui a letra pelo espelho", (await Banco.letrasConcluidas("sun")).has(PRIMEIRA));
+    // O espelho responde sem sair do milissegundo, e o ciclo precisa começar depois da sessão.
+    await respira(5);
+    Banco.iniciarCiclo("sun");
+    confere("o ciclo é um documento fixo", Boolean(firebase.dados.get(`${branch}/ciclo/atual`)));
+    confere("recomeçar o ciclo tira a letra", (await Banco.letrasConcluidas("sun")).size === 0);
+
+    // O outro aparelho gravou uma observação: ela tem que chegar pelo snapshot, sem recarregar.
+    firebase.deFora(`${branch}/exercicios/${primeiro.id}`, { ...firebase.dados.get(`${branch}/exercicios/${primeiro.id}`), observacao: "do outro aparelho" });
+    await respira(50);
+    confere("escrita de fora chega ao espelho",
+      (await Banco.listarExercicios(PRIMEIRA, "sun"))[0].observacao === "do outro aparelho");
+
+    confere("a Shine não está em lugar nenhum deste aparelho", (await Banco.listarExercicios(PRIMEIRA, "shine")).length === 0
+      && gravados(`perfis/${CONTAS.shine}`).length === 0);
+
+    // Espelho que só viu o cache não é base para o seed: poderia escrever por cima de edição que
+    // ainda não chegou do servidor.
+    firebase.soCache = true;
+    await Banco.ligarNuvem("shine", CONTAS.shine);
+    await Banco.seed(TREINOS, ["shine"]);
+    confere("sem resposta do servidor o seed não roda", gravados(`perfis/${CONTAS.shine}`).length === 0, gravados(`perfis/${CONTAS.shine}`).length);
+
+    await Banco.sair();
+    confere("sair desliga a nuvem: sem login não sobra nada do Sun no aparelho",
+      (await Banco.listarExercicios(PRIMEIRA, "sun")).length === 0);
   }
 
-  async function limpeza() {
-    if (!(await aguardar(() => cartoes().length === DO_PRIMEIRO, "os cartões do primeiro treino"))) return;
-
-    const cargasDe = async (perfil) => {
-      const historico = await Banco.historico(perfil);
-      return historico.reduce((total, linha) => total + linha.cargas.length, 0);
+  // Quem abre o link sem entrar vê o exemplo e nenhum outro perfil. Entrar como Sun troca para
+  // o treino dela sem mostrar o rodapé; só o admin ganha o seletor.
+  async function visitante() {
+    const doExemplo = TREINOS_EXEMPLO[Object.keys(TREINOS_EXEMPLO)[0]];
+    const nomesDoExemplo = doExemplo.map((exercicio) => exercicio.nome).join();
+    const nomes = () => cartoes().map((item) => item.querySelector(".nome").textContent);
+    const rodape = document.getElementById("perfis");
+    const rodapeVisivel = () => getComputedStyle(rodape).display !== "none";
+    const dialogo = document.getElementById("login");
+    const erro = document.getElementById("login-erro");
+    const quem = () => document.getElementById("menu-quem").textContent;
+    const abrirMenu = async () => { document.getElementById("abrir-menu").click(); await respira(150); };
+    const entrar = async (usuario, senha) => {
+      document.getElementById("login-usuario").value = usuario;
+      document.getElementById("login-senha").value = senha;
+      document.getElementById("login-confirmar").click();
+      await respira(300);
     };
 
-    confere("a carga de teste do Sun sai na subida de versão", (await cargasDe("sun")) === 0, await cargasDe("sun"));
-    confere("a da Shine também", (await cargasDe("shine")) === 0, await cargasDe("shine"));
-    confere("o histórico do Exemplo continua de pé", (await cargasDe("example")) > 0, await cargasDe("example"));
-    confere("o ciclo do Sun recomeça junto", (await Banco.lerCiclo("sun")).iniciadoEm === 0);
-    confere("nenhum treino do Sun nasce concluído", (await Banco.letrasConcluidas("sun")).size === 0);
-    confere("a foto sobrevive, porque é do exercício e não do perfil",
-      (await Banco.lerFotos()).size > 0, (await Banco.lerFotos()).size);
+    if (!(await aguardar(() => cartoes().length === doExemplo.length, "os cartões do exemplo"))) return;
+    confere("sem login a tela é o exemplo", nomes().join() === nomesDoExemplo, nomes().join());
+    confere("sem login o rodapé de perfis não aparece", !rodapeVisivel());
+
+    await abrirMenu();
+    confere("o menu diz que não há login", quem().includes("Sem login"), quem());
+    confere("o menu oferece entrar, e não sair",
+      !document.getElementById("menu-entrar").hidden && document.getElementById("menu-sair").hidden);
+    document.getElementById("menu-entrar").click();
+    await respira(150);
+    confere("entrar abre o diálogo de login", dialogo.open);
+
+    await entrar("sun", "errada");
+    confere("senha errada avisa e não fecha", !erro.hidden && dialogo.open, erro.textContent);
+    await entrar("sun", "sol");
+    if (!(await aguardar(() => cartoes().length === DO_PRIMEIRO && !dialogo.open, "o treino do Sun"))) return;
+    confere("a Sun abre no próprio treino", nomes()[0] === CATALOGO[PRIMEIRA][0].nome, nomes()[0]);
+    confere("a entrada é anunciada", avisoDiz("Sun"), document.getElementById("aviso").textContent);
+    confere("a Sun não vê o rodapé de perfis", !rodapeVisivel());
+
+    await abrirMenu();
+    confere("o menu diz quem entrou", quem().includes("Sun"), quem());
+    confere("o menu oferece sair", !document.getElementById("menu-sair").hidden);
+    document.getElementById("menu-sair").click();
+    if (!(await aguardar(() => cartoes().length === doExemplo.length, "a volta ao exemplo"))) return;
+    confere("sair volta ao exemplo", nomes().join() === nomesDoExemplo, nomes().join());
+
+    await abrirMenu();
+    document.getElementById("menu-entrar").click();
+    await respira(150);
+    await entrar("admin", "chave");
+    if (!(await aguardar(rodapeVisivel, "o rodapé do admin"))) return;
+    confere("o admin abre no Sun", nomes()[0] === CATALOGO[PRIMEIRA][0].nome, nomes()[0]);
+    confere("o admin vê os três perfis", rodape.querySelectorAll('input[name="perfil"]').length === Object.keys(PERFIS).length);
   }
 
-  const CASOS = { comportamento, teclado, migracao, preparar, carga, prepararCarga, exemplo, limpeza, prepararLimpeza };
+  const CASOS = { comportamento, teclado, carga, prepararCarga, exemplo, nuvem, visitante };
 
   async function rodar(caso) {
     try {

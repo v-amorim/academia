@@ -147,7 +147,7 @@ header {
   background: var(--fundo);
 }
 /* A marca é botão, então precisa de alvo de toque, mas não de caixa: ela já é uma forma. */
-#abrir-historico {
+#abrir-menu {
   display: grid;
   place-items: center;
   min-width: var(--alvo);
@@ -222,6 +222,7 @@ footer {
   border-radius: 999px;
   background: var(--superficie);
 }
+#perfis[hidden] { display: none; }
 #perfis label {
   position: relative;
   display: grid;
@@ -428,7 +429,8 @@ footer {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  min-height: 28px;
+  /* Alvo de segurar, não de tocar: tocar aqui baixa série como no contador. */
+  min-height: 32px;
   padding: 0 4px;
   border: 0;
   border-top: 1px solid var(--divisor);
@@ -930,7 +932,7 @@ summary.historico-resumo { cursor: pointer; }
 
 .rotulo { display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600; color: var(--texto-secundario); }
 /* 16px no campo, senão o Safari do iPhone dá zoom na página inteira ao focar. */
-#observacao {
+#observacao, .campo {
   display: block;
   width: 100%;
   margin-bottom: 12px;
@@ -949,3 +951,7 @@ summary.historico-resumo { cursor: pointer; }
   min-height: calc(2 * 1.4em + 20px);
 }
 #observacao::placeholder { color: var(--texto-secundario); }
+.campo { min-height: 0; margin-bottom: 0; }
+/* O erro de login é texto, não caixa: a cor de alerta já existe no aviso de banco. */
+#login-erro { margin: 12px 0 0; color: var(--alerta); font-size: 14px; }
+#login .acoes { margin-top: 16px; }

@@ -10,34 +10,37 @@ import { pathToFileURL } from "node:url";
 
 // import.meta.dirname exige Node 20.11. O fallback mantém o script vivo em Node 18.
 const PASTA = resolve(import.meta.dirname ?? new URL(".", import.meta.url).pathname);
-const ARQUIVOS_JS = ["fichas.js", "banco.js", "app.js", "sonda.js", "sw.js"];
+const ARQUIVOS_JS = ["fichas.js", "banco.js", "app.js", "sonda.js", "sonda-firebase.js", "sw.js"];
 
-// Quantos treinos e quantos exercícios saem da semente, não de um número escrito aqui: o app
+// Quantos treinos e quantos exercícios saem do seed, não de um número escrito aqui: o app
 // aceita de um treino em diante, e a suíte não pode ser o que trava isso em três.
 const FICHAS = readFileSync(join(PASTA, "fichas.js"), "utf8");
 const TREINOS = new Function(`${FICHAS}; return TREINOS;`)();
+const TREINOS_EXEMPLO = new Function(`${FICHAS}; return TREINOS_EXEMPLO;`)();
 const PERFIS = new Function(`${FICHAS}; return PERFIS;`)();
 const LETRAS = Object.keys(TREINOS);
 
+// Em file:// não há login, então a tela é a do visitante: o treino de exemplo, e nenhum seletor
+// de perfil, que só o admin vê. Os radios existem na marcação, mas o app os cria por código.
 const ESPERADO = [
-  ["cartões", /class="exercicio/g, LETRAS.reduce((total, letra) => total + TREINOS[letra].length, 0)],
+  ["cartões", /class="exercicio/g, Object.values(TREINOS_EXEMPLO).reduce((total, lista) => total + lista.length, 0)],
   ["abas", /class="aba"/g, LETRAS.length],
   ["perfis", /name="perfil"/g, Object.keys(PERFIS).length],
-  ["diálogos", /<dialog id=/g, 8]
+  ["diálogos", /<dialog id=/g, 10]
 ];
 
-// Cada caso roda num perfil de Chrome novo, então o IndexedDB nasce limpo. A migração precisa
-// de dois carregamentos no mesmo perfil: primeiro escreve a versão 1, depois sobe o app.
+// Cada caso roda num perfil de Chrome novo, então o IndexedDB nasce limpo. O caso Carga precisa
+// de dois carregamentos no mesmo perfil: o primeiro grava o passado, o segundo sobe o app.
 //
 // `node verificar.mjs carga` roda só o que casa com a palavra, e pula o despejo em file://, que
 // sozinho custa vinte segundos. É para isso que serve, mexer num caso sem pagar pelos outros.
 const CASOS = [
   { nome: "Comportamento", passos: ["comportamento"] },
   { nome: "Teclado", passos: ["teclado"] },
-  { nome: "Migração da versão 1", passos: ["preparar", "migracao"] },
   { nome: "Carga", passos: ["prepararCarga", "carga"] },
   { nome: "Perfil de exemplo", passos: ["exemplo"] },
-  { nome: "Limpeza do Sun e da Shine", passos: ["prepararLimpeza", "limpeza"] }
+  { nome: "Nuvem", passos: ["nuvem"] },
+  { nome: "Visitante e login", passos: ["visitante"] }
 ];
 
 const CAMINHOS_CHROME = [
@@ -126,12 +129,17 @@ function servidor(aoReceber) {
     if (url.pathname === "/sonda") {
       const caso = url.searchParams.get("caso");
       const injecao = `<script src="/sonda.js"></script><script>Sonda.rodar(${JSON.stringify(caso)})</script>`;
-      // A página do `preparar` não sobe o app, mas carrega a semente: as chaves do banco legado
-      // são montadas com os nomes de treino de hoje, e escrevê-las à mão travaria a suíte em ABC.
+      // O Firebase de mentira entra depois da ficha, porque lê os UIDs dela, e antes do banco.js,
+      // que é quem o consome. A suíte nunca fala com o projeto de verdade.
+      const falso = '<script src="/sonda-firebase.js"></script>';
+      // A página do `preparar` não sobe o app, mas carrega a ficha e o Firebase falso: o que ela
+      // grava tem que ter as chaves que o app de hoje espera, e escrevê-las à mão travaria a suíte.
       const pagina = caso.startsWith("preparar")
         ? `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>preparar</title></head>`
-          + `<body><script src="/fichas.js"></script>${injecao}</body></html>`
-        : marcacao.replace("</body>", `${injecao}\n</body>`);
+          + `<body><script src="/fichas.js"></script>${falso}${injecao}</body></html>`
+        : marcacao
+          .replace('<script src="banco.js">', `${falso}<script src="banco.js">`)
+          .replace("</body>", `${injecao}\n</body>`);
       resposta.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(pagina);
       return;
     }

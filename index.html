@@ -19,9 +19,8 @@
 
 <header>
   <h1 class="oculto-visual">Sunshine, treino ABC</h1>
-  <!-- Abre o histórico direto, e não um menu: com um destino só, menu é embrulho de botão. Vira
-       menu na fase 6, quando entrar e sair dividirem o lugar com ele. -->
-  <button type="button" id="abrir-historico" aria-label="Abrir o histórico de cargas">
+  <!-- A marca abre o menu: histórico, entrar e sair dividem o lugar desde a nuvem. -->
+  <button type="button" id="abrir-menu" aria-label="Abrir o menu">
     <img src="icone.svg" width="40" height="40" alt="" class="logo">
   </button>
 </header>
@@ -66,6 +65,31 @@
   <!-- Sem `capture`: com ele o Android abre a câmera direto e pula a galeria. Dentro do diálogo,
        senão fica inerte enquanto o visor está aberto e o seletor não dispara. -->
   <input id="foto-nova" type="file" accept="image/*" class="oculto-visual" tabindex="-1">
+</dialog>
+
+<dialog id="menu" aria-labelledby="menu-titulo">
+  <h2 id="menu-titulo">Sunshine</h2>
+  <p id="menu-quem"></p>
+  <div class="acoes-empilhadas">
+    <button type="button" class="secundario" id="menu-historico">Histórico</button>
+    <button type="button" class="primario" id="menu-entrar">Entrar</button>
+    <button type="button" class="secundario" id="menu-sair" hidden>Sair</button>
+  </div>
+</dialog>
+
+<dialog id="login" aria-labelledby="login-titulo">
+  <h2 id="login-titulo">Entrar</h2>
+  <form novalidate>
+    <label for="login-usuario" class="rotulo">Usuário</label>
+    <input id="login-usuario" class="campo" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" enterkeyhint="next" required>
+    <label for="login-senha" class="rotulo">Senha</label>
+    <input id="login-senha" class="campo" type="password" autocomplete="current-password" enterkeyhint="go" required>
+    <p id="login-erro" role="alert" hidden></p>
+    <div class="acoes">
+      <button type="button" class="secundario" id="login-cancelar">Cancelar</button>
+      <button type="submit" class="primario" id="login-confirmar">Entrar</button>
+    </div>
+  </form>
 </dialog>
 
 <dialog id="historico" aria-labelledby="historico-titulo">
@@ -134,6 +158,11 @@
   </form>
 </dialog>
 
+<!-- Compat, e não modular: type="module" não executa em file://. Vendorizado para o service
+     worker guardar e o app abrir sem rede. -->
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-auth-compat.js"></script>
+<script src="vendor/firebase-firestore-compat.js"></script>
 <script src="fichas.js"></script>
 <script src="banco.js"></script>
 <script src="app.js"></script>
