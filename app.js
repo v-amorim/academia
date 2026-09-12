@@ -96,7 +96,14 @@ async function seedPerfil(perfil) {
   } else {
     await Banco.seed(catalogoDe(perfil), [perfil]);
   }
+  await Banco.tirarIntrusos(perfil, idsDasOutrasFichas(perfil));
 }
+
+// Os ids fixos das fichas dos outros perfis: se um deles está neste branch, veio do seed
+// compartilhado de antes de cada perfil ter a própria ficha.
+const idsDasOutrasFichas = (perfil) => Object.entries(FICHA_DE)
+  .filter(([dono]) => dono !== perfil)
+  .flatMap(([, ficha]) => Object.values(ficha).flat().map((exercicio) => exercicio.id));
 
 // Quem entrou decide o que a tela mostra. Sem login é o exemplo. Sun e Shine abrem no próprio
 // treino. Só o admin vê o rodapé de perfis: para quem não é admin, os demais nem existem.
@@ -128,7 +135,6 @@ async function aplicarUsuario(uid) {
 async function adotarBanco() {
   const pendentes = new Map(restantes);
   await seedPerfil(perfilAtivo);
-  await carregarFotos();
 
   for (const letra of LETRAS) {
     for (const exercicio of await exerciciosDe(letra)) {
@@ -143,13 +149,18 @@ async function adotarBanco() {
   await carregarTreinos();
 }
 
+// Depois dos exercícios e antes dos cartões: a chave da foto é o código do exercício, então a
+// migração das chaves velhas e a subida do que ficou só no aparelho precisam do catálogo.
 async function carregarFotos() {
-  for (const [exId, porVaga] of await Banco.lerFotos()) {
-    fotos.set(exId, porVaga.map((foto) => URL.createObjectURL(foto)));
+  await Banco.migrarChavesDeFoto([...exerciciosPorLetra.values()].flat());
+  await Banco.sincronizarFotos();
+  fotos.clear();
+  for (const [chave, porVaga] of await Banco.lerFotos()) {
+    fotos.set(chave, porVaga.map((foto) => URL.createObjectURL(foto)));
   }
 }
 
-const fotoDa = (exercicio, vaga) => fotos.get(exercicio.id)?.[vaga];
+const fotoDa = (exercicio, vaga) => fotos.get(Banco.chaveDaFoto(exercicio))?.[vaga];
 const capaDe = (exercicio) => fotoDa(exercicio, VAGA_DA_MAQUINA);
 
 const faltam = (exercicio) => restantes.get(exercicio.id) ?? exercicio.series;
@@ -415,6 +426,7 @@ async function carregarTreinos() {
     }
   }
 
+  await carregarFotos();
   montarPaineis();
   atualizarAbas();
   atualizarCiclo();
@@ -1304,8 +1316,8 @@ dialogoApagar.addEventListener("close", () => {
   if (dialogoApagar.returnValue !== "apagar") return;
   const exercicio = alvoVisor;
   const vaga = vagaAtiva;
-  Banco.apagarFoto(exercicio.id, vaga);
-  const porVaga = fotos.get(exercicio.id) ?? [];
+  Banco.apagarFoto(Banco.chaveDaFoto(exercicio), vaga);
+  const porVaga = fotos.get(Banco.chaveDaFoto(exercicio)) ?? [];
   URL.revokeObjectURL(porVaga[vaga]);
   delete porVaga[vaga];
   cartaoPorId.get(exercicio.id)?.atualizar();
@@ -1336,11 +1348,11 @@ function escolherFoto(exercicio, vaga) {
     const arquivo = seletorDeFoto.files[0];
     if (!arquivo) return;
     const reduzida = await reduzir(arquivo);
-    Banco.salvarFoto(exercicio.id, vaga, reduzida);
-    const porVaga = fotos.get(exercicio.id) ?? [];
+    Banco.salvarFoto(Banco.chaveDaFoto(exercicio), vaga, reduzida);
+    const porVaga = fotos.get(Banco.chaveDaFoto(exercicio)) ?? [];
     if (porVaga[vaga]) URL.revokeObjectURL(porVaga[vaga]);
     porVaga[vaga] = URL.createObjectURL(reduzida);
-    fotos.set(exercicio.id, porVaga);
+    fotos.set(Banco.chaveDaFoto(exercicio), porVaga);
     cartaoPorId.get(exercicio.id)?.atualizar();
     refrescarVisor(exercicio);
     aviso.textContent = `Foto de ${VAGAS[vaga].toLowerCase()} de ${exercicio.nome} salva.`;
@@ -1698,10 +1710,86 @@ for (const radio of dialogoNovoExercicio.querySelectorAll('input[name="novo-tipo
   };
 }
 
+// Enquanto o nome é digitado, o que já existe com nome parecido aparece embaixo, e um toque
+// preenche o formulário com ele: mesma máquina, mesmo vídeo, e por isso a mesma foto. Sem isso
+// nasce um "Adbução na máquina" ao lado do "Abdução" que já tinha tudo.
+const parecidosDoNovo = document.getElementById("novo-parecidos");
+const campoNovoNome = document.getElementById("novo-nome");
+
+const palavrasDe = (texto) => semAcento(texto).split(/[^a-z0-9]+/).filter((palavra) => palavra.length >= 3);
+
+// Distância de edição, para "adbucao" achar "abducao": duas letras trocadas é uma pessoa
+// digitando, não outro exercício.
+function distancia(a, b) {
+  let anterior = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const atual = [i];
+    for (let j = 1; j <= b.length; j++) {
+      atual[j] = Math.min(anterior[j] + 1, atual[j - 1] + 1, anterior[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    anterior = atual;
+  }
+  return anterior[b.length];
+}
+
+const palavrasParecem = (a, b) =>
+  a === b || (a.length >= 4 && b.length >= 4 && (a.includes(b) || b.includes(a)))
+  || (a.length >= 5 && b.length >= 5 && distancia(a, b) <= 2);
+
+// Tudo que se conhece: as fichas de todos os perfis mais o catálogo de quem está na tela, um por
+// código de vídeo, porque é o código que amarra máquina e foto.
+function exerciciosConhecidos() {
+  const todos = [...Object.values(FICHA_DE).flatMap((ficha) => Object.values(ficha).flat()), ...[...exerciciosPorLetra.values()].flat()];
+  const porChave = new Map();
+  for (const exercicio of todos) if (!porChave.has(Banco.chaveDaFoto(exercicio))) porChave.set(Banco.chaveDaFoto(exercicio), exercicio);
+  return [...porChave.values()];
+}
+
+function parecidosCom(nome) {
+  const digitadas = palavrasDe(nome);
+  if (digitadas.length === 0) return [];
+  return exerciciosConhecidos()
+    .map((exercicio) => ({ exercicio, pontos: palavrasDe(exercicio.nome).filter((palavra) => digitadas.some((outra) => palavrasParecem(palavra, outra))).length }))
+    .filter(({ pontos }) => pontos > 0)
+    .sort((a, b) => b.pontos - a.pontos)
+    .slice(0, 4)
+    .map(({ exercicio }) => exercicio);
+}
+
+function preencherNovoCom(exercicio) {
+  campoNovoNome.value = exercicio.nome;
+  document.getElementById("novo-aparelho").value = exercicio.aparelho ?? "";
+  document.getElementById("novo-cod").value = exercicio.cod || "";
+  document.getElementById("novo-series").value = exercicio.series ?? 3;
+  document.getElementById("novo-reps").value = exercicio.reps ?? "";
+  const tipo = dialogoNovoExercicio.querySelector(`input[name="novo-tipo"][value="${exercicio.tipo ?? ""}"]`);
+  tipo.checked = true;
+  tipo.dispatchEvent(new Event("change"));
+  document.getElementById("novo-unidade").value = exercicio.unidade ?? "";
+  for (const caixa of gruposDoNovo.querySelectorAll("input")) caixa.checked = (exercicio.grupos ?? []).includes(caixa.value);
+  parecidosDoNovo.hidden = true;
+}
+
+campoNovoNome.addEventListener("input", () => {
+  const parecidos = parecidosCom(campoNovoNome.value);
+  parecidosDoNovo.replaceChildren(...parecidos.map((exercicio) => {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    const detalhe = document.createElement("span");
+    detalhe.textContent = [exercicio.aparelho ? `Aparelho ${exercicio.aparelho}` : "", exercicio.cod ? `Vídeo ${exercicio.cod}` : "", capaDe(exercicio) ? "Com foto" : ""].filter(Boolean).join(" · ");
+    botao.append(exercicio.nome, detalhe);
+    botao.setAttribute("aria-label", `Usar ${exercicio.nome}, que já existe`);
+    botao.onclick = () => preencherNovoCom(exercicio);
+    return botao;
+  }));
+  parecidosDoNovo.hidden = parecidos.length === 0;
+});
+
 document.getElementById("edicao-exercicio").onclick = () => {
   dialogoNovoExercicio.querySelector("form").reset();
   document.getElementById("novo-unidade").hidden = true;
   document.getElementById("novo-unidade-rotulo").hidden = true;
+  parecidosDoNovo.hidden = true;
   dialogoNovoExercicio.returnValue = "";
   dialogoNovoExercicio.showModal();
 };
@@ -1884,7 +1972,6 @@ for (const caixa of document.querySelectorAll("dialog")) {
 
 (async () => {
   const temBanco = await Banco.abrir(adotarBanco);
-  await carregarFotos();
 
   document.getElementById("sem-banco").hidden = temBanco;
   perfis.append(...Object.entries(PERFIS).map(criarPerfil));

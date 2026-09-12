@@ -94,6 +94,10 @@ const Sonda = (function () {
     confere("treino e perfil ficam juntos no rodapé",
       Boolean(document.getElementById("abas").closest("footer") && document.getElementById("perfis").closest("footer")));
     confere("a marca fica no topo", Boolean(document.querySelector("header .logo")));
+    // Quem rola é o painel, nunca a página: com o corpo crescendo junto da lista, no Android o
+    // gesto vertical sobre os cartões não ia para lado nenhum.
+    confere("a página não cresce com a lista", document.documentElement.scrollHeight <= innerHeight,
+      `${document.documentElement.scrollHeight} > ${innerHeight}`);
 
     cartoes()[0].querySelector(".contador").click();
     await respira();
@@ -862,6 +866,34 @@ const Sonda = (function () {
     confere("o ciclo é um documento fixo", Boolean(firebase.dados.get(`${branch}/ciclo/atual`)));
     confere("recomeçar o ciclo tira a letra", (await Banco.letrasConcluidas("sun")).size === 0);
 
+    // Ficha alheia no branch: o que nunca foi treinado sai, o que tem registro fica arquivado.
+    const [intrusoNovo, intrusoTreinado] = TREINOS_SHINE.A;
+    firebase.deFora(`${branch}/exercicios/${intrusoNovo.id}`, { ...intrusoNovo, letra: "A", ordem: 50, perfis: ["sun"] });
+    firebase.deFora(`${branch}/exercicios/${intrusoTreinado.id}`, { ...intrusoTreinado, letra: "A", ordem: 51, perfis: ["sun"] });
+    firebase.deFora(`${branch}/registros/2026-01-05_A:${intrusoTreinado.id}`, { exId: intrusoTreinado.id, restantes: 0, carga: 20, atualizadoEm: 1 });
+    await respira(50);
+    await Banco.tirarIntrusos("sun", Object.values(TREINOS_SHINE).flat().map((e) => e.id));
+    await respira(50);
+    confere("intruso nunca treinado é apagado", !firebase.dados.has(`${branch}/exercicios/${intrusoNovo.id}`));
+    confere("intruso com registro fica arquivado", firebase.dados.get(`${branch}/exercicios/${intrusoTreinado.id}`)?.arquivado === true);
+    confere("a ficha do Sun não é tocada", (await Banco.listarExercicios(PRIMEIRA, "sun")).length === DO_PRIMEIRO);
+
+    // Foto: a chave é o código do vídeo, igual nas duas fichas, e ela sobe em base64 para a
+    // coleção compartilhada. Leg press existe no Sun e na Shine com o mesmo código.
+    const legPressSun = Object.values(TREINOS).flat().find((e) => e.cod === 59);
+    const legPressShine = Object.values(TREINOS_SHINE).flat().find((e) => e.cod === 59);
+    confere("máquina igual em fichas diferentes tem a mesma chave de foto",
+      Banco.chaveDaFoto(legPressSun) === Banco.chaveDaFoto(legPressShine) && legPressSun.id !== legPressShine.id);
+    await Banco.salvarFoto(Banco.chaveDaFoto(legPressSun), 0, new Blob(["foto"], { type: "image/jpeg" }));
+    await respira(50);
+    const fotoNaNuvem = firebase.dados.get("fotos/cod-59:0");
+    confere("a foto sobe em base64 para a coleção compartilhada", fotoNaNuvem?.dados === "Zm90bw==" && fotoNaNuvem.tipo === "image/jpeg", JSON.stringify(fotoNaNuvem));
+    const lidas = await Banco.lerFotos();
+    confere("a foto volta como blob pela chave", lidas.get("cod-59")?.[0]?.size === 4);
+    Banco.apagarFoto("cod-59", 0);
+    await respira(50);
+    confere("apagar tira a foto da nuvem", !firebase.dados.has("fotos/cod-59:0"));
+
     // O outro aparelho gravou uma observação: ela tem que chegar pelo snapshot, sem recarregar.
     firebase.deFora(`${branch}/exercicios/${primeiro.id}`, { ...firebase.dados.get(`${branch}/exercicios/${primeiro.id}`), observacao: "do outro aparelho" });
     await respira(50);
@@ -1053,6 +1085,27 @@ const Sonda = (function () {
     confere("tirar reduz a lista", cartoes().length === DO_PRIMEIRO - 2, cartoes().length);
     confere("o tirado fica arquivado no histórico",
       (await Banco.historico("sun")).some((linha) => linha.exercicio.nome === tirado && linha.exercicio.arquivado));
+
+    // Nome parecido com o que já existe: o app oferece o existente e preenche com ele.
+    clicar("#edicao-exercicio");
+    await respira(200);
+    const nomeNovo = document.getElementById("novo-nome");
+    nomeNovo.value = "Adbução na máquina";
+    nomeNovo.dispatchEvent(new Event("input", { bubbles: true }));
+    await respira(100);
+    const sugestoes = [...document.querySelectorAll("#novo-parecidos button")];
+    confere("digitar nome parecido oferece o que já existe", sugestoes.some((b) => b.textContent.startsWith("Abdução")), sugestoes.map((b) => b.textContent).join(" | "));
+    sugestoes.find((b) => b.textContent.startsWith("Abdução"))?.click();
+    await respira(100);
+    confere("usar o existente preenche máquina e vídeo", nomeNovo.value === "Abdução"
+      && document.getElementById("novo-aparelho").value === "37" && document.getElementById("novo-cod").value === "1104"
+      && document.querySelector('#novo-grupos input[value="gluteo"]').checked, `${document.getElementById("novo-aparelho").value} ${document.getElementById("novo-cod").value}`);
+    nomeNovo.value = "Zumba";
+    nomeNovo.dispatchEvent(new Event("input", { bubbles: true }));
+    await respira(100);
+    confere("nome sem parecido não oferece nada", document.getElementById("novo-parecidos").hidden);
+    clicar('#dialogo-novo-exercicio [value="cancelar"]');
+    await respira(200);
 
     // Criar um exercício de peso do corpo.
     clicar("#edicao-exercicio");

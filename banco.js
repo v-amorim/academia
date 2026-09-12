@@ -171,6 +171,7 @@ const Banco = (function () {
   function ligarNuvem(perfil, uid) {
     if (!firestore) return Promise.resolve(false);
     if (branches.has(perfil)) return Promise.resolve(true);
+    assinarFotos();
 
     const branch = { uid, espelho: Object.fromEntries(NA_NUVEM.map((deposito) => [deposito, new Map()])) };
     const primeiras = [];
@@ -245,6 +246,7 @@ const Banco = (function () {
   const pegar = (perfil, deposito, chave) => motorDe(perfil).pegar(perfil, deposito, chave);
   const gravar = (perfil, deposito, chave, valor) => motorDe(perfil).gravar(perfil, deposito, chave, valor);
   const gravarLote = (perfil, deposito, pares) => motorDe(perfil).gravarLote(perfil, deposito, pares);
+  const apagar = (perfil, deposito, chave) => motorDe(perfil).apagar(perfil, deposito, chave);
 
   // Em minúsculas: o teclado do celular capitaliza a primeira letra, e a conta é `sun`, não `Sun`.
   const conta = (usuario) => `${usuario.trim().toLowerCase()}@${DOMINIO_DAS_CONTAS}`;
@@ -317,6 +319,21 @@ const Banco = (function () {
   // é o que separa o exemplo do resto, e catálogo sem dono é de todo mundo.
   const ehDono = (exercicio, perfil) =>
     branches.has(perfil) || !perfil || !exercicio.perfis || exercicio.perfis.includes(perfil);
+
+  // Exercício de ficha alheia que entrou neste branch por engano (o seed compartilhado de antes
+  // de cada perfil ter a sua) sai: apagado se nunca foi treinado, arquivado se tem registro, para
+  // o histórico não mentir. Só com resposta do servidor, pelo mesmo motivo do seed.
+  async function tirarIntrusos(perfil, idsAlheios) {
+    if (semMotor(perfil) || !(await motorDe(perfil).confiavel(perfil))) return;
+    const alheios = new Set(idsAlheios);
+    const intrusos = (await ler(perfil, "exercicios")).filter(([id]) => alheios.has(id));
+    if (intrusos.length === 0) return;
+    const treinados = new Set((await ler(perfil, "registros", doPerfil(perfil))).map(([, registro]) => registro.exId));
+    for (const [id] of intrusos) {
+      if (treinados.has(id)) await arquivarExercicio(perfil, id);
+      else apagar(perfil, "exercicios", id);
+    }
+  }
 
   // Os treinos de um perfil, na ordem das abas. O id do treino é o que as sessões e os exercícios
   // guardam em `letra`; o nome é o que a aba mostra. Treino arquivado sai da fileira e deixa as
@@ -623,20 +640,95 @@ const Banco = (function () {
   // A foto é da máquina, não do perfil, então não há perfil na chave, e ela nunca sobe: fica no
   // aparelho, sempre no motor local. Devolve as vagas por exercício para o app nunca precisar
   // montar chave de depósito.
-  async function lerFotos() {
-    const porExercicio = new Map();
-    for (const [chave, foto] of await Local.ler(null, "fotos")) {
-      const exId = chave.slice(0, TAMANHO_ID);
-      const vagas = porExercicio.get(exId) ?? [];
-      vagas[Number(chave.slice(TAMANHO_ID + 1))] = foto;
-      porExercicio.set(exId, vagas);
-    }
-    return porExercicio;
+  // A foto é da máquina, e a máquina é a mesma nas duas fichas: a chave é o código do vídeo, que
+  // a academia dá por exercício e que se repete entre os perfis. Exercício sem código (criado no
+  // editor) fica com o próprio id.
+  const chaveDaFoto = (exercicio) => (exercicio.cod > 0 ? `cod-${exercicio.cod}` : exercicio.id);
+  const chaveDaVaga = (chave, vaga) => `${chave}:${vaga}`;
+  const separarVaga = (chaveComVaga) => {
+    const corte = chaveComVaga.lastIndexOf(":");
+    return [chaveComVaga.slice(0, corte), Number(chaveComVaga.slice(corte + 1))];
+  };
+
+  // Foto sobe para uma coleção que os dois leem, `fotos`, fora dos branches: a regra libera para
+  // quem está logado, menos o exemplo. Vai em base64 dentro do documento, porque o Storage
+  // exige plano pago e a foto já sai reduzida a 800px. O IndexedDB continua como cópia local.
+  const fotosNuvem = new Map();
+  let fotosAssinadas = false;
+  let fotosDoServidor = null;
+
+  function assinarFotos() {
+    if (!firestore || fotosAssinadas) return;
+    fotosAssinadas = true;
+    fotosDoServidor = new Promise((pronto) => {
+      firestore.collection("fotos").onSnapshot({ includeMetadataChanges: true }, (foto) => {
+        for (const mudanca of foto.docChanges()) {
+          if (mudanca.type === "removed") fotosNuvem.delete(mudanca.doc.id);
+          else fotosNuvem.set(mudanca.doc.id, mudanca.doc.data());
+        }
+        if (!foto.metadata.fromCache) pronto(true);
+      }, () => pronto(false));
+    });
   }
 
-  const salvarFoto = (exId, vaga, foto) => Local.gravar(null, "fotos", `${exId}:${vaga}`, foto);
+  const paraBase64 = (foto) => new Promise((pronto) => {
+    const leitor = new FileReader();
+    leitor.onload = () => pronto(String(leitor.result).split(",")[1]);
+    leitor.readAsDataURL(foto);
+  });
+  const deBase64 = ({ dados, tipo }) => new Blob([Uint8Array.from(atob(dados), (c) => c.charCodeAt(0))], { type: tipo });
 
-  const apagarFoto = (exId, vaga) => Local.apagar(null, "fotos", `${exId}:${vaga}`);
+  // A cópia da nuvem vence a local: é a que os dois aparelhos veem.
+  async function lerFotos() {
+    const porChave = new Map();
+    const guardar = (chaveComVaga, foto) => {
+      const [chave, vaga] = separarVaga(chaveComVaga);
+      const vagas = porChave.get(chave) ?? [];
+      vagas[vaga] = foto;
+      porChave.set(chave, vagas);
+    };
+    for (const [chaveComVaga, foto] of await Local.ler(null, "fotos")) guardar(chaveComVaga, foto);
+    if (fotosAssinadas) for (const [chaveComVaga, doc] of fotosNuvem) guardar(chaveComVaga, deBase64(doc));
+    return porChave;
+  }
+
+  async function salvarFoto(chave, vaga, foto) {
+    Local.gravar(null, "fotos", chaveDaVaga(chave, vaga), foto);
+    if (!fotosAssinadas) return;
+    const doc = { dados: await paraBase64(foto), tipo: foto.type || "image/jpeg", atualizadoEm: Date.now() };
+    fotosNuvem.set(chaveDaVaga(chave, vaga), doc);
+    firestore.collection("fotos").doc(chaveDaVaga(chave, vaga)).set(doc).catch(escritaFalhou);
+  }
+
+  function apagarFoto(chave, vaga) {
+    Local.apagar(null, "fotos", chaveDaVaga(chave, vaga));
+    if (!fotosAssinadas) return;
+    fotosNuvem.delete(chaveDaVaga(chave, vaga));
+    firestore.collection("fotos").doc(chaveDaVaga(chave, vaga)).delete().catch(escritaFalhou);
+  }
+
+  // Foto gravada antes da chave por código, ainda sob o id do exercício, passa para a chave nova.
+  async function migrarChavesDeFoto(exercicios) {
+    const porId = new Map(exercicios.map((exercicio) => [exercicio.id, exercicio]));
+    for (const [chaveComVaga, foto] of await Local.ler(null, "fotos")) {
+      const [chave, vaga] = separarVaga(chaveComVaga);
+      const exercicio = porId.get(chave);
+      if (!exercicio || chaveDaFoto(exercicio) === chave) continue;
+      Local.gravar(null, "fotos", chaveDaVaga(chaveDaFoto(exercicio), vaga), foto);
+      Local.apagar(null, "fotos", chaveComVaga);
+    }
+  }
+
+  // Foto tirada antes da nuvem, ou sem sinal, sobe na primeira abertura em que o servidor
+  // respondeu: o que já existe lá não é tocado.
+  async function sincronizarFotos() {
+    if (!fotosAssinadas || !(await comPrazo(fotosDoServidor, PRAZO_SERVIDOR))) return;
+    for (const [chaveComVaga, foto] of await Local.ler(null, "fotos")) {
+      if (fotosNuvem.has(chaveComVaga)) continue;
+      const [chave, vaga] = separarVaga(chaveComVaga);
+      await salvarFoto(chave, vaga, foto);
+    }
+  }
 
   // Só o campo, por cima do exercício que já existe: o editor da fase 4 vai escrever os outros
   // campos do mesmo registro, e substituir o objeto inteiro apagaria o que ele gravou.
@@ -668,7 +760,7 @@ const Banco = (function () {
   }
 
   return {
-    abrir, disponivel, seed,
+    abrir, disponivel, seed, tirarIntrusos,
     ligarNuvem, entrar, sair, aoMudarUsuario,
     listarTreinos, criarTreino, renomearTreino, arquivarTreino, reordenarTreinos,
     criarExercicio, moverExercicio, reordenarExercicios,
@@ -676,7 +768,8 @@ const Banco = (function () {
     cargasAnteriores, historico, arquivarExercicio, reativarExercicio, seedHistorico,
     encerrarSessao, resetarTreino,
     lerCiclo, iniciarCiclo, letrasConcluidas,
-    lerFotos, salvarFoto, apagarFoto, salvarObservacao, salvarRepeticoes,
+    chaveDaFoto, lerFotos, salvarFoto, apagarFoto, migrarChavesDeFoto, sincronizarFotos,
+    salvarObservacao, salvarRepeticoes,
     lerPreferencia, gravarPreferencia
   };
 })();

@@ -191,16 +191,16 @@ config:
     pieOuterStrokeColor: "#252A42"
 ---
 pie showData
-  title 251 conferências, medidas em 2026-09-11
-  "Comportamento" : 58
+  title 262 conferências, medidas em 2026-09-11
+  "Comportamento" : 59
   "Carga e histórico" : 52
   "Teclado e gestos" : 41
-  "Perfil de exemplo" : 25
-  "Nuvem" : 17
+  "Perfil de exemplo" : 26
+  "Nuvem" : 24
   "Visitante e login" : 16
   "Sintaxe" : 6
   "Arrasto com o mouse" : 5
-  "Editor de treino" : 26
+  "Editor de treino" : 29
   "Montagem em file://" : 4
 ```
 
@@ -220,6 +220,7 @@ resultado por `fetch`. Os casos rodam três de cada vez, cada um no seu perfil d
 | Trocar de treino     | Toque na letra, deslize como quem vira página, arraste com o mouse, ou as setas do teclado                                        |
 | Detalhe do exercício | Aparelho, código do vídeo, três fotos da máquina, da câmera ou da galeria, repetições por série e um campo para as regulagens   |
 | Editor de treino     | Renomear, criar, reordenar e tirar treino; subir, descer, mover, tirar e criar exercício. Tudo na própria tela, nada apaga dado |
+| Fotos compartilhadas | A foto é da máquina: o mesmo exercício em duas fichas mostra a mesma foto, e ela segue para o outro aparelho                     |
 | Foto em tela cheia   | Pinça, arrasto e toque duplo                                                                                                      |
 | Login                | Usuário e senha, uma vez por aparelho. Cada pessoa vê só o próprio treino; quem só abre o link vê o perfil de exemplo             |
 | Dois aparelhos       | O treino gravado num celular aparece no outro, e o app continua funcionando sem sinal                                             |

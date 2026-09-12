@@ -3,7 +3,7 @@
 //
 // Subir VERSAO a cada publicação é o que troca o conteúdo guardado. Sem isso o aparelho fica
 // com a versão velha para sempre, que é o jeito clássico de um service worker estragar um app.
-const VERSAO = "v11";
+const VERSAO = "v12";
 const CACHE = `academia-${VERSAO}`;
 
 const ESSENCIAIS = [

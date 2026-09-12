@@ -68,7 +68,9 @@
    deixa a lista ser a única coisa que rola entre as abas e o perfil. */
 body {
   margin: 0;
-  min-height: 100dvh;
+  /* Altura fixa, não mínima: com min-height o corpo crescia com a lista, a página rolava no
+     lugar do painel, e no Android o gesto vertical sobre os cartões não ia para lado nenhum. */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -196,7 +198,8 @@ main {
    Saiu daqui o touch-action: pan-y que existia para o deslize feito à mão. Com o trilho nativo
    ele proibiria justamente o arrasto horizontal que agora pertence ao navegador. */
 #carrossel {
-  flex: 1;
+  /* Base zero: a altura vem do que sobra na coluna, nunca do conteúdo dos painéis. */
+  flex: 1 1 0;
   min-height: 0;
   display: flex;
   overflow-x: auto;
@@ -1026,6 +1029,23 @@ summary.historico-resumo { cursor: pointer; }
   box-shadow: 0 0 0 1px var(--anel);
 }
 .edicao-acoes button:disabled { opacity: 0.35; cursor: default; }
+
+/* Parecidos: o que já existe com nome próximo do que está sendo digitado, para reaproveitar a
+   máquina, o vídeo e a foto em vez de criar um "Adbução" ao lado de "Abdução". */
+.parecidos { display: grid; gap: 6px; margin-top: 8px; }
+.parecidos[hidden] { display: none; }
+.parecidos button {
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--raio-interno-painel);
+  background: var(--superficie-alta);
+  box-shadow: 0 0 0 1px var(--anel);
+  color: var(--texto);
+  font-size: 14px;
+  text-align: start;
+}
+.parecidos button span { display: block; color: var(--texto-secundario); font-size: 12px; }
 
 /* Formulário do exercício novo: dois campos lado a lado onde os dois são curtos. */
 .dois-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
