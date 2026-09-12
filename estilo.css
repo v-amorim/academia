@@ -91,7 +91,7 @@ button {
 
 @media (prefers-reduced-motion: no-preference) {
   .contador, .foto, .aba, .primario, .secundario, .exercicio, .vaga, .vaga-quadro, .carga-valor, #perfis label {
-    transition-property: background-color, box-shadow, color, scale;
+    transition-property: background-color, box-shadow, color, scale, opacity;
     transition-duration: 120ms;
     transition-timing-function: var(--curva);
   }
@@ -283,17 +283,21 @@ footer {
   border-radius: var(--raio-trilho);
   background: var(--superficie);
 }
-/* A pílula é uma só e anda. --ativa vem do app.js, em posição da aba. */
+/* O indicador da aba ativa é um só e anda: um traço embaixo do nome, e não mais a pílula, que
+   desde 2026-09-12 competia com o estado de concluído. --ativa vem do app.js, em posição da aba;
+   o clip encurta o traço ao meio da coluna sem mudar a conta do deslocamento. */
 #abas::before {
   content: "";
   position: absolute;
-  inset-block: 4px;
+  /* Acima das abas, que são position: relative e pintariam o fundo da concluída por cima dele. */
+  z-index: 1;
+  bottom: 6px;
   inset-inline-start: 4px;
   width: calc((100% - 8px) / var(--quantas, 1));
+  height: 2px;
   translate: calc(var(--ativa, 0) * 100%) 0;
-  border-radius: var(--raio-interno-trilho);
-  background: var(--superficie-alta);
-  box-shadow: 0 0 0 1px var(--anel);
+  clip-path: inset(0 30% round 1px);
+  background: var(--texto);
 }
 /* Um treino só não tem o que escolher, e uma aba sozinha ocupando a largura inteira só mente
    sobre haver alternativa. */
@@ -314,8 +318,19 @@ footer {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.aba[aria-selected="true"] { color: var(--texto); font-weight: 700; }
-.aba .marca { color: var(--feito); }
+/* O realce visual é a classe perto, que o app.js troca na metade da rolagem; aria-selected só muda
+   no pouso, e amarrar a cor nele deixava o texto chegar depois do traço. */
+.aba.perto { color: var(--texto); font-weight: 700; }
+/* Treino concluído veste o mesmo que o cartão concluído: fundo e anel lavanda, texto lavanda,
+   recuado em opacidade. O ✓ saiu a pedido em 2026-09-12. Ativa volta a cheio para ler, e o leitor
+   de tela continua ouvindo "concluído" pelo aria-label. */
+.aba.feita {
+  color: var(--feito);
+  background: color-mix(in oklab, var(--feito) 10%, var(--superficie));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--feito) 35%, var(--anel));
+  opacity: 0.6;
+}
+.aba.feita.perto { opacity: 1; }
 
 #sem-banco {
   margin-block: 16px 0;
@@ -372,10 +387,14 @@ footer {
    acima da marca e do rodapé: nas pontas da lista ela invade os dois, e ser cortada seria pior
    do que cobri-los pelo tempo do gesto. */
 .exercicio:has(.ajustando) { z-index: 20; }
+/* O que já foi feito recua: o cartão inteiro desbota, e o olho vai para o que falta. A fita do
+   ajuste volta a cheio enquanto o dedo está nela, senão o número se escolhe no escuro. */
 .exercicio.feito {
   background: color-mix(in oklab, var(--feito) 10%, var(--superficie));
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--feito) 35%, var(--anel));
+  opacity: 0.6;
 }
+.exercicio.feito:has(.ajustando) { opacity: 1; }
 .exercicio.feito .nome { text-decoration: line-through; color: var(--texto-secundario); }
 
 /* As séries que faltam são o número grande; as repetições, a linha pequena embaixo. */

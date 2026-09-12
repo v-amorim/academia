@@ -35,7 +35,7 @@ const FOLGA_DO_DEDO = 10;
 const VAGA_DA_MAQUINA = 0;
 // Três vagas fixas por exercício: a capa e dois ajustes da máquina que são mais visuais do que
 // descritíveis na observação. Sem lista crescente, sem capa escolhida, sem limite para explicar.
-const VAGAS = ["Máquina", "Ajuste 1", "Ajuste 2"];
+const VAGAS = ["Equipamento", "Ajuste 1", "Ajuste 2"];
 
 const restantes = new Map();
 // exId para a carga digitada hoje, e exId para a carga dos outros dias, da mais nova para a mais
@@ -61,7 +61,8 @@ const principal = document.querySelector("main");
 const carrossel = document.getElementById("carrossel");
 const secaoCiclo = document.getElementById("ciclo");
 const aviso = document.getElementById("aviso");
-const seletorDeFoto = document.getElementById("foto-nova");
+const seletorDaGaleria = document.getElementById("foto-galeria");
+const seletorDaCamera = document.getElementById("foto-camera");
 const visor = document.getElementById("visor");
 const visorTitulo = document.getElementById("visor-titulo");
 const visorMeta = document.getElementById("visor-meta");
@@ -71,7 +72,8 @@ const observacao = document.getElementById("observacao");
 const repeticoes = document.getElementById("repeticoes");
 const repeticoesRotulo = document.getElementById("repeticoes-rotulo");
 const visorApagar = document.getElementById("visor-apagar");
-const visorTrocar = document.getElementById("visor-trocar");
+const visorGaleria = document.getElementById("visor-galeria");
+const visorCamera = document.getElementById("visor-camera");
 const dialogoApagar = document.getElementById("dialogo-apagar");
 const telaCheia = document.getElementById("tela-cheia");
 const telaCheiaTitulo = document.getElementById("tela-cheia-titulo");
@@ -369,16 +371,11 @@ function atualizarAbas() {
     const ativa = letra === letraAtiva;
     const concluido = letraFeita(letra);
     botao.setAttribute("aria-selected", ativa);
+    botao.classList.toggle("perto", ativa);
     botao.tabIndex = ativa ? 0 : -1;
-    // A posição da pílula não vem daqui: ela segue a rolagem do carrossel, quadro a quadro.
+    // A posição do traço da aba ativa não vem daqui: ela segue a rolagem do carrossel, quadro a quadro.
     botao.replaceChildren(nomeDoTreino(letra));
-    if (concluido) {
-      const marca = document.createElement("span");
-      marca.className = "marca";
-      marca.setAttribute("aria-hidden", "true");
-      marca.textContent = "✓";
-      botao.append(" ", marca);
-    }
+    botao.classList.toggle("feita", concluido);
     botao.setAttribute("aria-label", [
       `${tituloDoTreino(letra)}`,
       concluido ? ", concluído" : "",
@@ -488,7 +485,7 @@ function assumir(letra, anunciar = false) {
   if (anunciar) aviso.textContent = `${tituloDoTreino(letra)}.`;
 }
 
-// A pílula anda com a rolagem, em fração de painel: é o que faz o indicador acompanhar o dedo em
+// O traço da aba ativa anda com a rolagem, em fração de painel: é o que faz o indicador acompanhar o dedo em
 // vez de pular quando o gesto termina. Passivo de propósito, porque isto roda a cada quadro.
 // Só um gesto de verdade anuncia a troca de treino. Rolagem que o próprio app pediu já tem a
 // mensagem dela, e anunciar de novo apagaria o "ciclo recomeçado" que acabou de ser escrito.
@@ -499,10 +496,18 @@ for (const nome of ["pointerdown", "wheel", "touchstart"]) {
 
 carrossel.addEventListener("scroll", () => {
   if (carrossel.clientWidth > 0) {
-    abas.style.setProperty("--ativa", carrossel.scrollLeft / carrossel.clientWidth);
+    const fracao = carrossel.scrollLeft / carrossel.clientWidth;
+    abas.style.setProperty("--ativa", fracao);
+    // O texto da aba troca na metade do caminho, junto com o traço. Esperar o pouso deixava o
+    // nome chegar atrasado, e a transição de cor por cima parecia lenta.
+    realcarAba(Math.round(fracao));
   }
   agendarPouso();
 }, { passive: true });
+
+function realcarAba(posicao) {
+  [...abas.children].forEach((aba, i) => aba.classList.toggle("perto", i === posicao));
+}
 
 // `scrollsnapchange` é o evento certo, e diz sozinho em qual painel o gesto pousou. Onde ele não
 // existe, o mesmo trabalho sai de uma rolagem que ficou quieta.
@@ -597,13 +602,11 @@ carrossel.addEventListener("click", (evento) => {
 }, { capture: true });
 
 // Tocar na esteira é dizer "fiz". O tempo que estava na caixa vira registro do dia, e tocar de
-// novo desfaz: sem série para baixar, é o toque que abre e fecha o exercício.
+// novo desfaz: sem série para baixar, é o toque que abre e fecha o exercício. Desfazer não apaga
+// o tempo, como subir uma série não apaga a carga: o segundo toque perdia o que a fita escolheu.
 function concluirAerobico(exercicio) {
   const feito = faltam(exercicio) === 0;
-  if (feito) {
-    minutosDeHoje.delete(exercicio.id);
-    Banco.apagarValor(perfilAtivo, exercicio.letra, exercicio.id, "minutos");
-  } else {
+  if (!feito) {
     const minutos = minutosDe(exercicio);
     if (minutos !== undefined) gravarDigitado(exercicio, "minutos", minutos);
   }
@@ -727,8 +730,8 @@ function criarCartao(exercicio, posicao) {
       const capa = capaDe(exercicio);
       foto.innerHTML = capa ? `<img src="${capa}" alt="">` : ICONE_CAMERA;
       foto.setAttribute("aria-label", capa
-        ? `Fotos da máquina de ${exercicio.nome}`
-        : `Fotos da máquina de ${exercicio.nome}, nenhuma ainda`);
+        ? `Fotos do equipamento de ${exercicio.nome}`
+        : `Fotos do equipamento de ${exercicio.nome}, nenhuma ainda`);
 
       if (semCarga(exercicio)) return;
       const carga = cargaDe(exercicio);
@@ -1164,8 +1167,6 @@ function desenharVisor() {
     return botao;
   }));
 
-  // "Adicionar" e não "Tirar": a foto pode vir da câmera ou da galeria, e quem escolhe é o sistema.
-  visorTrocar.textContent = atual ? "Trocar foto" : "Adicionar foto";
   visorApagar.hidden = !atual;
 }
 
@@ -1303,7 +1304,8 @@ zoom.addEventListener("wheel", (evento) => {
 
 document.getElementById("visor-fechar").onclick = () => visor.close();
 document.getElementById("visor-resetar").onclick = () => abrirResetExercicio(alvoVisor);
-visorTrocar.onclick = () => escolherFoto(alvoVisor, vagaAtiva);
+visorGaleria.onclick = () => escolherFoto(alvoVisor, vagaAtiva, seletorDaGaleria);
+visorCamera.onclick = () => escolherFoto(alvoVisor, vagaAtiva, seletorDaCamera);
 
 visorApagar.onclick = () => {
   document.getElementById("apagar-corpo").textContent =
@@ -1342,10 +1344,10 @@ observacao.addEventListener("keydown", (evento) => {
   observacao.blur();
 });
 
-function escolherFoto(exercicio, vaga) {
-  seletorDeFoto.value = "";
-  seletorDeFoto.onchange = async () => {
-    const arquivo = seletorDeFoto.files[0];
+function escolherFoto(exercicio, vaga, seletor) {
+  seletor.value = "";
+  seletor.onchange = async () => {
+    const arquivo = seletor.files[0];
     if (!arquivo) return;
     const reduzida = await reduzir(arquivo);
     Banco.salvarFoto(Banco.chaveDaFoto(exercicio), vaga, reduzida);
@@ -1357,7 +1359,7 @@ function escolherFoto(exercicio, vaga) {
     refrescarVisor(exercicio);
     aviso.textContent = `Foto de ${VAGAS[vaga].toLowerCase()} de ${exercicio.nome} salva.`;
   };
-  seletorDeFoto.click();
+  seletor.click();
 }
 
 // Foto crua de celular passa de vários MB e estoura a cota do IndexedDB em poucas máquinas.

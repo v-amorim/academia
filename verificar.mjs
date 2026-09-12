@@ -24,7 +24,7 @@ const LETRAS = Object.keys(TREINOS);
 // de perfil, que só o admin vê. Os radios existem na marcação, mas o app os cria por código.
 const ESPERADO = [
   ["cartões", /class="exercicio/g, Object.values(TREINOS_EXEMPLO).reduce((total, lista) => total + lista.length, 0)],
-  ["abas", /class="aba"/g, LETRAS.length],
+  ["abas", /class="aba[ "]/g, LETRAS.length],
   ["perfis", /name="perfil"/g, Object.keys(PERFIS).length],
   ["diálogos", /<dialog id=/g, 13]
 ];

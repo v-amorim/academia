@@ -77,12 +77,12 @@ const TREINOS_EXEMPLO = {
     { id: "e0000001-0000-4000-8000-000000000001", nome: "Puxada frontal no cabo", aparelho: "4", series: 3, reps: 12, cod: 541, grupos: ["costas"] },
     { id: "e0000002-0000-4000-8000-000000000002", nome: "Supino plano articulado", aparelho: "47", series: 3, reps: 12, cod: 1113, grupos: ["peito", "triceps"] },
     { id: "e0000003-0000-4000-8000-000000000003", nome: "Flexão de braço", tipo: "corpo", series: 3, reps: 12, aparelho: "livre", cod: 0, grupos: ["peito", "triceps"] },
-    { id: "e0000004-0000-4000-8000-000000000004", nome: "Esteira", tipo: "tempo", unidade: "km/h", series: 1, reps: null, aparelho: "40", cod: 0, grupos: ["quadriceps", "panturrilha"] }
+    { id: "e0000004-0000-4000-8000-000000000004", nome: "Esteira", tipo: "tempo", unidade: "km/h", series: 1, reps: null, aparelho: "livre", cod: 0, grupos: ["quadriceps", "panturrilha"] }
   ],
   B: [
     { id: "e0000005-0000-4000-8000-000000000005", nome: "Leg press 45 graus", aparelho: "8", series: 3, reps: 12, cod: 59, grupos: ["quadriceps", "gluteo"] },
     { id: "e0000006-0000-4000-8000-000000000006", nome: "Abdominal na prancha", tipo: "corpo", series: 3, reps: 15, aparelho: "livre", cod: 0, grupos: ["quadriceps"] },
-    { id: "e0000007-0000-4000-8000-000000000007", nome: "Bicicleta ergométrica", tipo: "tempo", unidade: "nível", series: 1, reps: null, aparelho: "41", cod: 0, grupos: ["quadriceps"] }
+    { id: "e0000007-0000-4000-8000-000000000007", nome: "Bicicleta ergométrica", tipo: "tempo", unidade: "nível", series: 1, reps: null, aparelho: "livre", cod: 0, grupos: ["quadriceps"] }
   ],
   // O exemplo tem um treino por letra que existe, senão a aba do treino vazio abre numa lista
   // sem nada e parece que o app quebrou.
@@ -95,7 +95,7 @@ const TREINOS_EXEMPLO = {
 
 const ARQUIVADOS_EXEMPLO = [
   { id: "e0000008-0000-4000-8000-000000000008", nome: "Remada curvada com barra", aparelho: "livre", series: 3, reps: 10, cod: 0, grupos: ["costas", "biceps"], letra: "A", arquivado: true },
-  { id: "e0000009-0000-4000-8000-000000000009", nome: "Elíptico", tipo: "tempo", unidade: "nível", series: 1, reps: null, aparelho: "44", cod: 0, grupos: ["quadriceps"], letra: "B", arquivado: true }
+  { id: "e0000009-0000-4000-8000-000000000009", nome: "Elíptico", tipo: "tempo", unidade: "nível", series: 1, reps: null, aparelho: "livre", cod: 0, grupos: ["quadriceps"], letra: "B", arquivado: true }
 ];
 
 // O catálogo é de quem treina: cada perfil tem a sua ficha, e o Exemplo tem a dele para poder

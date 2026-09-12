@@ -90,7 +90,7 @@ const Sonda = (function () {
       (await Promise.all(NOMES.map((l) => Banco.listarExercicios(l, "sun"))))
         .reduce((total, lista) => total + lista.length, 0) === quantosExercicios());
     confere("a primeira aba nasce ativa", abaDe(PRIMEIRA).getAttribute("aria-selected") === "true");
-    confere("nenhuma aba concluída", !document.querySelector(".aba .marca"));
+    confere("nenhuma aba concluída", !document.querySelector(".aba.feita"));
     confere("treino e perfil ficam juntos no rodapé",
       Boolean(document.getElementById("abas").closest("footer") && document.getElementById("perfis").closest("footer")));
     confere("a marca fica no topo", Boolean(document.querySelector("header .logo")));
@@ -107,11 +107,11 @@ const Sonda = (function () {
     await baixarAte(cartoes()[0], "Feito");
     confere("zerado mostra feito", contadores()[0] === "Feito", contadores()[0]);
     confere("cartão zerado ganha a classe feito", cartoes()[0].classList.contains("feito"));
-    confere("uma aba não conclui por um exercício", !abaDe(PRIMEIRA).querySelector(".marca"));
+    confere("uma aba não conclui por um exercício", !abaDe(PRIMEIRA).classList.contains("feita"));
 
     for (const item of cartoes().slice(1)) await baixarAte(item, "Feito");
     await respira(250);
-    confere("zerar o último encerra o treino", Boolean(abaDe(PRIMEIRA).querySelector(".marca")));
+    confere("zerar o último encerra o treino", Boolean(abaDe(PRIMEIRA).classList.contains("feita")));
     confere("o encerramento automático é anunciado", avisoDiz("completo e gravado"),
       document.getElementById("aviso").textContent);
     confere(SEGUNDA ? "o ciclo ainda não completou" : "com um treino só, concluí-lo fecha o ciclo",
@@ -145,14 +145,14 @@ const Sonda = (function () {
     await respira(250);
 
     confere("reset volta ao total", contadores().join() === cheioDe(PRIMEIRA).join(), contadores().join());
-    confere("reset tira o visto da aba", !abaDe(PRIMEIRA).querySelector(".marca"));
+    confere("reset tira o visto da aba", !abaDe(PRIMEIRA).classList.contains("feita"));
     confere("reset não apaga registro", (await Banco.lerSessaoDeHoje("sun", PRIMEIRA)).registros.size === DO_PRIMEIRO);
 
     // Treino parcial: um exercício desce, o resto é abandonado.
     cartoes()[0].querySelector(".contador").click();
     await respira();
     await pelaAba(PRIMEIRA, "encerrar");
-    confere("encerrar marca a aba", Boolean(abaDe(PRIMEIRA).querySelector(".marca")));
+    confere("encerrar marca a aba", Boolean(abaDe(PRIMEIRA).classList.contains("feita")));
     confere("o encerramento manual é anunciado", avisoDiz("encerrado e gravado"));
     confere("encerrar não mexe no que está na tela", contadores()[0] === umAMenos(), contadores()[0]);
 
@@ -166,8 +166,8 @@ const Sonda = (function () {
 
     for (const letra of NOMES.slice(1)) await pelaAba(letra, "encerrar");
     confere("todas as abas concluem",
-      document.querySelectorAll(".aba .marca").length === NOMES.length,
-      document.querySelectorAll(".aba .marca").length);
+      document.querySelectorAll(".aba.feita").length === NOMES.length,
+      document.querySelectorAll(".aba.feita").length);
     confere("o ciclo completo aparece", !document.getElementById("ciclo").hidden);
 
     document.getElementById("abrir-recomecar").click();
@@ -177,7 +177,7 @@ const Sonda = (function () {
     recomecar.querySelector('[value="recomecar"]').click();
     await respira(400);
 
-    confere("recomeçar limpa os vistos", document.querySelectorAll(".aba .marca").length === 0);
+    confere("recomeçar limpa os vistos", document.querySelectorAll(".aba.feita").length === 0);
     confere("recomeçar esconde a seção do ciclo", document.getElementById("ciclo").hidden);
     confere("recomeçar volta para a primeira", abaDe(PRIMEIRA).getAttribute("aria-selected") === "true");
     confere("recomeçar zera os contadores", contadores().join() === cheioDe(PRIMEIRA).join(), contadores().join());
@@ -210,7 +210,7 @@ const Sonda = (function () {
     // e apareceria de qualquer jeito; quem denuncia a sessão fora do ciclo é o banco.
     for (const item of cartoes()) await baixarAte(item, "Feito");
     await respira(300);
-    confere("concluída de novo aparece na tela", Boolean(abaDe(PRIMEIRA).querySelector(".marca")));
+    confere("concluída de novo aparece na tela", Boolean(abaDe(PRIMEIRA).classList.contains("feita")));
     confere("concluída de novo entra no ciclo corrente",
       (await Banco.letrasConcluidas("sun")).has(PRIMEIRA));
 
@@ -421,7 +421,7 @@ const Sonda = (function () {
     menu().dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 0, clientY: 0 }));
     await respira(250);
     confere("tocar fora fecha o menu do treino", !menu().open);
-    confere("fechar o menu não encerra nem reseta", !abaDe(PRIMEIRA).querySelector(".marca"));
+    confere("fechar o menu não encerra nem reseta", !abaDe(PRIMEIRA).classList.contains("feita"));
 
     cartoes()[0].querySelector(".descricao").click();
     await respira();
@@ -767,6 +767,24 @@ const Sonda = (function () {
       confere("da hora em diante o tempo vira relógio", caixa().querySelector(".serie").textContent === "1:15"
         && caixa().querySelector(".reps").textContent === "h", rotuloDo(cartaoDaEsteira()));
       confere("a fita fecha ao soltar", !caixa().querySelector(".fita"));
+
+      // Desfazer e refazer não pode perder o tempo: era assim que a esteira zerava no Android.
+      // Toque inteiro, e não só click: o pointerup sintético de cima não gerou o clique que
+      // consome a guarda do ajuste, e o pointerdown é quem a rearma.
+      const tocar = () => {
+        caixa().dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientY: 400 }));
+        caixa().dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientY: 400 }));
+        caixa().click();
+      };
+      tocar();
+      await respira(300);
+      confere("tocar de novo desfaz o aeróbico", !cartaoDaEsteira().classList.contains("feito"));
+      confere("desfazer mantém o tempo do dia", (await Banco.lerSessaoDeHoje("example", letrasDoExemplo[0])).registros.get(idDaEsteira)?.minutos === 75
+        && caixa().querySelector(".serie").textContent === "1:15", rotuloDo(cartaoDaEsteira()));
+      tocar();
+      await respira(300);
+      confere("refazer volta feito com o mesmo tempo", cartaoDaEsteira().classList.contains("feito")
+        && caixa().querySelector(".serie").textContent === "1:15", rotuloDo(cartaoDaEsteira()));
     }
 
     await abrirPeloMenu();

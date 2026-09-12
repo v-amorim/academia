@@ -65,14 +65,17 @@
   <label for="observacao" class="rotulo">Observação</label>
   <textarea id="observacao" rows="2" placeholder="Banco 4, pino 7" autocomplete="off" enterkeyhint="done"></textarea>
   <div class="acoes">
-    <button type="button" class="secundario" id="visor-apagar">Apagar foto</button>
-    <button type="button" class="primario" id="visor-trocar">Trocar foto</button>
+    <button type="button" class="secundario" id="visor-galeria">Da galeria</button>
+    <button type="button" class="primario" id="visor-camera">Tirar foto</button>
   </div>
+  <button type="button" class="secundario largo" id="visor-apagar">Apagar foto</button>
   <button type="button" class="secundario largo" id="visor-resetar">Resetar progresso</button>
   <button type="button" class="secundario largo" id="visor-fechar">Fechar</button>
-  <!-- Sem `capture`: com ele o Android abre a câmera direto e pula a galeria. Dentro do diálogo,
-       senão fica inerte enquanto o visor está aberto e o seletor não dispara. -->
-  <input id="foto-nova" type="file" accept="image/*" class="oculto-visual" tabindex="-1">
+  <!-- Dois seletores: com `capture` o Android abre a câmera direto e pula a galeria, e sem ele o
+       seletor de fotos do Android 13 em diante não oferece câmera. Dentro do diálogo, senão ficam
+       inertes enquanto o visor está aberto e o seletor não dispara. -->
+  <input id="foto-galeria" type="file" accept="image/*" class="oculto-visual" tabindex="-1">
+  <input id="foto-camera" type="file" accept="image/*" capture="environment" class="oculto-visual" tabindex="-1">
 </dialog>
 
 <dialog id="menu" aria-labelledby="menu-titulo">
@@ -227,7 +230,7 @@
 
 <dialog id="dialogo-recomecar" aria-labelledby="recomecar-titulo">
   <h2 id="recomecar-titulo">Recomeçar o ciclo?</h2>
-  <p>As marcações de A, B e C voltam ao início. As fotos das máquinas continuam salvas.</p>
+  <p>As marcações de A, B e C voltam ao início. As fotos dos equipamentos continuam salvas.</p>
   <form method="dialog" class="acoes">
     <button type="submit" class="secundario" value="cancelar">Cancelar</button>
     <button type="submit" class="primario" value="recomecar">Recomeçar ciclo</button>
