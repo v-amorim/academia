@@ -185,6 +185,13 @@ main {
   scrollbar-width: none;
 }
 #carrossel::-webkit-scrollbar { display: none; }
+/* Arrasto com o mouse: o snap sai enquanto o dedo, aqui o ponteiro, está segurando, e o texto
+   não pode ser selecionado no caminho. */
+#carrossel.arrastando { scroll-snap-type: none; user-select: none; cursor: grabbing; }
+@media (pointer: fine) {
+  #carrossel { cursor: grab; }
+  #carrossel .contador, #carrossel .descricao, #carrossel .foto, #carrossel .carga-valor { cursor: pointer; }
+}
 
 /* `scroll-snap-stop: always` é o que faz um lance rápido andar um treino, e não atravessar a
    fileira: sem ele, o dedo apressado pula do A para o C. */
@@ -328,9 +335,8 @@ footer {
 .exercicio {
   position: relative;
   display: grid;
-  /* A primeira coluna é mais larga que a foto por quatro pixels: é o que faz "52,5 kg" caber sem
-     encostar nas pontas da caixa. */
-  grid-template-columns: 68px 1fr 64px;
+  /* As duas pontas têm a mesma largura, e 68px é o que faz "52,5 kg" caber sem encostar. */
+  grid-template-columns: 68px 1fr 68px;
   gap: 12px;
   align-items: center;
   padding: 8px;
@@ -419,6 +425,10 @@ footer {
 .bloco {
   display: grid;
   grid-template-rows: 1fr auto;
+  /* Contador mais a faixa da carga, com o traço entre eles. Cartão sem carga tem a mesma altura,
+     e o contador cresce para preencher: cartões de alturas diferentes na mesma lista leem como
+     defeito, não como informação. */
+  min-height: calc(56px + 1px + 32px);
   align-self: center;
   border-radius: var(--raio-interno-carta);
   background: var(--superficie-alta);
@@ -484,11 +494,9 @@ footer {
   font-size: 20px;
 }
 
-/* No aeróbico a caixa de cima é o tempo digitado, e não o contador de séries: ela perde o
-   preenchimento de progresso e ganha o mesmo desenho de número e unidade da carga. */
-.contador[data-vazio] { font-weight: 800; font-size: 22px; }
-.contador[data-vazio] .unidade { font-weight: 700; }
-.contador[data-vazio="1"] { color: var(--texto-secundario); }
+/* No aeróbico a caixa de cima é o tempo digitado, com o mesmo desenho do contador de séries:
+   número em cima, "min" na linha do ×12. Sem tempo, o "+" convida em cor apagada. */
+.contador[data-vazio="1"] .serie, .contador[data-vazio="1"] .reps { color: var(--texto-secundario); }
 
 .carga-nota { min-width: 0; display: flex; align-items: center; gap: 6px; }
 
@@ -551,7 +559,7 @@ footer {
 /* Acompanha a altura da caixa de séries e carga, em vez de boiar no meio: com as duas colunas
    fechando na mesma linha, o cartão lê como um bloco só. */
 .foto {
-  width: 64px;
+  width: 68px;
   align-self: stretch;
   min-height: 64px;
   padding: 0;

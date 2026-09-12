@@ -205,6 +205,32 @@ const Sonda = (function () {
     confere("concluída de novo entra no ciclo corrente",
       (await Banco.letrasConcluidas("sun")).has(PRIMEIRA));
 
+    // Repetições por série mudam no visor, e o cartão e o banco seguem.
+    // Cartão feito não mostra o ×12, então o alvo é um que ainda tenha série pela frente.
+    const alvoReps = cartoes().find((item) => !item.classList.contains("feito")) ?? cartoes()[0];
+    if (alvoReps.classList.contains("feito")) {
+      alvoReps.querySelector(".contador").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+      await respira();
+    }
+    const nomeDoAlvo = alvoReps.querySelector(".nome").textContent;
+    const repsNoBanco = async () => (await Banco.listarExercicios(PRIMEIRA, "sun")).find((exercicio) => exercicio.nome === nomeDoAlvo).reps;
+    const repsDaFicha = CATALOGO[PRIMEIRA].find((exercicio) => exercicio.nome === nomeDoAlvo).reps;
+    alvoReps.querySelector(".descricao").click();
+    await respira();
+    const campoReps = document.getElementById("repeticoes");
+    confere("o visor mostra as repetições do exercício", campoReps.value === String(repsDaFicha), campoReps.value);
+    campoReps.value = "10";
+    campoReps.dispatchEvent(new Event("change", { bubbles: true }));
+    await respira();
+    confere("mudar as repetições atualiza o cartão", alvoReps.querySelector(".reps")?.textContent === "×10", rotuloDo(alvoReps));
+    confere("as repetições novas vão para o banco", (await repsNoBanco()) === 10, await repsNoBanco());
+    campoReps.value = "abc";
+    campoReps.dispatchEvent(new Event("change", { bubbles: true }));
+    await respira();
+    confere("repetição inválida não grava", campoReps.value === "10" && (await repsNoBanco()) === 10, campoReps.value);
+    document.getElementById("visor-fechar").click();
+    await respira();
+
     await instalacao();
   }
 
@@ -681,6 +707,23 @@ const Sonda = (function () {
     confere("o exemplo tem o treino dele",
       nomes().join() === doExemplo[letrasDoExemplo[0]].map((exercicio) => exercicio.nome).join(),
       nomes().join());
+    // O aeróbico desenha como o contador: número em cima e "min" na linha do ×12.
+    const esteira = cartoes().find((item) => item.querySelector(".contador .reps")?.textContent === "min");
+    confere("o tempo do aeróbico fica em duas linhas, com min embaixo",
+      Boolean(esteira) && esteira.querySelector(".contador .serie") !== null,
+      cartoes().map(rotuloDo).join(","));
+    if (esteira) {
+      const [serieAero, repsAero] = [".serie", ".reps"].map((s) => getComputedStyle(esteira.querySelector(`.contador ${s}`)).fontSize);
+      const [seriePeso, repsPeso] = [".serie", ".reps"].map((s) => getComputedStyle(cartoes()[0].querySelector(`.contador ${s}`)).fontSize);
+      confere("o min tem a fonte do ×12, e o número a do contador", serieAero === seriePeso && repsAero === repsPeso, `${serieAero} ${repsAero}`);
+    }
+
+    // O exemplo tem os três tipos na mesma lista, e é onde uma altura diferente apareceria.
+    const alturas = cartoes().map((item) => Math.round(item.getBoundingClientRect().height));
+    confere("cartão sem carga tem a mesma altura dos outros", new Set(alturas).size === 1, alturas.join(","));
+    const pontas = cartoes().map((item) => `${Math.round(item.querySelector(".bloco").getBoundingClientRect().width)}=${Math.round(item.querySelector(".foto").getBoundingClientRect().width)}`);
+    confere("as duas pontas do cartão têm a mesma largura",
+      pontas.every((par) => { const [a, b] = par.split("="); return a === b; }), pontas.join(" "));
     confere("o exemplo abre com carga herdada das semanas passadas",
       cartoes()[0].querySelector(".carga-valor").dataset.vazio === "0",
       cartoes()[0].querySelector(".carga-valor").textContent);
@@ -887,7 +930,40 @@ const Sonda = (function () {
     confere("o admin vê os três perfis", rodape.querySelectorAll('input[name="perfil"]').length === Object.keys(PERFIS).length);
   }
 
-  const CASOS = { comportamento, teclado, carga, prepararCarga, exemplo, nuvem, visitante };
+  // No desktop o mouse arrasta o carrossel, e o clique que sobra ao soltar não desce série.
+  async function arrasto() {
+    if (!(await aguardar(() => cartoes().length > 0, "os cartões"))) return;
+    if (!SEGUNDA) return;
+
+    const trilho = document.getElementById("carrossel");
+    const ponteiro = (tipo, x, buttons) => trilho.dispatchEvent(new PointerEvent(tipo,
+      { bubbles: true, pointerType: "mouse", pointerId: 7, button: 0, buttons, clientX: x, clientY: 200 }));
+    const serieDoPrimeiro = () => document.getElementById(`painel-${PRIMEIRA}`).querySelector(".serie").textContent;
+    const antesDoArrasto = serieDoPrimeiro();
+
+    cartoes()[0].querySelector(".nome").dispatchEvent(new PointerEvent("pointerdown",
+      { bubbles: true, pointerType: "mouse", pointerId: 7, button: 0, buttons: 1, clientX: 300, clientY: 200 }));
+    // Mais da metade do painel, senão o pouso devolve ao treino de onde saiu.
+    const longe = 300 - Math.round(trilho.clientWidth * 0.7);
+    ponteiro("pointermove", 260, 1);
+    ponteiro("pointermove", longe, 1);
+    confere("arrastar com o mouse desliga o snap enquanto segura", trilho.classList.contains("arrastando"));
+    ponteiro("pointerup", longe, 0);
+    cartoes()[0].querySelector(".contador").dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    await aguardar(() => letraAtiva === SEGUNDA, "o arrasto pousar no segundo treino");
+    confere("soltar pousa no treino seguinte", letraAtiva === SEGUNDA, letraAtiva);
+    confere("o clique que sobra do arrasto não desce série", serieDoPrimeiro() === antesDoArrasto, serieDoPrimeiro());
+    await aguardar(() => !trilho.classList.contains("arrastando"), "o snap voltar");
+    confere("o snap volta depois do pouso", !trilho.classList.contains("arrastando"));
+
+    // Dedo não passa por aqui: o toque tem o scroll snap nativo, e o arrasto à mão o atrapalharia.
+    trilho.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch", pointerId: 8, button: 0, buttons: 1, clientX: 300, clientY: 200 }));
+    trilho.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerType: "touch", pointerId: 8, buttons: 1, clientX: 100, clientY: 200 }));
+    confere("o dedo não liga o arrasto à mão", !trilho.classList.contains("arrastando"));
+    trilho.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch", pointerId: 8, buttons: 0, clientX: 100, clientY: 200 }));
+  }
+
+  const CASOS = { comportamento, teclado, carga, prepararCarga, exemplo, nuvem, visitante, arrasto };
 
   async function rodar(caso) {
     try {

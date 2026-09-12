@@ -59,6 +59,8 @@ const visorMeta = document.getElementById("visor-meta");
 const visorQuadro = document.getElementById("visor-quadro");
 const vagas = document.getElementById("vagas");
 const observacao = document.getElementById("observacao");
+const repeticoes = document.getElementById("repeticoes");
+const repeticoesRotulo = document.getElementById("repeticoes-rotulo");
 const visorApagar = document.getElementById("visor-apagar");
 const visorTrocar = document.getElementById("visor-trocar");
 const dialogoApagar = document.getElementById("dialogo-apagar");
@@ -491,6 +493,60 @@ function agendarPouso() {
   }, ESPERA_POUSO);
 }
 
+// No desktop o navegador não arrasta conteúdo com o mouse, então o deslize entre treinos é
+// feito à mão só para ele: o dedo continua com o scroll snap nativo. Durante o arrasto o snap
+// desliga, senão ele puxa o painel de volta a cada quadro, e volta depois que o pouso animado
+// termina. Arrasto que começa no contador não entra, porque ali o gesto é o ajuste de séries.
+const ARRASTO = { origemX: 0, origemScroll: 0, arrastando: false, arrastou: false };
+let devolverSnap;
+
+carrossel.addEventListener("pointerdown", (evento) => {
+  if (evento.pointerType !== "mouse" || evento.button !== 0 || evento.target.closest(".contador")) return;
+  ARRASTO.origemX = evento.clientX;
+  ARRASTO.origemScroll = carrossel.scrollLeft;
+  ARRASTO.arrastando = false;
+  ARRASTO.arrastou = false;
+});
+
+carrossel.addEventListener("pointermove", (evento) => {
+  if (evento.pointerType !== "mouse" || !(evento.buttons & 1)) return;
+  const distancia = evento.clientX - ARRASTO.origemX;
+  if (!ARRASTO.arrastando) {
+    if (Math.abs(distancia) <= FOLGA_DO_DEDO) return;
+    ARRASTO.arrastando = true;
+    ARRASTO.arrastou = true;
+    clearTimeout(devolverSnap);
+    carrossel.classList.add("arrastando");
+    try { carrossel.setPointerCapture(evento.pointerId); } catch { /* ponteiro sintético */ }
+  }
+  carrossel.scrollLeft = ARRASTO.origemScroll - distancia;
+});
+
+function soltarArrasto() {
+  if (!ARRASTO.arrastando) return;
+  ARRASTO.arrastando = false;
+  const largura = carrossel.clientWidth;
+  if (largura > 0) irPara(LETRAS[Math.min(LETRAS.length - 1, Math.max(0, Math.round(carrossel.scrollLeft / largura)))]);
+  // O snap só volta depois que a rolagem pousou, senão ele corta a animação e o painel salta.
+  const devolver = () => {
+    carrossel.classList.remove("arrastando");
+    carrossel.removeEventListener("scrollend", devolver);
+  };
+  carrossel.addEventListener("scrollend", devolver);
+  devolverSnap = setTimeout(devolver, PRAZO_DO_DESTINO);
+}
+carrossel.addEventListener("pointerup", soltarArrasto);
+carrossel.addEventListener("pointercancel", soltarArrasto);
+
+// Soltar o mouse depois de arrastar ainda dispara um clique no que estiver embaixo, e ele
+// baixaria uma série ou abriria o visor. A marca é consumida aqui, na captura, antes de todos.
+carrossel.addEventListener("click", (evento) => {
+  if (!ARRASTO.arrastou) return;
+  ARRASTO.arrastou = false;
+  evento.stopPropagation();
+  evento.preventDefault();
+}, { capture: true });
+
 // Tocar na esteira é dizer "fiz". O tempo que estava na caixa vira registro do dia, e tocar de
 // novo desfaz: sem série para baixar, é o toque que abre e fecha o exercício.
 function concluirAerobico(exercicio) {
@@ -614,9 +670,9 @@ function criarCartao(exercicio, posicao) {
 
       if (ehAerobico(exercicio)) {
         const minutos = minutosDe(exercicio);
-        contador.replaceChildren(minutos === undefined
-          ? comTexto("+", "min")
-          : comUnidade(minutos, "min"));
+        // Mesmo desenho do contador de séries: o número grande em cima e a unidade na linha de
+        // baixo, onde nos outros cartões fica o ×12.
+        contador.innerHTML = `<span class="serie">${minutos === undefined ? "+" : soONumero(minutos)}</span><span class="reps">min</span>`;
         contador.dataset.vazio = minutos === undefined ? "1" : "0";
         contador.style.setProperty("--progresso", "0%");
         contador.setAttribute("aria-label", minutos === undefined
@@ -940,9 +996,31 @@ function abrirVisor(exercicio) {
   visorTitulo.textContent = exercicio.nome;
   montarMeta(exercicio);
   observacao.value = exercicio.observacao ?? "";
+  // Aeróbico não tem repetição: o campo some em vez de ficar vazio esperando um número.
+  repeticoes.value = exercicio.reps ?? "";
+  repeticoes.hidden = ehAerobico(exercicio);
+  repeticoesRotulo.hidden = ehAerobico(exercicio);
   desenharVisor();
   visor.showModal();
 }
+
+// Repetições por série mudam de exercício para exercício, e a ficha da academia muda de vez em
+// quando. Grava só o campo, por cima do exercício, como a observação.
+repeticoes.addEventListener("change", () => {
+  const exercicio = alvoVisor;
+  const valor = Number.parseInt(repeticoes.value, 10);
+  if (!Number.isInteger(valor) || valor < 1 || valor > 99) {
+    repeticoes.value = exercicio.reps ?? "";
+    return;
+  }
+  exercicio.reps = valor;
+  Banco.salvarRepeticoes(perfilAtivo, exercicio.id, valor);
+  cartaoPorId.get(exercicio.id)?.atualizar();
+  aviso.textContent = `${exercicio.nome}: ${valor} repetições por série.`;
+});
+repeticoes.addEventListener("keydown", (evento) => {
+  if (evento.key === "Enter") repeticoes.blur();
+});
 
 // Informação de consulta, não de execução, e por isso mora no visor. Os valores viram chip, e o
 // rótulo fica apagado: quem abriu isto veio atrás do número, não da palavra.

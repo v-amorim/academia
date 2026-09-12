@@ -40,7 +40,8 @@ const CASOS = [
   { nome: "Carga", passos: ["prepararCarga", "carga"] },
   { nome: "Perfil de exemplo", passos: ["exemplo"] },
   { nome: "Nuvem", passos: ["nuvem"] },
-  { nome: "Visitante e login", passos: ["visitante"] }
+  { nome: "Visitante e login", passos: ["visitante"] },
+  { nome: "Arrasto com o mouse", passos: ["arrasto"] }
 ];
 
 const CAMINHOS_CHROME = [

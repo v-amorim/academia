@@ -578,12 +578,15 @@ const Banco = (function () {
 
   // Só o campo, por cima do exercício que já existe: o editor da fase 4 vai escrever os outros
   // campos do mesmo registro, e substituir o objeto inteiro apagaria o que ele gravou.
-  async function salvarObservacao(perfil, exId, observacao) {
+  async function salvarCampoDoExercicio(perfil, exId, campo, valor) {
     if (semMotor(perfil)) return;
     const anterior = await pegar(perfil, "exercicios", exId);
     if (!anterior) return;
-    gravar(perfil, "exercicios", exId, { ...anterior, observacao });
+    gravar(perfil, "exercicios", exId, { ...anterior, [campo]: valor });
   }
+
+  const salvarObservacao = (perfil, exId, observacao) => salvarCampoDoExercicio(perfil, exId, "observacao", observacao);
+  const salvarRepeticoes = (perfil, exId, reps) => salvarCampoDoExercicio(perfil, exId, "reps", reps);
 
   // Safari lança ao tocar em localStorage numa origem opaca, e o Chrome não. Daí o try.
   function lerPreferencia(chave) {
@@ -609,7 +612,7 @@ const Banco = (function () {
     cargasAnteriores, historico, arquivarExercicio, reativarExercicio, seedHistorico,
     encerrarSessao, resetarTreino,
     lerCiclo, iniciarCiclo, letrasConcluidas,
-    lerFotos, salvarFoto, apagarFoto, salvarObservacao,
+    lerFotos, salvarFoto, apagarFoto, salvarObservacao, salvarRepeticoes,
     lerPreferencia, gravarPreferencia
   };
 })();
