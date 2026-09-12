@@ -199,7 +199,7 @@ const Sonda = (function () {
         pronto(info);
       };
     });
-    confere("banco na versão 6", banco.versao === 6, banco.versao);
+    confere("banco na versão 7", banco.versao === 7, banco.versao);
     confere("o depósito estado morreu", !banco.depositos.includes("estado"), banco.depositos.join(","));
 
     // Concluir de novo no mesmo dia, depois de recomeçar o ciclo. O visto da aba vem da memória

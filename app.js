@@ -16,10 +16,19 @@ const ICONE_MANTEVE = traco(`<path d="M5 9h14"/><path d="M5 15h14"/>`);
 const NOME_DO_GRUPO = {
   peito: "Peito", costas: "Costas", ombro: "Ombro", biceps: "Bíceps", triceps: "Tríceps",
   quadriceps: "Quadríceps", posterior: "Posterior", gluteo: "Glúteo", adutor: "Adutor",
-  panturrilha: "Panturrilha"
+  panturrilha: "Panturrilha", lombar: "Lombar", abdomen: "Abdômen"
 };
 
-const LETRAS = Object.keys(TREINOS);
+// Os treinos vêm do banco a cada carga, e a ficha só serve de fallback sem banco. `letra` é o
+// id do treino, que sessões e exercícios guardam; o nome é o que a aba mostra.
+let LETRAS = Object.keys(TREINOS);
+let treinos = LETRAS.map((letra, ordem) => ({ id: letra, nome: letra, ordem }));
+const nomeDoTreino = (letra) => treinos.find((treino) => treino.id === letra)?.nome ?? letra;
+// "Treino A" para nome curto, e o nome sozinho quando ele já é uma palavra ("Pernas").
+const tituloDoTreino = (letra) => {
+  const nome = nomeDoTreino(letra);
+  return nome.length <= 2 ? `Treino ${nome}` : nome;
+};
 const ESPERA_TOQUE_LONGO = 400;
 // Abaixo disto o dedo ainda está parado: é tremor de quem segura, não gesto.
 const FOLGA_DO_DEDO = 10;
@@ -74,7 +83,7 @@ const dialogoTreino = document.getElementById("dialogo-treino");
 
 // Sem banco a tela nasce do seed e o contador funciona só na memória. O aviso âmbar do topo
 // é quem conta que nada será salvo; desligar o contador esconderia o app de quem abre o arquivo.
-const catalogoDe = (perfil) => (perfil === "example" ? TREINOS_EXEMPLO : TREINOS);
+const catalogoDe = (perfil) => FICHA_DE[perfil] ?? TREINOS;
 const exerciciosDe = (letra) =>
   Banco.disponivel() ? Banco.listarExercicios(letra, perfilAtivo) : Promise.resolve(catalogoDe(perfilAtivo)[letra] ?? []);
 
@@ -85,7 +94,7 @@ async function seedPerfil(perfil) {
     await Banco.seed(TREINOS_EXEMPLO, DONO_DO_EXEMPLO, ARQUIVADOS_EXEMPLO);
     await Banco.seedHistorico("example", TREINOS_EXEMPLO, ARQUIVADOS_EXEMPLO);
   } else {
-    await Banco.seed(TREINOS, [perfil]);
+    await Banco.seed(catalogoDe(perfil), [perfil]);
   }
 }
 
@@ -229,7 +238,7 @@ async function definir(exercicio, valor) {
 
   if ((exerciciosPorLetra.get(letra) ?? []).every((outro) => faltam(outro) === 0)) {
     await encerrar(letra);
-    aviso.textContent = `${exercicio.nome}: feito. Treino ${letra} completo e gravado no histórico.`;
+    aviso.textContent = `${exercicio.nome}: feito. ${tituloDoTreino(letra)} completo e gravado no histórico.`;
   }
   atualizarAbas();
   atualizarCiclo();
@@ -340,9 +349,16 @@ function atualizarAbas() {
     botao.setAttribute("aria-selected", ativa);
     botao.tabIndex = ativa ? 0 : -1;
     // A posição da pílula não vem daqui: ela segue a rolagem do carrossel, quadro a quadro.
-    botao.innerHTML = concluido ? `${letra} <span class="marca" aria-hidden="true">✓</span>` : letra;
+    botao.replaceChildren(nomeDoTreino(letra));
+    if (concluido) {
+      const marca = document.createElement("span");
+      marca.className = "marca";
+      marca.setAttribute("aria-hidden", "true");
+      marca.textContent = "✓";
+      botao.append(" ", marca);
+    }
     botao.setAttribute("aria-label", [
-      `Treino ${letra}`,
+      `${tituloDoTreino(letra)}`,
       concluido ? ", concluído" : "",
       ativa ? ". Ativar de novo abre as opções do treino." : ""
     ].join(""));
@@ -362,6 +378,16 @@ async function carregarTreinos() {
   cargasDeHoje.clear();
   minutosDeHoje.clear();
   historicoDeCarga.clear();
+
+  if (Banco.disponivel()) {
+    treinos = await Banco.listarTreinos(perfilAtivo);
+  } else {
+    treinos = Object.keys(catalogoDe(perfilAtivo)).map((letra, ordem) => ({ id: letra, nome: letra, ordem }));
+  }
+  LETRAS = treinos.map((treino) => treino.id);
+  if (!LETRAS.includes(letraAtiva)) letraAtiva = LETRAS[0];
+  abas.replaceChildren(...LETRAS.map(criarAba));
+  abas.style.setProperty("--quantas", LETRAS.length);
 
   for (const letra of LETRAS) {
     exerciciosPorLetra.set(letra, await exerciciosDe(letra));
@@ -436,7 +462,7 @@ function assumir(letra, anunciar = false) {
   letraAtiva = letra;
   atualizarAbas();
   atualizarCiclo();
-  if (anunciar) aviso.textContent = `Treino ${letra}.`;
+  if (anunciar) aviso.textContent = `${tituloDoTreino(letra)}.`;
 }
 
 // A pílula anda com a rolagem, em fração de painel: é o que faz o indicador acompanhar o dedo em
@@ -988,7 +1014,7 @@ dialogoExercicio.addEventListener("close", () => {
 
 function abrirMenuTreino(letra) {
   alvoTreino = letra;
-  document.getElementById("treino-titulo").textContent = `Treino ${letra}`;
+  document.getElementById("treino-titulo").textContent = `${tituloDoTreino(letra)}`;
   dialogoTreino.returnValue = "";
   dialogoTreino.showModal();
 }
@@ -997,7 +1023,7 @@ dialogoTreino.addEventListener("close", async () => {
   const letra = alvoTreino;
   if (dialogoTreino.returnValue === "encerrar") {
     await encerrar(letra);
-    aviso.textContent = `Treino ${letra} encerrado e gravado no histórico.`;
+    aviso.textContent = `${tituloDoTreino(letra)} encerrado e gravado no histórico.`;
   }
   if (dialogoTreino.returnValue === "resetar") {
     await resetarLetra(letra);
@@ -1358,7 +1384,7 @@ function desenharHistorico() {
   for (const letra of LETRAS) {
     const doTreino = linhas.filter(({ exercicio }) => exercicio.letra === letra && !estaForaDoTreino(exercicio));
     if (doTreino.length === 0) continue;
-    blocos.push(titulo(`Treino ${letra}`), ...doTreino.map(linhaDoHistorico));
+    blocos.push(titulo(`${tituloDoTreino(letra)}`), ...doTreino.map(linhaDoHistorico));
   }
 
   // Exercício que saiu do treino continua contando: o peso foi levantado, e apagar isso da tela
@@ -1473,7 +1499,7 @@ function desenharEscolhaDoTreino() {
     radio.className = "oculto-visual";
     radio.checked = letra === letraEscolhida;
     radio.onchange = () => { letraEscolhida = letra; };
-    rotuloDaLetra.append(radio, `Treino ${letra}`);
+    rotuloDaLetra.append(radio, `${tituloDoTreino(letra)}`);
     return rotuloDaLetra;
   }));
 }
@@ -1643,8 +1669,6 @@ for (const caixa of document.querySelectorAll("dialog")) {
 
   document.getElementById("sem-banco").hidden = temBanco;
   perfis.append(...Object.entries(PERFIS).map(criarPerfil));
-  abas.append(...LETRAS.map(criarAba));
-  abas.style.setProperty("--quantas", LETRAS.length);
   navigator.storage?.persist?.();
   // Duas APIs de plataforma fora do banco.js, as duas aqui e as duas ignorando o retorno. O
   // registro falha calado por file://, que não tem origem segura, e é o comportamento esperado:

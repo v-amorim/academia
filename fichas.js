@@ -36,6 +36,38 @@ const TREINOS = {
   ]
 };
 
+// A ficha da Shine, transcrita da folha da academia em 2026-09-11. Lombar e abdômen entraram na
+// lista de grupos por ela. Barra no aparelho é "um ou outro", como na ficha do Sun.
+const TREINOS_SHINE = {
+  A: [
+    { id: "5b000001-0000-4000-8000-000000000001", nome: "Extensão de pernas",                 aparelho: "6",     equipamento: "maquina", series: 3, reps: 12, cod: 63,   grupos: ["quadriceps"] },
+    { id: "5b000002-0000-4000-8000-000000000002", nome: "Flexão de pernas sentado",           aparelho: "30",    equipamento: "maquina", series: 3, reps: 12, cod: 1101, grupos: ["posterior"] },
+    { id: "5b000003-0000-4000-8000-000000000003", nome: "Leg press 45 graus",                 aparelho: "8",     equipamento: "maquina", series: 3, reps: 12, cod: 59,   grupos: ["quadriceps", "gluteo"] },
+    { id: "5b000004-0000-4000-8000-000000000004", nome: "Abdução",                            aparelho: "37",    equipamento: "maquina", series: 3, reps: 12, cod: 1104, grupos: ["gluteo"] },
+    { id: "5b000005-0000-4000-8000-000000000005", nome: "Adução",                             aparelho: "21",    equipamento: "maquina", series: 3, reps: 12, cod: 220,  grupos: ["adutor"] },
+    { id: "5b000006-0000-4000-8000-000000000006", nome: "Agachamento hack",                   aparelho: "50",    equipamento: "maquina", series: 3, reps: 12, cod: 1230, grupos: ["quadriceps", "gluteo"] },
+    { id: "5b000007-0000-4000-8000-000000000007", nome: "Panturrilha livre em pé",            aparelho: "em pé", equipamento: "livre",   series: 3, reps: 12, cod: 248,  grupos: ["panturrilha"] }
+  ],
+  B: [
+    { id: "5b000008-0000-4000-8000-000000000008", nome: "Flexão de pernas deitado",           aparelho: "7",     equipamento: "maquina", series: 3, reps: 12, cod: 1028, grupos: ["posterior"] },
+    { id: "5b000009-0000-4000-8000-000000000009", nome: "Agachamento sumô no belt squat",     aparelho: "61",    equipamento: "maquina", series: 3, reps: 12, cod: 1208, grupos: ["gluteo", "quadriceps"] },
+    { id: "5b000010-0000-4000-8000-000000000010", nome: "Elevação pélvica",                   aparelho: "60",    equipamento: "maquina", series: 3, reps: 12, cod: 1201, grupos: ["gluteo"] },
+    { id: "5b000011-0000-4000-8000-000000000011", nome: "Glúteo em pé",                       aparelho: "9",     equipamento: "maquina", series: 3, reps: 12, cod: 250,  grupos: ["gluteo"] },
+    { id: "5b000012-0000-4000-8000-000000000012", nome: "Glúteo em pé no cabo, insistência",  aparelho: "17/40", equipamento: "cabo",    series: 3, reps: 12, cod: 253,  grupos: ["gluteo"] },
+    { id: "5b000013-0000-4000-8000-000000000013", nome: "Lombar a 45 graus",                  aparelho: "35",    equipamento: "maquina", series: 3, reps: 12, cod: 128,  grupos: ["lombar"] },
+    { id: "5b000014-0000-4000-8000-000000000014", nome: "Flexão abdominal a 90 graus no banco", tipo: "corpo", aparelho: "chão", equipamento: "livre", series: 3, reps: 12, cod: 138, grupos: ["abdomen"] }
+  ],
+  C: [
+    { id: "5b000015-0000-4000-8000-000000000015", nome: "Elevação lateral sentado",           aparelho: "25",    equipamento: "maquina", series: 3, reps: 12, cod: 600,  grupos: ["ombro"] },
+    { id: "5b000016-0000-4000-8000-000000000016", nome: "Elevação frontal com anilha",        aparelho: "anilha", equipamento: "anilha", series: 3, reps: 12, cod: 762,  grupos: ["ombro"] },
+    { id: "5b000017-0000-4000-8000-000000000017", nome: "Remada baixa com triângulo",         aparelho: "4",     equipamento: "cabo",    series: 3, reps: 12, cod: 497,  grupos: ["costas"] },
+    { id: "5b000018-0000-4000-8000-000000000018", nome: "Pull down supinado",                 aparelho: "2",     equipamento: "maquina", series: 3, reps: 12, cod: 1036, grupos: ["costas", "biceps"] },
+    { id: "5b000019-0000-4000-8000-000000000019", nome: "Remada articulada aberta supinada",  aparelho: "5",     equipamento: "maquina", series: 3, reps: 12, cod: 276,  grupos: ["costas"] },
+    { id: "5b000020-0000-4000-8000-000000000020", nome: "Rosca direta em pé",                 aparelho: "em pé", equipamento: "livre",   series: 3, reps: 12, cod: 97,   grupos: ["biceps"] },
+    { id: "5b000021-0000-4000-8000-000000000021", nome: "Tríceps pulley",                     aparelho: "17/40", equipamento: "cabo",    series: 3, reps: 12, cod: 332,  grupos: ["triceps"] }
+  ]
+};
+
 // Um treino curto, com os três tipos de exercício que o app entende, para quem abre o app pela
 // primeira vez ver a tela cheia sem mexer no treino de ninguém. Os dois últimos nascem arquivados:
 // existiram, saíram da lista e continuam no histórico, que é o caminho que a fase 4 vai usar para
@@ -66,9 +98,10 @@ const ARQUIVADOS_EXEMPLO = [
   { id: "e0000009-0000-4000-8000-000000000009", nome: "Elíptico", tipo: "tempo", unidade: "nível", series: 1, reps: null, aparelho: "44", cod: 0, grupos: ["quadriceps"], letra: "B", arquivado: true }
 ];
 
-// O catálogo é de quem treina. Sun e Shine dividem o mesmo, que é o da academia; o Exemplo tem o
-// seu, para poder ser mexido à vontade sem tocar no treino de verdade de ninguém.
+// O catálogo é de quem treina: cada perfil tem a sua ficha, e o Exemplo tem a dele para poder
+// ser mexido à vontade sem tocar no treino de verdade de ninguém.
 const PERFIS = { sun: "Sun", shine: "Shine", example: "Exemplo" };
+const FICHA_DE = { sun: TREINOS, shine: TREINOS_SHINE, example: TREINOS_EXEMPLO };
 const DONO_DO_EXEMPLO = ["example"];
 
 // UID de cada conta no Firebase. Não é segredo: a regra do Firestore já os carrega, e é ela

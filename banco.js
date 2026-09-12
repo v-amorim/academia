@@ -9,8 +9,8 @@ const Banco = (function () {
   // prazo é o único jeito de sair. Aparelho lento pode estourar o prazo e abrir depois: nesse
   // caso o banco é adotado em vez de descartado.
   const PRAZO_ABERTURA = 2500;
-  const VERSAO = 6;
-  const DEPOSITOS = ["exercicios", "sessoes", "registros", "ciclo", "fotos"];
+  const VERSAO = 7;
+  const DEPOSITOS = ["treinos", "exercicios", "sessoes", "registros", "ciclo", "fotos"];
   const TAMANHO_ID = 36;
 
   // Identificador do projeto, não segredo: quem protege é a regra do Firestore mais o login.
@@ -25,7 +25,7 @@ const Banco = (function () {
   // O Firebase exige e-mail, e ninguém aqui tem caixa: a conta é o usuário mais este domínio,
   // e a tela só mostra o que vem antes do arroba.
   const DOMINIO_DAS_CONTAS = "academia.local";
-  const NA_NUVEM = ["exercicios", "sessoes", "registros", "ciclo"];
+  const NA_NUVEM = ["treinos", "exercicios", "sessoes", "registros", "ciclo"];
   // Quanto a abertura espera o primeiro snapshot de cada coleção, que vem do cache quando há
   // um, e quanto o seed espera pelo servidor antes de desistir.
   const PRAZO_ESPELHO = 2500;
@@ -55,13 +55,15 @@ const Banco = (function () {
         return responder(null);
       }
 
-      // A versão 6 recomeça o aparelho do zero: o Sun e a Shine passaram para a nuvem, e o que
-      // havia antes era treino de teste. Depósito velho é apagado e recriado, o exemplo refaz o seed
-      // sozinho, e foto de verdade nunca existiu, porque a câmera só rodou em emulação.
-      pedido.onupgradeneeded = () => {
+      // A versão 6 recomeçou o aparelho do zero: o Sun e a Shine passaram para a nuvem, e o que
+      // havia antes era treino de teste. Dali em diante, subir de versão só cria o depósito que
+      // falta: a 7 trouxe os treinos como dado.
+      pedido.onupgradeneeded = (evento) => {
         const banco = pedido.result;
-        for (const nome of banco.objectStoreNames) banco.deleteObjectStore(nome);
-        for (const nome of DEPOSITOS) banco.createObjectStore(nome);
+        if (evento.oldVersion < 6) for (const nome of [...banco.objectStoreNames]) banco.deleteObjectStore(nome);
+        for (const nome of DEPOSITOS) {
+          if (!banco.objectStoreNames.contains(nome)) banco.createObjectStore(nome);
+        }
       };
       pedido.onsuccess = () => {
         if (!respondido) return responder(pedido.result);
@@ -272,6 +274,7 @@ const Banco = (function () {
   }
 
   const chaveDaSessao = (perfil, letra) => `${perfil}:${hoje()}_${letra}`;
+  const chaveDoTreino = (perfil, id) => `${perfil}:${id}`;
   const chaveDoRegistro = (sessao, exId) => `${sessao}:${exId}`;
   const registrosDa = (sessao) => ({ de: `${sessao}:`, ate: `${sessao}:￿` });
 
@@ -286,6 +289,13 @@ const Banco = (function () {
 
     for (const perfil of perfis) {
       if (!(await motorDe(perfil).confiavel(perfil))) continue;
+      // Os treinos da ficha viram documentos com o nome igual ao id: "A" se chama "A" até alguém
+      // renomear no editor. Treino que já existe não é tocado, pelo mesmo motivo do exercício.
+      const treinosExistentes = new Set((await ler(perfil, "treinos", doPerfil(perfil))).map(([, treino]) => treino.id));
+      await gravarLote(perfil, "treinos", Object.keys(treinos)
+        .filter((letra) => !treinosExistentes.has(letra))
+        .map((letra, ordem) => [chaveDoTreino(perfil, letra), { id: letra, nome: letra, ordem }]));
+
       const existentes = new Set((await ler(perfil, "exercicios")).map(([chave]) => chave));
       const pares = [];
       for (const [letra, exercicios] of Object.entries(treinos)) {
@@ -307,6 +317,58 @@ const Banco = (function () {
   // é o que separa o exemplo do resto, e catálogo sem dono é de todo mundo.
   const ehDono = (exercicio, perfil) =>
     branches.has(perfil) || !perfil || !exercicio.perfis || exercicio.perfis.includes(perfil);
+
+  // Os treinos de um perfil, na ordem das abas. O id do treino é o que as sessões e os exercícios
+  // guardam em `letra`; o nome é o que a aba mostra. Treino arquivado sai da fileira e deixa as
+  // sessões dele em paz no histórico.
+  async function listarTreinos(perfil) {
+    const treinos = (await ler(perfil, "treinos", doPerfil(perfil)))
+      .map(([, treino]) => treino)
+      .filter((treino) => !treino.arquivado)
+      .sort((a, b) => a.ordem - b.ordem);
+    if (treinos.length > 0) return treinos;
+    // Branch de antes dos treinos virarem dado: a fileira sai das letras que os exercícios têm.
+    const letras = [...new Set((await ler(perfil, "exercicios")).map(([, exercicio]) => exercicio.letra).filter(Boolean))].sort();
+    return letras.map((letra, ordem) => ({ id: letra, nome: letra, ordem }));
+  }
+
+  async function criarTreino(perfil, nome) {
+    const existentes = await listarTreinos(perfil);
+    const treino = { id: crypto.randomUUID(), nome, ordem: existentes.length === 0 ? 0 : Math.max(...existentes.map((outro) => outro.ordem)) + 1 };
+    gravar(perfil, "treinos", chaveDoTreino(perfil, treino.id), treino);
+    return treino;
+  }
+
+  async function salvarCampoDoTreino(perfil, id, campo, valor) {
+    const anterior = await pegar(perfil, "treinos", chaveDoTreino(perfil, id));
+    if (!anterior) return;
+    gravar(perfil, "treinos", chaveDoTreino(perfil, id), { ...anterior, [campo]: valor });
+  }
+
+  const renomearTreino = (perfil, id, nome) => salvarCampoDoTreino(perfil, id, "nome", nome);
+  // Arquivar, nunca apagar: as sessões guardam o id, e o histórico continua sabendo mostrá-las.
+  const arquivarTreino = (perfil, id) => salvarCampoDoTreino(perfil, id, "arquivado", true);
+
+  async function reordenarTreinos(perfil, ids) {
+    for (const [ordem, id] of ids.entries()) await salvarCampoDoTreino(perfil, id, "ordem", ordem);
+  }
+
+  // Exercício novo nasce no fim do treino escolhido, com id sorteado: aqui um aparelho cria e a
+  // nuvem sincroniza, então não há o risco de dois seeds com ids diferentes.
+  async function criarExercicio(perfil, letra, dados) {
+    const doTreino = await listarExercicios(letra, perfil);
+    const ordem = doTreino.length === 0 ? 0 : Math.max(...doTreino.map((outro) => outro.ordem)) + 1;
+    const exercicio = { ...dados, id: crypto.randomUUID(), letra, ordem, perfis: [perfil] };
+    gravar(perfil, "exercicios", exercicio.id, exercicio);
+    return exercicio;
+  }
+
+  // Mudar de treino é entrar no fim do outro, como reativar: a posição antiga era da lista antiga.
+  const moverExercicio = (exId, letra, perfil) => reativarExercicio(exId, letra, perfil);
+
+  async function reordenarExercicios(perfil, ids) {
+    for (const [ordem, exId] of ids.entries()) await salvarCampoDoExercicio(perfil, exId, "ordem", ordem);
+  }
 
   async function listarExercicios(letra, perfil) {
     const todos = await ler(perfil, "exercicios");
@@ -608,6 +670,8 @@ const Banco = (function () {
   return {
     abrir, disponivel, seed,
     ligarNuvem, entrar, sair, aoMudarUsuario,
+    listarTreinos, criarTreino, renomearTreino, arquivarTreino, reordenarTreinos,
+    criarExercicio, moverExercicio, reordenarExercicios,
     listarExercicios, lerSessaoDeHoje, salvarSerie, salvarValor, apagarValor,
     cargasAnteriores, historico, arquivarExercicio, reativarExercicio, seedHistorico,
     encerrarSessao, resetarTreino,
