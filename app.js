@@ -200,7 +200,7 @@ const etiquetasDe = (exercicio) =>
 const rotuloDoContador = (faltando, reps) =>
   faltando === 0
     ? `<span class="serie feito">Feito</span>`
-    : `<span class="serie">${faltando}</span><span class="reps">×${reps}</span>`;
+    : `<span class="serie">${faltando}<span class="vezes">×</span></span><span class="reps">${reps}<span class="unidade">rep</span></span>`;
 
 function refrescar() {
   cartaoPorId.forEach((cartao) => cartao.atualizar());
@@ -569,11 +569,9 @@ function criarCampo(exercicio, qual) {
   campo.type = "text";
   // decimal, e não number: o campo numérico recusa vírgula e ainda traz setas que ninguém usa.
   campo.inputMode = "decimal";
-  campo.className = qual === "minutos" ? "carga-campo tempo-campo" : "carga-campo";
+  campo.className = "carga-campo";
   campo.hidden = true;
-  campo.setAttribute("aria-label", qual === "minutos"
-    ? `Tempo de ${exercicio.nome}, em minutos`
-    : `Carga de ${exercicio.nome}, em ${unidadeDe(exercicio)}`);
+  campo.setAttribute("aria-label", `Carga de ${exercicio.nome}, em ${unidadeDe(exercicio)}`);
   return campo;
 }
 
@@ -587,23 +585,10 @@ function criarCartao(exercicio, posicao) {
   contador.type = "button";
   contador.className = "contador";
 
-  // Na esteira não há série para baixar: a caixa de cima vira o tempo, digitado como a carga.
-  // O campo só nasce onde é usado, senão o cartão fica com dois campos iguais e quem procura um
-  // deles acha o outro.
-  const campoDoTempo = ehAerobico(exercicio) ? criarCampo(exercicio, "minutos") : null;
-  if (campoDoTempo) {
-    // Mesma gramática do resto do app: toque faz, toque longo ajusta. Na esteira, tocar marca o
-    // exercício como feito com o tempo que já estava ali, e segurar abre o teclado para mudá-lo.
-    const segurouTempo = ligarToqueLongo(contador, () =>
-      abrirCampoDaCarga(exercicio, contador, campoDoTempo, "minutos"));
-    contador.onclick = () => {
-      if (segurouTempo()) return;
-      concluirAerobico(exercicio);
-    };
-    ligarCampoDaCarga(exercicio, contador, campoDoTempo, "minutos");
-  } else {
-    ligarContador(contador, exercicio);
-  }
+  // Na esteira não há série para baixar: a caixa de cima vira o tempo. Tocar marca feito com o
+  // tempo que já estava ali, e segurar abre a mesma fita do contador, só que em minutos.
+  if (ehAerobico(exercicio)) ligarTempo(contador, exercicio);
+  else ligarContador(contador, exercicio);
 
   const meio = document.createElement("button");
   meio.type = "button";
@@ -654,7 +639,6 @@ function criarCartao(exercicio, posicao) {
   ligarCampoDaCarga(exercicio, chip, campo);
 
   bloco.append(contador);
-  if (campoDoTempo) bloco.append(campoDoTempo);
   // Flexão e abdominal não têm peso na máquina, então a caixa de baixo some em vez de ficar
   // esperando um número que nunca vem.
   if (!semCarga(exercicio)) bloco.append(chip, campo);
@@ -671,13 +655,15 @@ function criarCartao(exercicio, posicao) {
       if (ehAerobico(exercicio)) {
         const minutos = minutosDe(exercicio);
         // Mesmo desenho do contador de séries: o número grande em cima e a unidade na linha de
-        // baixo, onde nos outros cartões fica o ×12.
-        contador.innerHTML = `<span class="serie">${minutos === undefined ? "+" : soONumero(minutos)}</span><span class="reps">min</span>`;
+        // baixo, onde nos outros cartões fica o "12 rep".
+        contador.innerHTML = minutos === undefined
+          ? `<span class="serie">+</span><span class="reps"><span class="unidade">min</span></span>`
+          : `<span class="serie">${tempoCurto(minutos)}</span><span class="reps"><span class="unidade">${unidadeDoTempo(minutos)}</span></span>`;
         contador.dataset.vazio = minutos === undefined ? "1" : "0";
         contador.style.setProperty("--progresso", "0%");
         contador.setAttribute("aria-label", minutos === undefined
-          ? `Anotar o tempo de ${exercicio.nome}, em minutos`
-          : `${exercicio.nome}: ${emMedida(minutos, "min")}. Tocar para mudar.`);
+          ? `Anotar o tempo de ${exercicio.nome}. Segurar para escolher os minutos.`
+          : `${exercicio.nome}: ${emMedida(minutos, "min")}. Tocar marca feito, segurar ajusta o tempo, setas mudam de cinco em cinco.`);
       } else {
         contador.innerHTML = rotuloDoContador(faltando, exercicio.reps);
         if (animar) contador.querySelector(".serie").classList.add("entrando");
@@ -816,8 +802,6 @@ function ligarCampoDaCarga(exercicio, chip, campo, qual = "carga") {
       if (dono.deHoje(exercicio) === undefined) return;
       dono.esquecer(exercicio);
       Banco.apagarValor(perfilAtivo, exercicio.letra, exercicio.id, qual);
-      // Sem tempo, o aeróbico volta a ser o que falta fazer hoje.
-      if (qual === "minutos") definir(exercicio, exercicio.series);
       return anunciar(dono.aoApagar(exercicio));
     }
 
@@ -825,7 +809,6 @@ function ligarCampoDaCarga(exercicio, chip, campo, qual = "carga") {
     if (valor === null || valor === dono.deHoje(exercicio)) return;
     gravarDigitado(exercicio, qual, valor);
     // Anotar o tempo é o que conclui o aeróbico: não há série para baixar numa esteira.
-    if (qual === "minutos") definir(exercicio, 0);
     anunciar(`${exercicio.nome}: ${emMedida(valor, dono.unidade(exercicio))}.`);
   });
 
@@ -848,22 +831,26 @@ const gravarDigitado = (exercicio, qual, valor) => {
 // Segurar o contador e arrastar muda o valor no lugar, como o seletor de hora do celular. A fita
 // de números nasce dentro do próprio contador, cobrindo-o, e acompanha o dedo. Não é diálogo: o
 // ajuste acontece onde o dedo está, e soltar confirma.
-function ligarContador(contador, exercicio) {
+// O mesmo gesto serve ao contador de séries e ao tempo do aeróbico: toque faz, segurar abre a
+// fita e arrasta, setas andam um passo. O que muda é a lista de opções e o que fazer com a
+// escolhida, e isso vem de fora.
+function ligarAjuste(contador, { opcoes, atual, aplicar, aoTocar }) {
   let ajuste = null;
   let cronometro;
   let ajustou = false;
   let origem = 0;
 
   const desistir = () => clearTimeout(cronometro);
+  const ultimo = () => opcoes().length - 1;
 
   contador.addEventListener("pointerdown", (evento) => {
     origem = evento.clientY;
     ajustou = false;
     cronometro = setTimeout(() => {
-      ajuste = { origem, inicial: faltam(exercicio), valor: faltam(exercicio) };
+      ajuste = { origem, inicial: atual(), valor: atual() };
       // Ponteiro sintético não existe para o navegador, e capturá-lo lança.
       try { contador.setPointerCapture(evento.pointerId); } catch { /* gesto sem captura */ }
-      abrirFita(contador, exercicio, ajuste.valor);
+      abrirFita(contador, opcoes(), ajuste.valor);
       navigator.vibrate?.(10);
     }, ESPERA_TOQUE_LONGO);
   });
@@ -874,7 +861,7 @@ function ligarContador(contador, exercicio) {
       if (Math.abs(evento.clientY - origem) > FOLGA_DO_DEDO) desistir();
       return;
     }
-    const continuo = Math.min(exercicio.series,
+    const continuo = Math.min(ultimo(),
       Math.max(0, ajuste.inicial + (ajuste.origem - evento.clientY) / PASSO_DO_AJUSTE));
     ajuste.valor = Math.round(continuo);
     moverFita(continuo, ajuste.valor);
@@ -887,7 +874,7 @@ function ligarContador(contador, exercicio) {
     ajuste = null;
     ajustou = true;
     fecharFita(contador);
-    definir(exercicio, valor);
+    aplicar(valor);
   };
   contador.addEventListener("pointerup", soltar);
   contador.addEventListener("pointercancel", soltar);
@@ -901,7 +888,7 @@ function ligarContador(contador, exercicio) {
       ajustou = false;
       return;
     }
-    definir(exercicio, Math.max(0, faltam(exercicio) - 1));
+    aoTocar();
   });
 
   contador.addEventListener("keydown", (evento) => {
@@ -909,7 +896,42 @@ function ligarContador(contador, exercicio) {
     const passo = passos[evento.key];
     if (passo === undefined) return;
     evento.preventDefault();
-    definir(exercicio, Math.min(exercicio.series, Math.max(0, faltam(exercicio) + passo)));
+    aplicar(Math.min(ultimo(), Math.max(0, atual() + passo)));
+  });
+}
+
+function ligarContador(contador, exercicio) {
+  ligarAjuste(contador, {
+    opcoes: () => [{ texto: "Feito", feito: true },
+      ...Array.from({ length: exercicio.series }, (_, i) => ({ texto: String(i + 1) }))],
+    atual: () => faltam(exercicio),
+    aplicar: (valor) => definir(exercicio, valor),
+    aoTocar: () => definir(exercicio, Math.max(0, faltam(exercicio) - 1))
+  });
+}
+
+// O tempo anda de 5 em 5 até a hora, e de 15 em 15 até três horas: na esteira ninguém corre 23
+// minutos, e a fita precisa caber no polegar. Quem quer 1h30 arrasta até lá.
+const MINUTOS = [...Array.from({ length: 12 }, (_, i) => (i + 1) * 5), ...Array.from({ length: 8 }, (_, i) => 75 + i * 15)];
+const indiceDoTempo = (minutos) => {
+  const alvo = minutos ?? 30;
+  return MINUTOS.reduce((melhor, opcao, i) => (Math.abs(opcao - alvo) < Math.abs(MINUTOS[melhor] - alvo) ? i : melhor), 0);
+};
+// Até 59 é "30" sobre "min"; da hora em diante vira "1:30" sobre "h", como um relógio.
+const tempoCurto = (minutos) => (minutos < 60 ? String(minutos) : `${Math.floor(minutos / 60)}:${String(minutos % 60).padStart(2, "0")}`);
+const unidadeDoTempo = (minutos) => (minutos < 60 ? "min" : "h");
+
+function ligarTempo(contador, exercicio) {
+  ligarAjuste(contador, {
+    opcoes: () => MINUTOS.map((minutos) => ({ texto: tempoCurto(minutos) })),
+    atual: () => indiceDoTempo(minutosDe(exercicio)),
+    aplicar: (indice) => {
+      const minutos = MINUTOS[indice];
+      gravarDigitado(exercicio, "minutos", minutos);
+      cartaoPorId.get(exercicio.id)?.atualizar();
+      aviso.textContent = `${exercicio.nome}: ${emMedida(minutos, "min")}.`;
+    },
+    aoTocar: () => concluirAerobico(exercicio)
   });
 }
 
@@ -917,7 +939,7 @@ function ligarContador(contador, exercicio) {
 const PASSO_DO_AJUSTE = 44;
 let fita = null;
 
-function abrirFita(contador, exercicio, valor) {
+function abrirFita(contador, opcoes, valor) {
   fita = document.createElement("div");
   fita.className = "fita";
   // O contador guarda o rótulo de acessibilidade, e a fita é o desenho do mesmo número.
@@ -925,10 +947,10 @@ function abrirFita(contador, exercicio, valor) {
 
   const coluna = document.createElement("div");
   coluna.className = "fita-coluna";
-  coluna.append(...Array.from({ length: exercicio.series + 1 }, (_, opcao) => {
+  coluna.append(...opcoes.map((opcao) => {
     const linha = document.createElement("span");
-    linha.className = opcao === 0 ? "fita-valor feito" : "fita-valor";
-    linha.textContent = opcao === 0 ? "Feito" : String(opcao);
+    linha.className = opcao.feito ? "fita-valor feito" : "fita-valor";
+    linha.textContent = opcao.texto;
     return linha;
   }));
 

@@ -40,11 +40,16 @@ const Sonda = (function () {
 
   // O contador tem o número que falta em cima e as repetições embaixo, então o rótulo é remontado
   // das duas partes. Assim a sonda confere que as duas renderizam, e não só o texto do botão.
+  // A segunda linha escreve "12 rep" na tela; aqui ela volta a "3×12", que é como a ficha e o
+  // aviso falam. No aeróbico a segunda linha é só a unidade, e sai como está.
   function rotuloDo(item) {
     const contador = item.querySelector(".contador");
     const reps = contador.querySelector(".reps");
     if (!reps) return contador.textContent;
-    return `${contador.querySelector(".serie").textContent}${reps.textContent}`;
+    const numero = reps.textContent.replace(reps.querySelector(".unidade")?.textContent ?? "", "");
+    const unidade = reps.querySelector(".unidade")?.textContent ?? "";
+    const serie = contador.querySelector(".serie").textContent.replace("×", "");
+    return numero ? `${serie}×${numero}` : `${serie}${unidade}`;
   }
 
   const contadores = () => cartoes().map(rotuloDo);
@@ -222,7 +227,7 @@ const Sonda = (function () {
     campoReps.value = "10";
     campoReps.dispatchEvent(new Event("change", { bubbles: true }));
     await respira();
-    confere("mudar as repetições atualiza o cartão", alvoReps.querySelector(".reps")?.textContent === "×10", rotuloDo(alvoReps));
+    confere("mudar as repetições atualiza o cartão", rotuloDo(alvoReps).endsWith("×10"), rotuloDo(alvoReps));
     confere("as repetições novas vão para o banco", (await repsNoBanco()) === 10, await repsNoBanco());
     campoReps.value = "abc";
     campoReps.dispatchEvent(new Event("change", { bubbles: true }));
@@ -733,28 +738,31 @@ const Sonda = (function () {
       deCorpo < 0 || !cartoes()[deCorpo].querySelector(".carga-valor"),
       cartoes()[deCorpo]?.querySelector(".carga-valor")?.textContent);
 
-    // A esteira: tocar faz, segurar ajusta. O mostrador tem que sair da tela quando o campo entra,
-    // senão a caixa fica com o tempo duplicado.
+    // A esteira: tocar faz, segurar abre a fita de minutos, como no contador de séries.
     const daEsteira = doExemplo[letrasDoExemplo[0]].findIndex((exercicio) => exercicio.tipo === "tempo");
     if (daEsteira >= 0) {
-      const caixa = () => cartoes()[daEsteira].querySelector(".contador");
-      const campoDoTempo = () => cartoes()[daEsteira].querySelector(".tempo-campo");
-      confere("o aeróbico nasce por fazer", !cartoes()[daEsteira].classList.contains("feito"));
+      const cartaoDaEsteira = () => cartoes()[daEsteira];
+      const caixa = () => cartaoDaEsteira().querySelector(".contador");
+      const idDaEsteira = doExemplo[letrasDoExemplo[0]][daEsteira].id;
+      confere("o aeróbico nasce por fazer", !cartaoDaEsteira().classList.contains("feito"));
 
       caixa().click();
       await respira(300);
-      confere("tocar no tempo marca o aeróbico como feito", cartoes()[daEsteira].classList.contains("feito"));
-      confere("tocar no tempo não abre o teclado", campoDoTempo().hidden);
+      confere("tocar no tempo marca o aeróbico como feito", cartaoDaEsteira().classList.contains("feito"));
+      confere("tocar no tempo não abre teclado nenhum", !cartaoDaEsteira().querySelector("input:not([hidden])"));
 
-      caixa().dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      // Segurar e arrastar sete passos para cima: de 30 minutos vai a 1h15, e a tela troca para o
+      // desenho de relógio.
+      caixa().dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientY: 400 }));
       await respira(600);
-      caixa().dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
-      await respira(250);
-      confere("segurar o tempo abre o teclado", !campoDoTempo().hidden);
-      confere("o mostrador some enquanto o campo está aberto",
-        getComputedStyle(caixa()).display === "none", getComputedStyle(caixa()).display);
-      campoDoTempo().blur();
+      confere("segurar o tempo abre a fita", Boolean(caixa().querySelector(".fita")));
+      caixa().dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientY: 400 - 7 * 44 }));
+      caixa().dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientY: 400 - 7 * 44 }));
       await respira(300);
+      confere("soltar grava o tempo escolhido", (await Banco.lerSessaoDeHoje("example", letrasDoExemplo[0])).registros.get(idDaEsteira)?.minutos === 75);
+      confere("da hora em diante o tempo vira relógio", caixa().querySelector(".serie").textContent === "1:15"
+        && caixa().querySelector(".reps").textContent === "h", rotuloDo(cartaoDaEsteira()));
+      confere("a fita fecha ao soltar", !caixa().querySelector(".fita"));
     }
 
     await abrirPeloMenu();

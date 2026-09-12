@@ -21,6 +21,9 @@
   /* O `error` da Moonlight, #CA5F71, reprova AA no tamanho deste texto sobre a superfície alta,
      em 3,6:1. Este é o tom quente claro da mesma paleta, e não um clareamento à mão. */
   --rosa-300: #FFAFAF;
+  /* O `secondary` da Moonlight. É o único tom de texto da paleta entre o claro e o apagado que
+     passa AA sobre o preenchimento do contador, em 4,8:1. */
+  --lilas-200: #B9C6F5;
   --branco-08: rgb(255 255 255 / 0.08);
   --branco-13: rgb(255 255 255 / 0.13);
 
@@ -33,6 +36,8 @@
   --divisor: var(--branco-13);
   --texto: var(--tinta-100);
   --texto-secundario: var(--tinta-400);
+  /* A palavra da unidade, no contador e no chip: "rep", "min", "h", "kg", "km/h". */
+  --texto-unidade: var(--lilas-200);
   --acento: var(--azul-400);
   --acento-texto: var(--noite-900);
   --foco: var(--azul-400);
@@ -400,12 +405,25 @@ footer {
   font-size: 28px;
   line-height: 1;
 }
-/* --texto e não --texto-secundario: sobre o preenchimento parcial o secundário reprova AA. */
+/* A segunda linha do contador tem a fonte do chip de carga, e um degrau abaixo do número em cor.
+   Não é --texto-secundario: sobre o preenchimento parcial ele reprova AA (3,3:1). */
 .reps {
   color: var(--texto);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 12px;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+/* Só a palavra ganha a cor: o 12 fica com o número de cima, a unidade com o chip. */
+.reps .unidade { color: var(--texto-unidade); }
+/* O × ao lado das séries lê "3 vezes 12 rep" de cima para baixo. Só no contador de séries: no
+   aeróbico "45 ×" sobre "min" não quer dizer nada. */
+.vezes {
+  margin-inline-start: 2px;
+  vertical-align: 6px;
+  color: var(--texto-unidade);
+  font-size: 16px;
+  font-weight: 700;
 }
 .serie.feito { font-size: 15px; font-weight: 700; }
 
@@ -453,6 +471,8 @@ footer {
   white-space: nowrap;
 }
 .carga-valor svg { width: 12px; height: 12px; flex: none; }
+/* A unidade do chip, kg e km/h, na mesma cor da linha de baixo do contador. */
+.carga-valor .unidade { color: var(--texto-unidade); }
 /* Com display declarado aqui, o hidden do navegador não esconde mais nada: sem esta linha o chip
    continua na tela enquanto o campo aparece embaixo, e a caixa ganha uma terceira faixa. */
 .carga-valor[hidden] { display: none; }
@@ -487,12 +507,6 @@ footer {
   text-align: center;
 }
 .carga-campo[hidden] { display: none; }
-/* O campo do tempo mora na caixa de cima, então tem a altura dela e as pontas de cima. */
-.tempo-campo {
-  min-height: 56px;
-  border-radius: var(--raio-interno-carta) var(--raio-interno-carta) 0 0;
-  font-size: 20px;
-}
 
 /* No aeróbico a caixa de cima é o tempo digitado, com o mesmo desenho do contador de séries:
    número em cima, "min" na linha do ×12. Sem tempo, o "+" convida em cor apagada. */

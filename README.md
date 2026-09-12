@@ -191,11 +191,11 @@ config:
     pieOuterStrokeColor: "#252A42"
 ---
 pie showData
-  title 221 conferências, medidas em 2026-09-11
+  title 223 conferências, medidas em 2026-09-11
   "Comportamento" : 58
   "Carga e histórico" : 52
   "Teclado e gestos" : 41
-  "Perfil de exemplo" : 24
+  "Perfil de exemplo" : 26
   "Nuvem" : 17
   "Visitante e login" : 14
   "Sintaxe" : 6
@@ -213,7 +213,7 @@ resultado por `fetch`. Os casos rodam três de cada vez, cada um no seu perfil d
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Contador de séries   | Um toque desce uma série. Segurar e arrastar ajusta no lugar, como o seletor de hora do celular. As setas do teclado fazem o mesmo |
 | Carga do dia         | Um número por exercício, herdado da última vez. Sobe, cai ou fica, e o cartão diz qual                                            |
-| Três tipos de exercício | Peso na máquina, peso do corpo sem número nenhum, e aeróbico com tempo mais velocidade ou nível                                |
+| Três tipos de exercício | Peso na máquina, peso do corpo sem número nenhum, e aeróbico com tempo mais velocidade ou nível. O tempo se ajusta segurando, como as séries |
 | Histórico            | O treino inteiro por exercício, com a progressão dia a dia e o que saiu do treino                                                 |
 | Ciclo de treinos     | De um treino em diante, com nomes livres. Concluir todos libera o reinício                                                        |
 | Trocar de treino     | Toque na letra, deslize como quem vira página, arraste com o mouse, ou as setas do teclado                                        |
