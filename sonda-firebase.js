@@ -13,7 +13,7 @@ window.firebase = (function () {
   const CONTAS_FALSAS = Object.fromEntries(
     Object.entries(CONTAS).map(([papel, uid]) => [`${papel}@academia.local`, { senha: SENHAS[papel], uid }])
   );
-  const DESLOGADOS = new Set(["nuvem", "visitante"]);
+  const DESLOGADOS = new Set(["nuvem", "visitante", "circulo"]);
   const GUARDADO = "sonda-firestore";
 
   const caso = new URLSearchParams(location.search).get("caso") ?? "";

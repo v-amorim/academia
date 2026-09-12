@@ -282,21 +282,21 @@ footer {
   border-radius: var(--raio-trilho);
   background: var(--superficie);
 }
-/* O indicador da aba ativa é um só e anda: um traço embaixo do nome, e não mais a pílula, que
-   desde 2026-09-12 competia com o estado de concluído. --ativa vem do app.js, em posição da aba;
-   o clip encurta o traço ao meio da coluna sem mudar a conta do deslocamento. */
+/* O indicador da aba ativa é um só e anda: um contorno em volta da aba, sem fundo. A pílula com
+   fundo competia com o estado de concluído, e um traço embaixo do nome ficou fraco demais, os
+   dois em 2026-09-12. --ativa vem do app.js, em posição da aba. */
 #abas::before {
   content: "";
   position: absolute;
   /* Acima das abas, que são position: relative e pintariam o fundo da concluída por cima dele. */
   z-index: 1;
-  bottom: 6px;
+  inset-block: 4px;
   inset-inline-start: 4px;
   width: calc((100% - 8px) / var(--quantas, 1));
-  height: 2px;
   translate: calc(var(--ativa, 0) * 100%) 0;
-  clip-path: inset(0 30% round 1px);
-  background: var(--texto);
+  border-radius: var(--raio-interno-trilho);
+  box-shadow: 0 0 0 1px var(--acento);
+  pointer-events: none;
 }
 /* Um treino só não tem o que escolher, e uma aba sozinha ocupando a largura inteira só mente
    sobre haver alternativa. */
@@ -750,7 +750,7 @@ dialog p { margin: 0 0 16px; color: var(--texto-secundario); font-size: 15px; }
 /* O histórico é lista longa, então ocupa a tela quase inteira e rola por dentro, em vez de
    crescer até estourar. Largura maior que a dos outros diálogos: aqui cabem nome, carga e data
    na mesma linha. */
-#historico {
+#historico, #ficha {
   width: min(420px, calc(100vw - 24px));
   max-height: calc(100dvh - 48px);
   padding: 14px;
@@ -758,7 +758,7 @@ dialog p { margin: 0 0 16px; color: var(--texto-secundario); font-size: 15px; }
 }
 /* Só aberto: estilo de autor vence o display do navegador, e um flex solto deixaria o painel
    visível com o diálogo fechado. */
-#historico[open] { display: flex; flex-direction: column; gap: 10px; }
+#historico[open], #ficha[open] { display: flex; flex-direction: column; gap: 10px; }
 .historico-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .historico-topo h2 { margin: 0; }
 #historico-busca {
@@ -775,7 +775,7 @@ dialog p { margin: 0 0 16px; color: var(--texto-secundario); font-size: 15px; }
 }
 #historico-busca::placeholder { color: var(--texto-secundario); }
 
-#historico-lista { overflow-y: auto; display: grid; gap: 8px; }
+#historico-lista, #ficha-lista { overflow-y: auto; display: grid; gap: 8px; }
 /* Não gruda no topo: dentro de um diálogo que rola por dentro, o Chrome do celular às vezes perde
    a camada e para de pintar a lista inteira. Um título que rola junto custa menos que isso. */
 .historico-treino {
@@ -983,7 +983,10 @@ summary.historico-resumo { cursor: pointer; }
 .campo { min-height: 0; margin-bottom: 0; }
 /* O erro de login é texto, não caixa: a cor de alerta já existe no aviso de banco. */
 #login-erro { margin: 12px 0 0; color: var(--alerta); font-size: 14px; }
-#login .acoes { margin-top: 16px; }
+#login .acoes, #circulo .acoes { margin-top: 16px; }
+/* Quinta vez da armadilha: display declarado pela classe vence o hidden. */
+#circulo-membros[hidden] { display: none; }
+.circulo-vazio { margin: 0; color: var(--texto-secundario); text-wrap: pretty; }
 
 /* Modo de edição. A barra toma o lugar do seletor de perfis, cada cartão ganha a fileira de
    ações, e o resto do cartão dorme: nele o toque é do editor, não do treino. */

@@ -26,7 +26,7 @@ const ESPERADO = [
   ["cartões", /class="exercicio/g, Object.values(TREINOS_EXEMPLO).reduce((total, lista) => total + lista.length, 0)],
   ["abas", /class="aba[ "]/g, LETRAS.length],
   ["perfis", /name="perfil"/g, Object.keys(PERFIS).length],
-  ["diálogos", /<dialog id=/g, 13]
+  ["diálogos", /<dialog id=/g, 15]
 ];
 
 // Cada caso roda num perfil de Chrome novo, então o IndexedDB nasce limpo. O caso Carga precisa
@@ -42,7 +42,8 @@ const CASOS = [
   { nome: "Nuvem", passos: ["nuvem"] },
   { nome: "Visitante e login", passos: ["visitante"] },
   { nome: "Arrasto com o mouse", passos: ["arrasto"] },
-  { nome: "Editor de treino", passos: ["editor"] }
+  { nome: "Editor de treino", passos: ["editor"] },
+  { nome: "Círculo", passos: ["circulo"] }
 ];
 
 const CAMINHOS_CHROME = [

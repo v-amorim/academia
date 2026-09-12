@@ -42,7 +42,8 @@
      mão só. O topo é da marca, que vira o menu de conta e histórico quando eles existirem. -->
 <footer>
   <nav id="abas" role="tablist" aria-label="Treinos"></nav>
-  <fieldset id="perfis">
+  <!-- Nasce escondido: só o admin o vê, e isso só se sabe quando o Firebase responde quem entrou. -->
+  <fieldset id="perfis" hidden>
     <legend class="oculto-visual">Quem está treinando</legend>
   </fieldset>
   <!-- A barra do modo de edição toma o lugar do seletor de perfis enquanto dura. -->
@@ -82,6 +83,7 @@
   <p id="menu-quem"></p>
   <div class="acoes-empilhadas">
     <button type="button" class="secundario" id="menu-historico">Histórico</button>
+    <button type="button" class="secundario" id="menu-circulo" hidden>Círculo</button>
     <button type="button" class="secundario" id="menu-editar">Editar treino</button>
     <button type="button" class="primario" id="menu-entrar">Entrar</button>
     <button type="button" class="secundario" id="menu-sair" hidden>Sair</button>
@@ -112,6 +114,33 @@
   <input id="historico-busca" type="search" placeholder="Puxada, costas, bíceps" autocomplete="off" enterkeyhint="search">
   <div id="historico-lista"></div>
   <p id="historico-vazio" hidden></p>
+</dialog>
+
+<dialog id="circulo" aria-labelledby="circulo-titulo" tabindex="-1">
+  <h2 id="circulo-titulo">Círculo</h2>
+  <p id="circulo-corpo"></p>
+  <form id="circulo-entrar" novalidate>
+    <label for="circulo-codigo" class="rotulo">Código do convite</label>
+    <input id="circulo-codigo" class="campo" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="6" enterkeyhint="go">
+    <p id="circulo-erro" role="alert" hidden></p>
+    <div class="acoes">
+      <button type="button" class="secundario" id="circulo-criar">Criar círculo</button>
+      <button type="submit" class="primario" id="circulo-confirmar">Entrar</button>
+    </div>
+  </form>
+  <div id="circulo-membros" class="acoes-empilhadas" hidden></div>
+  <button type="button" class="secundario largo" id="circulo-sair" hidden>Sair do círculo</button>
+  <button type="button" class="secundario largo" id="circulo-fechar">Fechar</button>
+</dialog>
+
+<!-- A ficha de quem divide o círculo: só leitura, sem contador e sem editor, por construção. -->
+<dialog id="ficha" aria-labelledby="ficha-titulo" tabindex="-1">
+  <div class="historico-topo">
+    <h2 id="ficha-titulo"></h2>
+    <button type="button" class="secundario" id="ficha-fechar">Fechar</button>
+  </div>
+  <div id="ficha-lista"></div>
+  <p id="ficha-vazio" hidden>Nada para mostrar ainda.</p>
 </dialog>
 
 <dialog id="tela-cheia" aria-labelledby="tela-cheia-titulo">

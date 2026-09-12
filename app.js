@@ -1889,6 +1889,7 @@ function atualizarMenu() {
     : "Sem login. Este é o perfil de exemplo, salvo só neste aparelho.";
   botaoEntrar.hidden = Boolean(usuario);
   botaoSair.hidden = !usuario;
+  document.getElementById("menu-circulo").hidden = !temCirculo();
 }
 
 document.getElementById("abrir-menu").onclick = () => {
@@ -1899,6 +1900,122 @@ document.getElementById("menu-historico").onclick = () => {
   menu.close();
   abrirHistorico();
 };
+
+// Círculo: quem divide o código vê a ficha do outro, só leitura. Só para quem tem branch próprio:
+// o visitante não tem com quem dividir, e o admin não é membro de nada, ele já vê todos.
+const circulo = document.getElementById("circulo");
+const circuloCorpo = document.getElementById("circulo-corpo");
+const circuloEntrar = document.getElementById("circulo-entrar");
+const circuloCodigo = document.getElementById("circulo-codigo");
+const circuloErro = document.getElementById("circulo-erro");
+const circuloMembros = document.getElementById("circulo-membros");
+const circuloSair = document.getElementById("circulo-sair");
+const ficha = document.getElementById("ficha");
+const fichaTitulo = document.getElementById("ficha-titulo");
+const fichaLista = document.getElementById("ficha-lista");
+const fichaVazio = document.getElementById("ficha-vazio");
+
+const temCirculo = () => Boolean(usuario) && usuario !== "admin";
+const perfilDoMembro = (uid) => `membro:${uid}`;
+
+async function desenharCirculo() {
+  const codigo = await Banco.lerCirculo(perfilAtivo);
+  circuloEntrar.hidden = codigo !== null;
+  circuloSair.hidden = codigo === null;
+  circuloMembros.hidden = codigo === null;
+  circuloErro.hidden = true;
+  if (codigo === null) {
+    circuloCorpo.textContent = "Quem entra com o mesmo código vê o treino dos outros, sem poder mexer.";
+    return;
+  }
+  circuloCorpo.textContent = `Código do convite: ${codigo}. Passe para quem treina com você.`;
+  const outros = (await Banco.lerMembros(codigo)).filter((membro) => membro.uid !== CONTAS[usuario]);
+  circuloMembros.replaceChildren(...outros.map((membro) => {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "secundario";
+    botao.textContent = `Treino de ${membro.nome}`;
+    botao.onclick = () => abrirFicha(membro);
+    return botao;
+  }));
+  if (outros.length === 0) {
+    circuloMembros.append(Object.assign(document.createElement("p"), { className: "circulo-vazio", textContent: "Ninguém entrou ainda." }));
+  }
+}
+
+document.getElementById("menu-circulo").onclick = async () => {
+  menu.close();
+  circuloCodigo.value = "";
+  await desenharCirculo();
+  circulo.showModal();
+  // Como no visor: sem isto o foco cai no campo do código e o celular abre o teclado.
+  circulo.focus();
+};
+
+document.getElementById("circulo-criar").onclick = async () => {
+  const codigo = await Banco.criarCirculo(perfilAtivo, nomeDoUsuario());
+  await desenharCirculo();
+  aviso.textContent = `Círculo criado. Código ${codigo}.`;
+};
+
+circuloEntrar.addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  const codigo = circuloCodigo.value.trim().toUpperCase();
+  if (codigo.length !== 6) {
+    circuloErro.textContent = "O código tem seis letras.";
+    circuloErro.hidden = false;
+    return;
+  }
+  await Banco.entrarNoCirculo(perfilAtivo, codigo, nomeDoUsuario());
+  await desenharCirculo();
+  aviso.textContent = `Você entrou no círculo ${codigo}.`;
+});
+
+circuloSair.onclick = async () => {
+  await Banco.sairDoCirculo(perfilAtivo);
+  await desenharCirculo();
+  aviso.textContent = "Você saiu do círculo.";
+};
+document.getElementById("circulo-fechar").onclick = () => circulo.close();
+document.getElementById("ficha-fechar").onclick = () => ficha.close();
+
+// A ficha do outro reaproveita as linhas do histórico: nome, grupos e o "3 × 12" no lugar da
+// carga. Sem <details>, sem botão: não há nada para abrir nem mexer.
+async function abrirFicha(membro) {
+  const perfil = perfilDoMembro(membro.uid);
+  await Banco.ligarNuvem(perfil, membro.uid);
+  const treinos = await Banco.listarTreinos(perfil);
+  const blocos = [];
+  for (const treino of treinos) {
+    const exercicios = await Banco.listarExercicios(treino.id, perfil);
+    if (exercicios.length === 0) continue;
+    blocos.push(Object.assign(document.createElement("h3"), { className: "historico-treino", textContent: `Treino ${treino.nome}` }));
+    blocos.push(...exercicios.map(linhaDaFicha));
+  }
+  fichaTitulo.textContent = `Treino de ${membro.nome}`;
+  fichaLista.replaceChildren(...blocos);
+  fichaVazio.hidden = blocos.length > 0;
+  circulo.close();
+  ficha.showModal();
+  ficha.focus();
+}
+
+function linhaDaFicha(exercicio) {
+  const linha = document.createElement("div");
+  linha.className = "historico-linha";
+  const resumo = document.createElement("div");
+  resumo.className = "historico-resumo";
+  const series = ehAerobico(exercicio) ? "tempo" : `${exercicio.series} × ${exercicio.reps}`;
+  // Nome e séries na primeira linha, grupos na segunda: a grade do histórico é de duas colunas.
+  resumo.append(
+    Object.assign(document.createElement("span"), { className: "historico-nome", textContent: exercicio.nome }),
+    Object.assign(document.createElement("span"), { className: "historico-agora", textContent: series }),
+    Object.assign(document.createElement("span"), { className: "historico-grupos", textContent: etiquetasDe(exercicio) })
+  );
+  linha.append(resumo);
+  return linha;
+}
+
 botaoEntrar.onclick = () => {
   menu.close();
   login.querySelector("form").reset();

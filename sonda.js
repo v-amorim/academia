@@ -1189,7 +1189,81 @@ const Sonda = (function () {
     confere("fora da edição as ações somem de novo", getComputedStyle(cartoes()[0].querySelector(".edicao-acoes")).display === "none");
   }
 
-  const CASOS = { comportamento, teclado, carga, prepararCarga, exemplo, nuvem, visitante, arrasto, editor };
+  // O círculo na tela: o Sun cria, a Shine entra pelo outro aparelho, e o Sun abre a ficha dela
+  // só para ler. Começa sem login, e o "Círculo" do menu só existe para quem tem branch próprio.
+  async function circulo() {
+    if (!(await aguardar(() => cartoes().length > 0, "os cartões do exemplo"))) return;
+    const abrirMenu = async () => { document.getElementById("abrir-menu").click(); await respira(150); };
+    const menuCirculo = document.getElementById("menu-circulo");
+    const caixa = document.getElementById("circulo");
+    const corpo = () => document.getElementById("circulo-corpo").textContent;
+
+    await abrirMenu();
+    confere("sem login não há círculo no menu", menuCirculo.hidden);
+    document.getElementById("menu").close();
+
+    await Banco.entrar("sun", "sol");
+    await aguardar(() => document.getElementById("abrir-menu").classList.contains("com-sol"), "o Sun na tela");
+    await respira(200);
+    await abrirMenu();
+    confere("logado, o círculo aparece no menu", !menuCirculo.hidden);
+    menuCirculo.click();
+    await respira(300);
+    confere("sem círculo o diálogo oferece criar ou entrar", caixa.open && !document.getElementById("circulo-entrar").hidden
+      && document.getElementById("circulo-sair").hidden);
+
+    document.getElementById("circulo-codigo").value = "abc";
+    document.getElementById("circulo-confirmar").click();
+    await respira(100);
+    confere("código curto é recusado na tela", !document.getElementById("circulo-erro").hidden
+      && (await Banco.lerCirculo("sun")) === null);
+
+    document.getElementById("circulo-criar").click();
+    await respira(300);
+    const codigo = await Banco.lerCirculo("sun");
+    confere("criar mostra o código para passar adiante", codigo !== null && corpo().includes(codigo), corpo());
+    confere("dentro do círculo, entrar some e sair aparece", document.getElementById("circulo-entrar").hidden
+      && !document.getElementById("circulo-sair").hidden);
+    confere("sozinho, a lista diz que ninguém entrou", document.getElementById("circulo-membros").textContent.includes("Ninguém"));
+
+    // A Shine entra pelo aparelho dela e a ficha dela existe no branch dela.
+    firebase.deFora(`circulos/${codigo}/membros/${CONTAS.shine}`, { nome: "Shine", entrouEm: 2 });
+    Object.entries(TREINOS_SHINE).forEach(([letra, exercicios], ordemTreino) => {
+      firebase.deFora(`perfis/${CONTAS.shine}/treinos/${letra}`, { id: letra, nome: letra, ordem: ordemTreino });
+      exercicios.forEach((exercicio, ordem) => firebase.deFora(`perfis/${CONTAS.shine}/exercicios/${exercicio.id}`, { ...exercicio, letra, ordem, perfis: ["shine"] }));
+    });
+    await respira(100);
+    caixa.close();
+    await abrirMenu();
+    menuCirculo.click();
+    await respira(300);
+    const botaoDaShine = [...document.querySelectorAll("#circulo-membros button")].find((b) => b.textContent.includes("Shine"));
+    confere("cada outro membro vira um botão, e o próprio não", Boolean(botaoDaShine)
+      && ![...document.querySelectorAll("#circulo-membros button")].some((b) => b.textContent.includes("Sun")));
+
+    botaoDaShine.click();
+    await respira(400);
+    const fichaAlheia = document.getElementById("ficha");
+    const linhas = [...fichaAlheia.querySelectorAll(".historico-linha")];
+    const quantosDaShine = Object.values(TREINOS_SHINE).flat().length;
+    confere("a ficha da Shine abre com os exercícios dela", fichaAlheia.open && linhas.length === quantosDaShine, linhas.length);
+    confere("a ficha mostra séries por repetições", linhas[0]?.querySelector(".historico-agora")?.textContent === `${TREINOS_SHINE.A[0].series} × ${TREINOS_SHINE.A[0].reps}`,
+      linhas[0]?.querySelector(".historico-agora")?.textContent);
+    confere("a ficha alheia não tem botão nem campo além de fechar",
+      fichaAlheia.querySelectorAll("button, input, details, summary").length === 1);
+    confere("a ficha do Sun na tela não muda", cartoes().every((cartao) => !cartao.textContent.includes(TREINOS_SHINE.A[0].nome)));
+    fichaAlheia.close();
+
+    await abrirMenu();
+    menuCirculo.click();
+    await respira(300);
+    document.getElementById("circulo-sair").click();
+    await respira(300);
+    confere("sair volta ao diálogo de criar ou entrar", !document.getElementById("circulo-entrar").hidden
+      && (await Banco.lerCirculo("sun")) === null);
+  }
+
+  const CASOS = { comportamento, teclado, carga, prepararCarga, exemplo, nuvem, visitante, arrasto, editor, circulo };
 
   async function rodar(caso) {
     try {
