@@ -206,9 +206,14 @@ const etiquetasDe = (exercicio) =>
 
 // As séries que faltam são o número grande, e as repetições a linha pequena embaixo.
 // Sinal de multiplicação, não a letra x: é o que um nativo lê como "doze vezes".
+// O haltere da marca, na mesma geometria do icone.svg em 24 unidades: o "feito" ganha a forma de
+// duas linhas do "3 × 12 rep", com o ícone no lugar do número. O texto continua embaixo, porque
+// ícone sozinho não carrega significado.
+const ICONE_HALTERE = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="11.05" width="12" height="1.9" rx="0.95"/><rect x="3.9" y="8.4" width="2.75" height="7.2" rx="1.2"/><rect x="17.35" y="8.4" width="2.75" height="7.2" rx="1.2"/><rect x="1.9" y="9.9" width="1.6" height="4.2" rx="0.8"/><rect x="20.5" y="9.9" width="1.6" height="4.2" rx="0.8"/></svg>`;
+
 const rotuloDoContador = (faltando, reps) =>
   faltando === 0
-    ? `<span class="serie feito">Feito</span>`
+    ? `<span class="serie feito">${ICONE_HALTERE}</span><span class="reps"><span class="unidade">Feito</span></span>`
     : `<span class="serie">${faltando}<span class="vezes">×</span></span><span class="reps">${reps}<span class="unidade">rep</span></span>`;
 
 function refrescar() {
@@ -322,10 +327,13 @@ function criarAba(letra, posicao) {
   botao.setAttribute("role", "tab");
   botao.setAttribute("aria-controls", "lista");
 
-  const segurou = ligarToqueLongo(botao, () => abrirMenuTreino(letra));
+  // Editando, a aba ativa abre as opções do treino em si (nome, ordem, tirar); fora da edição,
+  // as do dia (encerrar, resetar).
+  const abrirOpcoes = () => (editando ? abrirEditarTreino(letra) : abrirMenuTreino(letra));
+  const segurou = ligarToqueLongo(botao, abrirOpcoes);
   botao.onclick = () => {
     if (segurou()) return;
-    if (letra === letraAtiva) abrirMenuTreino(letra);
+    if (letra === letraAtiva) abrirOpcoes();
     else irPara(letra);
   };
 
@@ -723,8 +731,35 @@ function criarCartao(exercicio, posicao) {
   };
 
   cartao.atualizar();
-  item.append(bloco, meio, foto);
+  item.append(bloco, meio, foto, acoesDeEdicao(exercicio));
   return cartao;
+}
+
+// A fileira do modo de edição, presente em todo cartão e visível só editando: subir, descer,
+// mudar de treino e tirar. Tirar é arquivar, e o histórico é o caminho de volta.
+function acoesDeEdicao(exercicio) {
+  const fileira = document.createElement("div");
+  fileira.className = "edicao-acoes";
+  const botao = (texto, rotulo, agir) => {
+    const elemento = document.createElement("button");
+    elemento.type = "button";
+    elemento.textContent = texto;
+    elemento.setAttribute("aria-label", `${rotulo}: ${exercicio.nome}`);
+    elemento.onclick = agir;
+    return elemento;
+  };
+  const subir = botao("↑", "Subir", () => deslocarExercicio(exercicio, -1));
+  const descer = botao("↓", "Descer", () => deslocarExercicio(exercicio, 1));
+  const lista = exerciciosPorLetra.get(exercicio.letra) ?? [];
+  subir.disabled = lista[0]?.id === exercicio.id;
+  descer.disabled = lista[lista.length - 1]?.id === exercicio.id;
+  fileira.append(
+    subir,
+    descer,
+    botao("Mover", "Mudar de treino", () => abrirEscolhaDeTreino(exercicio, "mover")),
+    botao("Tirar", "Tirar do treino", () => tirarExercicio(exercicio))
+  );
+  return fileira;
 }
 
 // O selo diz a direção três vezes: no ícone, na cor e no sinal do número. Assim ele continua
@@ -1462,7 +1497,7 @@ function voltarParaOTreino(exercicio, serie) {
   botao.type = "button";
   botao.className = "secundario";
   botao.textContent = "Voltar ao treino";
-  botao.onclick = () => abrirReativar(exercicio);
+  botao.onclick = () => abrirEscolhaDeTreino(exercicio, "reativar");
   linha.append(botao);
   return linha;
 }
@@ -1476,11 +1511,23 @@ function emData(quando) {
 let alvoReativar = null;
 let letraEscolhida = LETRAS[0];
 
-function abrirReativar(exercicio) {
+// O mesmo diálogo escolhe o treino para dois destinos: voltar do histórico e mudar de treino no
+// editor. O que muda é o título e o que acontece ao confirmar.
+let modoDaEscolha = "reativar";
+
+function abrirEscolhaDeTreino(exercicio, modo) {
+  modoDaEscolha = modo;
+  document.getElementById("reativar-titulo").textContent = modo === "mover" ? "Mudar de treino" : "Voltar para o treino";
+  document.getElementById("reativar-confirmar").textContent = modo === "mover" ? "Mover" : "Voltar para o treino";
+  abrirReativar(exercicio, modo === "mover"
+    ? `${exercicio.nome} sai deste treino e entra no fim do escolhido, com o histórico que já tem.`
+    : `${exercicio.nome} volta para a lista do dia, com o histórico que já tem.`);
+}
+
+function abrirReativar(exercicio, corpo) {
   alvoReativar = exercicio;
   letraEscolhida = LETRAS.includes(exercicio.letra) ? exercicio.letra : LETRAS[0];
-  document.getElementById("reativar-corpo").textContent =
-    `${exercicio.nome} volta para a lista do dia, com o histórico que já tem.`;
+  document.getElementById("reativar-corpo").textContent = corpo;
   desenharEscolhaDoTreino();
   const dialogo = document.getElementById("dialogo-reativar");
   dialogo.returnValue = "";
@@ -1507,11 +1554,179 @@ function desenharEscolhaDoTreino() {
 document.getElementById("dialogo-reativar").addEventListener("close", async (evento) => {
   if (evento.target.returnValue !== "reativar") return;
   const exercicio = alvoReativar;
+  if (modoDaEscolha === "mover") {
+    await Banco.moverExercicio(exercicio.id, letraEscolhida, perfilAtivo);
+    await carregarTreinos();
+    aviso.textContent = `${exercicio.nome} agora está no ${tituloDoTreino(letraEscolhida)}.`;
+    return;
+  }
   await Banco.reativarExercicio(exercicio.id, letraEscolhida, perfilAtivo);
   linhasDoHistorico = await Banco.historico(perfilAtivo);
   desenharHistorico();
   await carregarTreinos();
-  aviso.textContent = `${exercicio.nome} voltou para o treino ${letraEscolhida}.`;
+  aviso.textContent = `${exercicio.nome} voltou para o ${tituloDoTreino(letraEscolhida)}.`;
+});
+
+// O modo de edição. Liga pelo menu da marca, desliga em "Concluir". Enquanto dura, o rodapé
+// troca o seletor de perfis pela barra de edição, a aba ativa abre as opções do treino, e cada
+// cartão mostra a fileira de subir, descer, mover e tirar. Toda mudança grava na hora e remonta
+// a tela: não existe "salvar" no fim, como no resto do app.
+let editando = false;
+const barraDeEdicao = document.getElementById("edicao");
+const dialogoNomeTreino = document.getElementById("dialogo-nome-treino");
+const campoNomeTreino = document.getElementById("nome-treino");
+const dialogoEditarTreino = document.getElementById("dialogo-editar-treino");
+const dialogoNovoExercicio = document.getElementById("dialogo-novo-exercicio");
+let treinoEmEdicao = null;
+
+function alternarEdicao(ligar) {
+  editando = ligar;
+  document.body.classList.toggle("editando", ligar);
+  barraDeEdicao.hidden = !ligar;
+  perfis.hidden = ligar || usuario !== "admin";
+  aviso.textContent = ligar ? "Modo de edição. Toque na aba ativa para mexer no treino." : "Edição concluída.";
+}
+
+document.getElementById("menu-editar").onclick = () => {
+  menu.close();
+  alternarEdicao(true);
+};
+document.getElementById("edicao-concluir").onclick = () => alternarEdicao(false);
+
+// Um diálogo só para nome novo e para renomear: o que muda é o título e o que fazer ao salvar.
+let aoSalvarNome = null;
+function pedirNome(titulo, atual, salvar) {
+  document.getElementById("nome-treino-titulo").textContent = titulo;
+  campoNomeTreino.value = atual;
+  aoSalvarNome = salvar;
+  dialogoNomeTreino.returnValue = "";
+  dialogoNomeTreino.showModal();
+  campoNomeTreino.select();
+}
+dialogoNomeTreino.addEventListener("close", async () => {
+  if (dialogoNomeTreino.returnValue !== "salvar") return;
+  const nome = campoNomeTreino.value.trim();
+  if (!nome) return;
+  await aoSalvarNome(nome);
+});
+
+document.getElementById("edicao-treino").onclick = () => pedirNome("Novo treino", "", async (nome) => {
+  const treino = await Banco.criarTreino(perfilAtivo, nome);
+  await carregarTreinos();
+  irPara(treino.id, false);
+  aviso.textContent = `${tituloDoTreino(treino.id)} criado.`;
+});
+
+function abrirEditarTreino(letra) {
+  treinoEmEdicao = letra;
+  document.getElementById("editar-treino-titulo").textContent = tituloDoTreino(letra);
+  const posicao = LETRAS.indexOf(letra);
+  dialogoEditarTreino.querySelector('[value="antes"]').disabled = posicao === 0;
+  dialogoEditarTreino.querySelector('[value="depois"]').disabled = posicao === LETRAS.length - 1;
+  // O último treino não sai: sem nenhum, a tela não tem onde ficar.
+  dialogoEditarTreino.querySelector('[value="tirar"]').disabled = LETRAS.length === 1;
+  dialogoEditarTreino.returnValue = "";
+  dialogoEditarTreino.showModal();
+}
+
+dialogoEditarTreino.addEventListener("close", async () => {
+  const letra = treinoEmEdicao;
+  const acao = dialogoEditarTreino.returnValue;
+  if (acao === "renomear") {
+    return pedirNome("Renomear treino", nomeDoTreino(letra), async (nome) => {
+      await Banco.renomearTreino(perfilAtivo, letra, nome);
+      await carregarTreinos();
+      aviso.textContent = `Treino renomeado para ${nome}.`;
+    });
+  }
+  if (acao === "antes" || acao === "depois") {
+    const ordem = [...LETRAS];
+    const de = ordem.indexOf(letra);
+    const para = acao === "antes" ? de - 1 : de + 1;
+    [ordem[de], ordem[para]] = [ordem[para], ordem[de]];
+    await Banco.reordenarTreinos(perfilAtivo, ordem);
+    await carregarTreinos();
+    irPara(letra, false);
+    aviso.textContent = `${tituloDoTreino(letra)} agora é o ${para + 1}º.`;
+  }
+  if (acao === "tirar") {
+    await Banco.arquivarTreino(perfilAtivo, letra);
+    await carregarTreinos();
+    irPara(LETRAS[0], false);
+    aviso.textContent = `${tituloDoTreino(letra)} saiu da fileira. Os dias dele continuam no histórico.`;
+  }
+});
+
+async function deslocarExercicio(exercicio, passo) {
+  const ids = (exerciciosPorLetra.get(exercicio.letra) ?? []).map((outro) => outro.id);
+  const de = ids.indexOf(exercicio.id);
+  const para = de + passo;
+  if (para < 0 || para >= ids.length) return;
+  [ids[de], ids[para]] = [ids[para], ids[de]];
+  await Banco.reordenarExercicios(perfilAtivo, ids);
+  await carregarTreinos();
+  aviso.textContent = `${exercicio.nome} agora é o ${para + 1}º do treino.`;
+}
+
+async function tirarExercicio(exercicio) {
+  await Banco.arquivarExercicio(perfilAtivo, exercicio.id);
+  await carregarTreinos();
+  aviso.textContent = `${exercicio.nome} saiu do treino. Continua no histórico, e volta por lá.`;
+}
+
+// O formulário do exercício novo. Os músculos vêm do mesmo mapa que a tela usa para escrever.
+const gruposDoNovo = document.getElementById("novo-grupos");
+gruposDoNovo.append(...Object.entries(NOME_DO_GRUPO).map(([valor, nome]) => {
+  const rotuloDoGrupo = document.createElement("label");
+  const caixa = document.createElement("input");
+  caixa.type = "checkbox";
+  caixa.name = "novo-grupo";
+  caixa.value = valor;
+  caixa.className = "oculto-visual";
+  rotuloDoGrupo.append(caixa, nome);
+  return rotuloDoGrupo;
+}));
+const tipoDoNovo = () => dialogoNovoExercicio.querySelector('input[name="novo-tipo"]:checked').value;
+for (const radio of dialogoNovoExercicio.querySelectorAll('input[name="novo-tipo"]')) {
+  radio.onchange = () => {
+    const aerobico = tipoDoNovo() === "tempo";
+    document.getElementById("novo-unidade").hidden = !aerobico;
+    document.getElementById("novo-unidade-rotulo").hidden = !aerobico;
+  };
+}
+
+document.getElementById("edicao-exercicio").onclick = () => {
+  dialogoNovoExercicio.querySelector("form").reset();
+  document.getElementById("novo-unidade").hidden = true;
+  document.getElementById("novo-unidade-rotulo").hidden = true;
+  dialogoNovoExercicio.returnValue = "";
+  dialogoNovoExercicio.showModal();
+};
+
+dialogoNovoExercicio.addEventListener("close", async () => {
+  if (dialogoNovoExercicio.returnValue !== "criar") return;
+  const valor = (id) => document.getElementById(id).value.trim();
+  const numero = (id, padrao) => {
+    const lido = Number.parseInt(valor(id), 10);
+    return Number.isInteger(lido) && lido > 0 ? lido : padrao;
+  };
+  const tipo = tipoDoNovo();
+  const dados = {
+    nome: valor("novo-nome"),
+    aparelho: valor("novo-aparelho") || "livre",
+    equipamento: "maquina",
+    series: tipo === "tempo" ? 1 : numero("novo-series", 3),
+    reps: tipo === "tempo" ? null : numero("novo-reps", 12),
+    cod: numero("novo-cod", 0),
+    grupos: [...gruposDoNovo.querySelectorAll("input:checked")].map((caixa) => caixa.value)
+  };
+  if (tipo) dados.tipo = tipo;
+  if (tipo === "tempo") dados.unidade = valor("novo-unidade") || "km/h";
+  if (!dados.nome) return;
+  const exercicio = await Banco.criarExercicio(perfilAtivo, letraAtiva, dados);
+  await carregarTreinos();
+  cartaoPorId.get(exercicio.id)?.item.scrollIntoView({ block: "nearest" });
+  aviso.textContent = `${exercicio.nome} entrou no ${tituloDoTreino(letraAtiva)}.`;
 });
 
 function tendenciaDe(serie, unidade) {

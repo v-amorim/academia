@@ -802,7 +802,7 @@ const Sonda = (function () {
       ![...document.querySelectorAll(".historico-linha")]
         .filter((linha) => linha.querySelector(".historico-acoes"))
         .some((linha) => linha.querySelector(".historico-nome").textContent === oQueVolta));
-    confere("a volta é anunciada", avisoDiz("voltou para o treino"));
+    confere("a volta é anunciada", avisoDiz("voltou para o"), document.getElementById("aviso").textContent);
 
     document.getElementById("historico-fechar").click();
     await respira(250);
@@ -971,7 +971,115 @@ const Sonda = (function () {
     trilho.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch", pointerId: 8, buttons: 0, clientX: 100, clientY: 200 }));
   }
 
-  const CASOS = { comportamento, teclado, carga, prepararCarga, exemplo, nuvem, visitante, arrasto };
+  // O editor: renomear, criar, reordenar e tirar treino; mover, reordenar, tirar e criar exercício.
+  // Tudo grava na hora e remonta a tela, e nada apaga dado.
+  async function editor() {
+    if (!(await aguardar(() => cartoes().length === DO_PRIMEIRO, "os cartões do primeiro treino"))) return;
+    if (!SEGUNDA) return;
+
+    const abas = () => [...document.querySelectorAll("#abas .aba")];
+    const acoesDo = (item) => [...item.querySelectorAll(".edicao-acoes button")];
+    const clicar = (seletor) => document.querySelector(seletor).click();
+
+    confere("a fileira de edição nasce escondida", getComputedStyle(cartoes()[0].querySelector(".edicao-acoes")).display === "none");
+    clicar("#abrir-menu");
+    await respira(150);
+    clicar("#menu-editar");
+    await respira(200);
+    confere("o menu liga o modo de edição", document.body.classList.contains("editando") && !document.getElementById("edicao").hidden);
+    confere("editando, cada cartão mostra as ações", getComputedStyle(cartoes()[0].querySelector(".edicao-acoes")).display === "grid");
+    confere("editando, o seletor de perfis some", getComputedStyle(document.getElementById("perfis")).display === "none");
+
+    // Renomear o treino ativo.
+    abaDe(PRIMEIRA).click();
+    await respira(200);
+    confere("a aba ativa abre as opções do treino", document.getElementById("dialogo-editar-treino").open);
+    clicar('#dialogo-editar-treino [value="renomear"]');
+    await respira(200);
+    confere("renomear pede o nome com o atual preenchido", document.getElementById("dialogo-nome-treino").open
+      && document.getElementById("nome-treino").value === PRIMEIRA);
+    document.getElementById("nome-treino").value = "Pernas";
+    clicar('#dialogo-nome-treino [value="salvar"]');
+    await respira(400);
+    confere("a aba mostra o nome novo", abaDe(PRIMEIRA).textContent.trim() === "Pernas", abaDe(PRIMEIRA).textContent);
+    confere("o nome novo está no banco", (await Banco.listarTreinos("sun")).find((t) => t.id === PRIMEIRA)?.nome === "Pernas");
+    confere("o id do treino não muda com o nome", Boolean(document.getElementById(`painel-${PRIMEIRA}`)));
+
+    // Criar um treino.
+    const quantasAntes = abas().length;
+    clicar("#edicao-treino");
+    await respira(200);
+    document.getElementById("nome-treino").value = "Braço";
+    clicar('#dialogo-nome-treino [value="salvar"]');
+    await respira(500);
+    confere("criar treino acrescenta uma aba", abas().length === quantasAntes + 1, abas().length);
+    const novo = LETRAS[LETRAS.length - 1];
+    confere("o treino novo nasce ativo e vazio", letraAtiva === novo && cartoes().length === 0, `${letraAtiva} ${cartoes().length}`);
+    confere("o treino novo tem id sorteado", novo.length === 36, novo);
+
+    // Mover um exercício do primeiro para o segundo treino.
+    abaDe(PRIMEIRA).click();
+    await aguardar(() => letraAtiva === PRIMEIRA, "voltar ao primeiro treino");
+    const movido = cartoes()[0].querySelector(".nome").textContent;
+    acoesDo(cartoes()[0]).find((b) => b.textContent === "Mover").click();
+    await respira(200);
+    confere("mover abre a escolha de treino", document.getElementById("dialogo-reativar").open
+      && document.getElementById("reativar-titulo").textContent === "Mudar de treino");
+    document.querySelector(`#reativar-treinos input[value="${SEGUNDA}"]`).click();
+    clicar("#reativar-confirmar");
+    await respira(500);
+    confere("o exercício saiu do primeiro treino", cartoes().length === DO_PRIMEIRO - 1, cartoes().length);
+    const doSegundo = (await Banco.listarExercicios(SEGUNDA, "sun")).map((e) => e.nome);
+    confere("e entrou no fim do segundo", doSegundo[doSegundo.length - 1] === movido, doSegundo.join(","));
+
+    // Descer o primeiro exercício.
+    const [primeiroNome, segundoNome] = cartoes().slice(0, 2).map((c) => c.querySelector(".nome").textContent);
+    confere("o primeiro não sobe", acoesDo(cartoes()[0])[0].disabled);
+    acoesDo(cartoes()[0])[1].click();
+    await respira(400);
+    confere("descer troca a ordem", cartoes()[0].querySelector(".nome").textContent === segundoNome
+      && cartoes()[1].querySelector(".nome").textContent === primeiroNome, cartoes().slice(0, 2).map((c) => c.querySelector(".nome").textContent).join(","));
+
+    // Tirar um exercício: sai da lista e fica no histórico.
+    const tirado = cartoes()[0].querySelector(".nome").textContent;
+    acoesDo(cartoes()[0]).find((b) => b.textContent === "Tirar").click();
+    await respira(400);
+    confere("tirar reduz a lista", cartoes().length === DO_PRIMEIRO - 2, cartoes().length);
+    confere("o tirado fica arquivado no histórico",
+      (await Banco.historico("sun")).some((linha) => linha.exercicio.nome === tirado && linha.exercicio.arquivado));
+
+    // Criar um exercício de peso do corpo.
+    clicar("#edicao-exercicio");
+    await respira(200);
+    document.getElementById("novo-nome").value = "Prancha";
+    document.querySelector('#novo-tipo input[value="corpo"]').click();
+    document.querySelector('#novo-grupos input[value="abdomen"]').click();
+    clicar('#dialogo-novo-exercicio [value="criar"]');
+    await respira(500);
+    const prancha = cartoes().find((c) => c.querySelector(".nome").textContent === "Prancha");
+    confere("o exercício novo entra no fim do treino ativo", Boolean(prancha) && cartoes()[cartoes().length - 1] === prancha);
+    const noBanco = (await Banco.listarExercicios(PRIMEIRA, "sun")).find((e) => e.nome === "Prancha");
+    confere("o exercício novo grava tipo e músculo", noBanco?.tipo === "corpo" && noBanco?.grupos?.join() === "abdomen" && noBanco.id.length === 36, JSON.stringify(noBanco));
+    confere("peso do corpo não ganha chip de carga", !prancha?.querySelector(".carga-valor"));
+
+    // Tirar o treino criado.
+    abaDe(novo).click();
+    await aguardar(() => letraAtiva === novo, "ir ao treino novo");
+    abaDe(novo).click();
+    await respira(200);
+    clicar('#dialogo-editar-treino [value="tirar"]');
+    await respira(500);
+    confere("tirar o treino devolve a fileira", abas().length === quantasAntes && !LETRAS.includes(novo), abas().length);
+    confere("o treino tirado fica arquivado, não apagado",
+      firebase.dados.get(`perfis/${CONTAS.sun}/treinos/${novo}`)?.arquivado === true);
+
+    clicar("#edicao-concluir");
+    await respira(200);
+    confere("concluir sai do modo de edição", !document.body.classList.contains("editando") && document.getElementById("edicao").hidden);
+    confere("fora da edição as ações somem de novo", getComputedStyle(cartoes()[0].querySelector(".edicao-acoes")).display === "none");
+  }
+
+  const CASOS = { comportamento, teclado, carga, prepararCarga, exemplo, nuvem, visitante, arrasto, editor };
 
   async function rodar(caso) {
     try {

@@ -426,6 +426,10 @@ footer {
   font-weight: 700;
 }
 .serie.feito { font-size: 15px; font-weight: 700; }
+.serie.feito svg { display: block; width: 34px; height: 24px; }
+/* Sobre o preenchimento lavanda inteiro, a linha de baixo vai para o texto de "feito": o lilás
+   da unidade não passaria contraste ali. */
+.contador[data-feito="1"] .reps, .contador[data-feito="1"] .reps .unidade { color: var(--feito-texto); }
 
 /* Todo alvo de toque longo precisa disto, senão segurar seleciona o texto em vez de disparar o gesto. */
 .contador, .descricao, .aba {
@@ -802,7 +806,7 @@ summary.historico-resumo { cursor: pointer; }
 
 /* Fileira de treinos do diálogo de reativar: mesmo trilho e mesma pílula das abas, porque é a
    mesma escolha, só que feita de outro lugar. */
-#reativar-treinos {
+.trilho-escolha {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
@@ -812,7 +816,7 @@ summary.historico-resumo { cursor: pointer; }
   border-radius: var(--raio-trilho);
   background: var(--superficie-alta);
 }
-#reativar-treinos label {
+.trilho-escolha label {
   display: grid;
   place-items: center;
   min-height: 36px;
@@ -822,8 +826,8 @@ summary.historico-resumo { cursor: pointer; }
   font-size: 13px;
   cursor: pointer;
 }
-#reativar-treinos label:has(:checked) { background: var(--superficie); color: var(--texto); box-shadow: 0 0 0 1px var(--anel); }
-#reativar-treinos label:has(:focus-visible) { outline: 2px solid var(--foco); outline-offset: 2px; }
+.trilho-escolha label:has(:checked) { background: var(--superficie); color: var(--texto); box-shadow: 0 0 0 1px var(--anel); }
+.trilho-escolha label:has(:focus-visible) { outline: 2px solid var(--foco); outline-offset: 2px; }
 
 .progressao-bloco { padding: 0 12px 12px; }
 .progressao-resumo {
@@ -977,3 +981,48 @@ summary.historico-resumo { cursor: pointer; }
 /* O erro de login é texto, não caixa: a cor de alerta já existe no aviso de banco. */
 #login-erro { margin: 12px 0 0; color: var(--alerta); font-size: 14px; }
 #login .acoes { margin-top: 16px; }
+
+/* Modo de edição. A barra toma o lugar do seletor de perfis, cada cartão ganha a fileira de
+   ações, e o resto do cartão dorme: nele o toque é do editor, não do treino. */
+#edicao { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
+#edicao button { padding-inline: 12px; white-space: nowrap; }
+#edicao[hidden] { display: none; }
+.editando #perfis { display: none; }
+.edicao-acoes {
+  display: none;
+  grid-column: 1 / -1;
+  grid-template-columns: var(--alvo) var(--alvo) 1fr 1fr;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--divisor);
+}
+.editando .edicao-acoes { display: grid; }
+.editando .exercicio > :not(.edicao-acoes) { pointer-events: none; opacity: 0.55; }
+.edicao-acoes button {
+  min-height: 36px;
+  padding-inline: 10px;
+  border: 0;
+  border-radius: var(--raio-interno-carta);
+  background: var(--superficie-alta);
+  color: var(--texto);
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 0 0 0 1px var(--anel);
+}
+.edicao-acoes button:disabled { opacity: 0.35; cursor: default; }
+
+/* Formulário do exercício novo: dois campos lado a lado onde os dois são curtos. */
+.dois-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grupos-escolha { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.grupos-escolha label {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--superficie-alta);
+  color: var(--texto-secundario);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.grupos-escolha label:has(:checked) { color: var(--texto); box-shadow: 0 0 0 1px var(--anel-forte); }
+.grupos-escolha label:has(:focus-visible) { outline: 2px solid var(--foco); outline-offset: 2px; }
+#novo-unidade[hidden], #novo-unidade-rotulo[hidden] { display: none; }
