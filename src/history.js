@@ -291,5 +291,38 @@ for (const name of ["pointerup", "pointercancel"]) {
   footer.addEventListener(name, () => { if (!pull?.opened) pull = null; });
 }
 
-document.getElementById("history-close").onclick = () => historyPanel.close();
+// Dragging the drawer's top edge down closes it, the way pulling the footer up opened it. The sheet
+// follows the finger; past the threshold it slides the rest of the way and closes, short of it it
+// snaps back. Escape and tapping outside stay as the keyboard and mouse paths.
+const DRAWER_DROP = 80;
+const drawerTop = historyPanel.querySelector(".history-top");
+let drop = null;
+drawerTop.addEventListener("pointerdown", (event) => {
+  drop = { y: event.clientY, moved: 0 };
+  historyPanel.classList.add("dragging");
+  try { drawerTop.setPointerCapture(event.pointerId); } catch { /* synthetic pointer */ }
+});
+drawerTop.addEventListener("pointermove", (event) => {
+  if (!drop) return;
+  drop.moved = Math.max(0, event.clientY - drop.y);
+  historyPanel.style.translate = `0 ${drop.moved}px`;
+});
+function releaseDrawer() {
+  if (!drop) return;
+  const far = drop.moved > DRAWER_DROP;
+  drop = null;
+  historyPanel.classList.remove("dragging");
+  if (!far) {
+    historyPanel.style.translate = "";
+    return;
+  }
+  const finish = () => { historyPanel.style.translate = ""; historyPanel.close(); };
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return finish();
+  historyPanel.style.translate = "0 100%";
+  // transitionend can be missed when the tab is hidden; the timer is the safety net.
+  const timer = setTimeout(finish, 400);
+  historyPanel.addEventListener("transitionend", () => { clearTimeout(timer); finish(); }, { once: true });
+}
+drawerTop.addEventListener("pointerup", releaseDrawer);
+drawerTop.addEventListener("pointercancel", releaseDrawer);
 historySearch.addEventListener("input", renderHistory);

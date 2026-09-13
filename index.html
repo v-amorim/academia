@@ -125,9 +125,10 @@
 </dialog>
 
 <dialog id="history" aria-labelledby="history-title" tabindex="-1">
+  <!-- The drawer closes the way it opened: drag the top down. Escape and tapping outside still close it. -->
   <div class="history-top">
+    <div class="handle" aria-hidden="true"></div>
     <h2 id="history-title">Histórico</h2>
-    <button type="button" class="secondary" id="history-close">Fechar</button>
   </div>
   <label for="history-search" class="visually-hidden">Buscar por exercício ou grupo</label>
   <input id="history-search" type="search" placeholder="Ex: puxada, costas, bíceps" autocomplete="off" enterkeyhint="search">

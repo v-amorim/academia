@@ -848,7 +848,7 @@ const Probe = (function () {
       document.querySelectorAll(".history-row .history-none").length
         === document.querySelectorAll(".history-row").length,
       document.querySelectorAll(".history-row .history-none").length);
-    document.getElementById("history-close").click();
+    document.getElementById("history").close();
     await pause(250);
 
     // The drawer: pulling the footer up opens the history, and the click born from the finger releasing
@@ -867,8 +867,27 @@ const Probe = (function () {
     await pause(300);
     check("puxar o rodapé para cima abre o histórico", document.getElementById("history").open);
     check("o dedo que puxou não troca de treino ao soltar", document.querySelector('.tab[aria-selected="true"]').textContent === tabBefore);
-    document.getElementById("history-close").click();
-    await pause(250);
+
+    // Closing is the mirror gesture: drag the drawer's top strip down. Short drag snaps back.
+    const drawer = document.getElementById("history");
+    const strip = drawer.querySelector(".history-top");
+    check("a gaveta não tem mais botão de fechar, só a alça", !document.getElementById("history-close") && strip.querySelector(".handle") !== null);
+    const drag = async (distance) => {
+      strip.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientY: 200, pointerId: 7 }));
+      strip.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientY: 200 + distance / 2, pointerId: 7 }));
+      await pause(50);
+      strip.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientY: 200 + distance, pointerId: 7 }));
+      await pause(50);
+    };
+    await drag(40);
+    check("a gaveta acompanha o dedo enquanto ele segura", drawer.classList.contains("dragging") && drawer.style.translate === "0px 40px", drawer.style.translate);
+    strip.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientY: 240, pointerId: 7 }));
+    await pause(400);
+    check("arrasto curto devolve a gaveta ao lugar", drawer.open && drawer.style.translate === "", drawer.style.translate);
+    await drag(160);
+    strip.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientY: 360, pointerId: 7 }));
+    await waitFor(() => !drawer.open, "a gaveta descer e fechar");
+    check("arrasto longo fecha a gaveta e limpa o deslocamento", !drawer.open && drawer.style.translate === "");
     targetTab.click();
     await pause(300);
     check("a aba volta a funcionar no toque seguinte", document.querySelector('.tab[aria-selected="true"]').textContent === targetTab.textContent);
@@ -933,7 +952,7 @@ const Probe = (function () {
     await typeInto("");
     check("limpar a busca traz tudo de volta", rows().length === howManyExercises, rows().length);
 
-    document.getElementById("history-close").click();
+    document.getElementById("history").close();
     await pause(250);
     check("fechar o histórico volta para o treino", !panel.open);
   }
@@ -1077,7 +1096,7 @@ const Probe = (function () {
         .some((row) => row.querySelector(".history-name").textContent === whatReturns));
     check("a volta é anunciada", noticeSays("voltou para o"), document.getElementById("notice").textContent);
 
-    document.getElementById("history-close").click();
+    document.getElementById("history").close();
     await pause(250);
     tabOf(target).click();
     await pause(400);
@@ -1569,7 +1588,8 @@ const Probe = (function () {
       && (await Store.readCircle("sun")) === null);
 
     document.getElementById("circle-create").click();
-    await pause(300);
+    // Creating awaits the render, which awaits the whole list remount: on a busy machine 300ms is short.
+    await waitFor(() => body().includes("Código do convite"), "o código do círculo na tela");
     const code = await Store.readCircle("sun");
     check("criar mostra o código para passar adiante", code !== null && body().includes(code), body());
     check("dentro do círculo, entrar some e sair aparece", document.getElementById("circle-join").hidden
