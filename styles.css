@@ -1,0 +1,1220 @@
+/* Served from the repo itself, not Google Fonts: the app has to open offline at the gym and later
+   as an installed PWA, and a remote font would fail right there. Variable from 400 to 800, which
+   covers the three weights in use. On file:// the browser refuses the file and falls back to system-ui. */
+@font-face {
+  font-family: "Mulish";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("mulish.woff2") format("woff2");
+}
+
+:root {
+  --night-900: #0D0E17;
+  --night-800: #141726;
+  --night-600: #252A42;
+  --ink-100: #EEEEFA;
+  --ink-400: #9BA3C4;
+  --blue-400: #8A9BE0;
+  --lavender-300: #B0B9E5;
+  --amber-400: #FFCB6B;
+  /* Moonlight's `error`, #CA5F71, fails AA at this text size over the raised surface, at 3.6:1. This
+     is the light warm tone of the same palette, not a hand-lightened one. */
+  --pink-300: #FFAFAF;
+  /* Moonlight's `secondary`. The only text tone in the palette between light and dimmed that passes
+     AA over the counter fill, at 4.8:1. */
+  --lilac-200: #B9C6F5;
+  --white-08: rgb(255 255 255 / 0.08);
+  --white-13: rgb(255 255 255 / 0.13);
+
+  --background: var(--night-900);
+  --surface: var(--night-800);
+  --surface-raised: var(--night-600);
+  --ring: var(--white-08);
+  --ring-strong: var(--white-13);
+  /* A real separator, not an outline: what divides sets from load inside the same box. */
+  --divider: var(--white-13);
+  --text: var(--ink-100);
+  --text-secondary: var(--ink-400);
+  /* The unit word, in the counter and the chip: "rep", "min", "h", "kg", "km/h". */
+  --text-unit: var(--lilac-200);
+  --accent: var(--blue-400);
+  --accent-text: var(--night-900);
+  --focus: var(--blue-400);
+  --done: var(--lavender-300);
+  --done-text: var(--night-900);
+  --alert: var(--amber-400);
+  /* Load that went up and load that dropped. Gain reuses lavender on purpose: in this app it already
+     means "it worked", and spending a new hue on every similar meaning is what clutters the screen. */
+  --gain: var(--lavender-300);
+  --drop: var(--pink-300);
+  /* The logo's two easter eggs: Shine's heart and Sun's sun. */
+  --heart: var(--pink-300);
+  --sun: var(--amber-400);
+
+  --radius-card: 16px;
+  --radius-panel: 24px;
+  --radius-card-inner: 8px;
+  --radius-panel-inner: 10px;
+  --radius-track: 12px;
+  --radius-track-inner: 8px;
+  --target: 44px;
+  --curve: cubic-bezier(0.2, 0, 0, 1);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* Full-height column: what pushes the footer to the bottom even with a short list, and lets the
+   list be the only thing that scrolls between the tabs and the profile. */
+body {
+  margin: 0;
+  /* Fixed height, not minimum: with min-height the body grew with the list, the page scrolled
+     instead of the panel, and on Android the vertical gesture over the cards went nowhere. */
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--background);
+  color: var(--text);
+  font: 16px/1.5 Mulish, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .counter, .photo, .tab, .primary, .secondary, .exercise, .load-value, #profiles label {
+    transition-property: background-color, box-shadow, color, scale, opacity;
+    transition-duration: 120ms;
+    transition-timing-function: var(--curve);
+  }
+  /* 150ms is the ceiling for frequent interaction feedback: ticking a set happens all the time. */
+  .counter::before { transition: height 150ms var(--curve); }
+  .counter:active, .photo:active, .tab:active, .primary:active, .secondary:active,
+  .load-value:active, #profiles label:active,
+  /* While adjusting, the counter does not shrink: the tape covering it would end up out of place. */
+  .counter.adjusting:active { scale: 1; }
+
+  /* Only the digit that just changed enters this way, never the whole list on load. */
+  .sets.entering { animation: entrar 200ms var(--curve); }
+
+  /* Enter with scale and exit with opacity only, shorter: whoever closes is already looking at the
+     rest of the screen. Discrete display and overlay are what let the native <dialog> animate out. */
+  dialog {
+    opacity: 0;
+    scale: 0.96;
+    transition: opacity 150ms var(--curve), scale 150ms var(--curve),
+      display 150ms allow-discrete, overlay 150ms allow-discrete;
+  }
+  dialog[open] { opacity: 1; scale: 1; transition-duration: 200ms; }
+  dialog::backdrop {
+    background: transparent;
+    transition: background-color 150ms var(--curve), display 150ms allow-discrete, overlay 150ms allow-discrete;
+  }
+  dialog[open]::backdrop { transition-duration: 200ms; }
+  @starting-style {
+    dialog[open] { opacity: 0; scale: 0.96; }
+    dialog[open]::backdrop { background: transparent; }
+  }
+
+  /* The history drawer neither fades nor shrinks: it rises from below, like the finger that pulled
+     it, and slides down on close. A bit longer than the other dialogs because it crosses the whole screen. */
+  #history {
+    opacity: 1;
+    scale: 1;
+    translate: 0 100%;
+    transition: translate 260ms var(--curve), display 260ms allow-discrete, overlay 260ms allow-discrete;
+  }
+  #history[open] { translate: 0 0; transition-duration: 300ms; }
+  @starting-style {
+    #history[open] { translate: 0 100%; }
+  }
+}
+
+@keyframes entrar {
+  from { opacity: 0; translate: 0 6px; filter: blur(4px); }
+}
+
+/* Travel as a fraction of the screen, not fixed pixels: the gesture that brings the list crosses the
+   whole phone, and a few pixels of offset do not read as a response to it. */
+
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Logo on top, workout and profile below, and the list runs between them. Opaque background on
+   both, otherwise the card shows through underneath. */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  justify-items: center;
+  padding-block: 10px 6px;
+  padding-inline: 16px;
+  background: var(--background);
+}
+/* The logo is a button, so it needs a touch target, but not a box: it is already a shape. */
+#open-menu {
+  display: grid;
+  place-items: center;
+  min-width: var(--target);
+  min-height: var(--target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-panel-inner);
+  background: none;
+}
+.logo { display: block; }
+/* Easter eggs: a heart over the dumbbell for Shine, a sun for Sun. Text glyphs, like the tab's ✓,
+   centered over the bar. The \FE0E asks for the text drawing, not the emoji. */
+#open-menu { position: relative; }
+#open-menu.with-heart::after, #open-menu.with-sun::after {
+  position: absolute;
+  top: 1px;
+  left: 50%;
+  translate: -50% 0;
+  font-size: 12px;
+  line-height: 1;
+}
+#open-menu.with-heart::after { content: "♥\FE0E"; color: var(--heart); }
+#open-menu.with-sun::after { content: "☀\FE0E"; color: var(--sun); }
+
+/* Column: the notice and the cycle section on top, and the carousel taking what is left.
+   min-height: 0 because a flex item does not shrink below its content without it, and then the
+   panel would never scroll. */
+main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* A track with one panel per workout. The browser drags: scroll snap delivers content following the
+   finger, inertia, and the return when the gesture stops short of halfway, without a line of
+   hand-written physics. `contain` keeps the same gesture from becoming the browser's "back".
+
+   The touch-action: pan-y that served the hand-made swipe left here. With the native track it would
+   forbid precisely the horizontal drag that now belongs to the browser. */
+#carousel {
+  /* Zero base: the height comes from what is left in the column, never from the panels' content. */
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: inline mandatory;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+#carousel::-webkit-scrollbar { display: none; }
+/* Mouse drag: snap leaves while the finger, here the pointer, is holding, and text may not be
+   selected along the way. */
+#carousel.dragging { scroll-snap-type: none; user-select: none; cursor: grabbing; }
+@media (pointer: fine) {
+  #carousel { cursor: grab; }
+  #carousel .counter, #carousel .description, #carousel .photo, #carousel .load-value { cursor: pointer; }
+}
+
+/* `scroll-snap-stop: always` is what makes a quick fling move one workout instead of crossing the
+   row: without it a hurried finger jumps from A to C. */
+.panel {
+  flex: none;
+  inline-size: 100%;
+  /* Explicit height, not just flex stretch: on Android the panel sometimes came up taller than the
+     carousel, scrolled to its own end behind the footer, and only a relayout (opening a dialog) put
+     it back. Reported on 2026-09-13. */
+  block-size: 100%;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: grid;
+  gap: 8px;
+  padding-block: 6px 12px;
+  padding-inline: 16px;
+  background: var(--background);
+  /* The pull-up gesture belongs to the app: without this the browser takes the drag and pointermove stops. */
+  touch-action: none;
+}
+/* The drawer handle: the short bar of something that can be pulled, like the phone's bottom sheets. */
+.handle {
+  width: 36px;
+  height: 4px;
+  margin: 0 auto;
+  border-radius: 2px;
+  background: var(--ring-strong);
+}
+/* The workout track takes the width; the profile one is the size of the two names and stays centered. */
+#profiles { justify-self: center; }
+
+/* Track and pill: the track is the card surface and the chosen one rises a step. Same idiom of
+   "selected" in both rows, and neither uses blue, which belongs to actions. */
+#profiles {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  margin: 0;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+}
+#profiles[hidden] { display: none; }
+#profiles label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  padding-inline: 16px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+/* The label is smaller than the minimum target, so the touch area grows outward without changing the drawing. */
+#profiles label::after { content: ""; position: absolute; inset: -5px 0; }
+#profiles label:has(:checked) { background: var(--surface-raised); color: var(--text); box-shadow: 0 0 0 1px var(--ring); }
+#profiles label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* How many workouts exist is plans.js's call, so the track does not count: columns come from the
+   content and the pill uses --count, which app.js writes. Works for one workout or six. */
+#tabs {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 4px;
+  border-radius: var(--radius-track);
+  background: var(--surface);
+}
+/* The active tab indicator is a single one that moves: an outline around the tab, no fill. A filled
+   pill competed with the finished state, and an underline under the name was too weak, both on
+   2026-09-12. --active comes from app.js, in tab positions. */
+#tabs::before {
+  content: "";
+  position: absolute;
+  /* Above the tabs, which are position: relative and would paint the finished background over it. */
+  z-index: 1;
+  inset-block: 4px;
+  inset-inline-start: 4px;
+  width: calc((100% - 8px) / var(--count, 1));
+  translate: calc(var(--active, 0) * 100%) 0;
+  border-radius: var(--radius-track-inner);
+  box-shadow: 0 0 0 1px var(--accent);
+  pointer-events: none;
+}
+/* A single workout has nothing to choose, and a lone tab taking the full width only lies about
+   there being an alternative. */
+#tabs:has(.tab:only-child) { display: none; }
+/* A workout name may not be a letter, so the tab truncates instead of stretching the track. */
+.tab {
+  position: relative;
+  min-width: 0;
+  min-height: 40px;
+  padding-inline: 8px;
+  border: 0;
+  border-radius: var(--radius-track-inner);
+  background: none;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 17px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The visual highlight is the near class, which app.js toggles halfway through the scroll;
+   aria-selected only changes on landing, and tying the color to it made the text arrive after the underline. */
+.tab.near { color: var(--text); font-weight: 700; }
+/* A finished workout wears the same as a finished card: lavender fill and ring, lavender text,
+   dimmed in opacity. The ✓ left by request on 2026-09-12. Active goes back to full to be read, and
+   the screen reader still hears "concluído" through the aria-label. */
+.tab.completed {
+  color: var(--done);
+  background: color-mix(in oklab, var(--done) 10%, var(--surface));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--done) 35%, var(--ring));
+  opacity: 0.6;
+}
+.tab.completed.near { opacity: 1; }
+
+#no-store {
+  margin-block: 16px 0;
+  margin-inline: 16px;
+  padding: 14px;
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--alert);
+  color: var(--alert);
+  font-size: 14px;
+  text-wrap: pretty;
+}
+
+#cycle {
+  margin-block: 16px 0;
+  margin-inline: 16px;
+  padding: 14px;
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--ring);
+  text-align: center;
+}
+#cycle p { margin: 0 0 12px; }
+
+.primary, .secondary {
+  min-height: var(--target);
+  padding-inline: 20px;
+  border: 0;
+  border-radius: var(--radius-panel-inner);
+  font-weight: 700;
+}
+.primary { background: var(--accent); color: var(--accent-text); }
+.secondary { background: var(--surface-raised); color: var(--text); box-shadow: 0 0 0 1px var(--ring); }
+#cycle .primary { width: 100%; }
+
+.list { list-style: none; margin: 0; padding: 8px 16px 16px; display: grid; gap: 12px; }
+/* On a wide screen the list becomes a grid: a 390px card stretched to 1400px was a line of nothing.
+   As many columns as fit, each close to the phone width, where the card was designed. */
+@media (min-width: 720px) {
+  .list { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); align-content: start; padding-inline: 24px; }
+}
+
+/* Translucent ring instead of a border: on a dark background the solid border became a frame and
+   the card read as a wireframe. Counter and photo stay tonal, with no frame of their own, so the
+   card has a single box. */
+.exercise {
+  position: relative;
+  display: grid;
+  /* Both ends have the same width, and 68px is what fits "52,5 kg" without touching. */
+  grid-template-columns: 68px 1fr 68px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: 0 0 0 1px var(--ring);
+}
+/* The tape overflows the card, so the card holding it rises above its neighbors, and above the logo
+   and footer too: at the ends of the list it invades both, and being clipped would be worse than
+   covering them for the length of the gesture. */
+.exercise:has(.adjusting) { z-index: 20; }
+/* What is done recedes: the whole card fades, and the eye goes to what is left. The adjustment tape
+   goes back to full while the finger is on it, otherwise the number is chosen in the dark. */
+.exercise.done {
+  background: color-mix(in oklab, var(--done) 10%, var(--surface));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--done) 35%, var(--ring));
+  opacity: 0.6;
+}
+.exercise.done:has(.adjusting) { opacity: 1; }
+.exercise.done .name { text-decoration: line-through; color: var(--text-secondary); }
+
+/* Sets left are the big number; reps, the small line below. */
+.counter {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  /* Top corners only: the bottom ones belong to the load, which closes the box. */
+  border-radius: var(--radius-card-inner) var(--radius-card-inner) 0 0;
+  background: none;
+  font-variant-numeric: tabular-nums;
+  /* The drag gesture belongs to the app, not the browser: without this the list scrolls and the
+     adjustment is cancelled at the first millimeter. The price is not being able to scroll the list
+     through the counter. After the `main *` rule, and by class, to beat the descendants' pan-y. */
+  touch-action: none;
+}
+.counter * { touch-action: none; }
+.counter.adjusting { overflow: visible; }
+/* Third time this bites: an author-declared display beats the browser's hidden, and the readout
+   stays on screen next to the field that should have taken its place. */
+.counter[hidden] { display: none; }
+
+/* The fill rises with the sets done. One color gaining height, not one color per stage: lavender
+   already means finished in the app, and a new hue would create a new meaning. */
+.counter::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: var(--progress, 0%);
+  background: color-mix(in oklab, var(--done) 28%, var(--surface-raised));
+}
+.counter[data-done="1"]::before { display: none; }
+.counter > * { position: relative; }
+
+.sets {
+  color: var(--text);
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1;
+}
+/* The counter's second line has the load chip's font, one step below the number in color. Not
+   --text-secondary: over the partial fill it fails AA (3.3:1). */
+.reps {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+/* Only the word takes the color: the 12 stays with the number above, the unit with the chip. */
+.reps .unit { color: var(--text-unit); }
+/* The × next to the sets reads "3 times 12 rep" top to bottom. Sets counter only: in cardio
+   "45 ×" over "min" means nothing. */
+.times {
+  margin-inline-start: 2px;
+  vertical-align: 6px;
+  color: var(--text-unit);
+  font-size: 16px;
+  font-weight: 700;
+}
+.sets.done { font-size: 15px; font-weight: 700; }
+.sets.done svg { display: block; width: 34px; height: 24px; }
+/* Over the full lavender fill the bottom line takes the "done" text color: the unit's lilac would
+   not pass contrast there. */
+.counter[data-done="1"] .reps, .counter[data-done="1"] .reps .unit { color: var(--done-text); }
+
+/* Every long-press target needs this, otherwise holding selects the text instead of firing the gesture. */
+.counter, .description, .tab {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.counter[data-done="1"] { background: var(--done); color: var(--done-text); }
+.counter[data-done="1"] .sets { color: var(--done-text); }
+
+/* The load takes the card's full width, under the three blocks. Separated by space, not by a line:
+   a line would become a frame inside a card that already has a ring. */
+/* Sets and load in one box, split by a line. The app's first real divider: not a frame around
+   anything, but the line separating two readings that share the same box. */
+.block {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  /* Counter plus the load band, with the line between them. A card without load has the same height,
+     and the counter grows to fill: cards of different heights in the same list read as a defect,
+     not as information. */
+  min-height: calc(56px + 1px + 32px);
+  align-self: center;
+  border-radius: var(--radius-card-inner);
+  background: var(--surface-raised);
+}
+
+.load-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  /* A hold target, not a tap target: tapping here ticks a set as on the counter. */
+  min-height: 32px;
+  padding: 0 4px;
+  border: 0;
+  border-top: 1px solid var(--divider);
+  border-radius: 0 0 var(--radius-card-inner) var(--radius-card-inner);
+  background: none;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.load-value svg { width: 12px; height: 12px; flex: none; }
+/* The chip's unit, kg and km/h, in the same color as the counter's bottom line. */
+.load-value .unit { color: var(--text-unit); }
+/* With display declared here, the browser's hidden no longer hides anything: without this line the
+   chip stays on screen while the field shows below, and the box gains a third band. */
+.load-value[hidden] { display: none; }
+
+/* Uppercase and smaller: both letters get the same height, and the unit stops fighting the tabular
+   digits beside it. The text stays "kg" in code, as it is written. */
+.unit {
+  margin-inline-start: 2px;
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+/* Without load the spot stays reserved and invites without shouting: the "+" says this is where you write. */
+.load-value[data-empty="1"] { color: var(--text-secondary); font-weight: 600; }
+.load-gain { color: var(--gain); }
+.load-drop { color: var(--drop); }
+
+/* 16px in the field, otherwise iPhone Safari zooms the page on focus. */
+.load-field {
+  width: 100%;
+  min-height: 28px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 0 0 var(--radius-card-inner) var(--radius-card-inner);
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 2px var(--accent);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.load-field[hidden] { display: none; }
+
+/* In cardio the top box is the typed time, with the same drawing as the sets counter: number on
+   top, "min" on the ×12 line. Without a time the "+" invites in a dimmed color. */
+.counter[data-empty="1"] .sets, .counter[data-empty="1"] .reps { color: var(--text-secondary); }
+
+.load-note { min-width: 0; display: flex; align-items: center; gap: 6px; }
+
+/* A pill tinted by its own color, instead of loose colored text: the text gets a surface of its own
+   and stops fighting the card, and the color becomes a label instead of a warning. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.badge svg { width: 13px; height: 13px; flex: none; }
+/* Only the equals sign, no number beside it: the pill shrinks to the icon's size. */
+.badge-neutral:has(svg) { padding-inline: 6px; }
+.badge-gain { background: color-mix(in oklab, var(--gain) 15%, transparent); color: var(--gain); }
+.badge-drop { background: color-mix(in oklab, var(--drop) 15%, transparent); color: var(--drop); }
+/* Over the raised surface a neutral derived from it disappears. White at 7% works on both. */
+.badge-neutral { background: rgb(255 255 255 / 0.07); color: var(--text-secondary); }
+
+/* min-width: 0 on a grid item, otherwise unbreakable content stretches the band past the screen. */
+.description {
+  min-width: 0;
+  padding: 6px;
+  margin: -6px;
+  border: 0;
+  border-radius: var(--radius-card-inner);
+  background: none;
+  text-align: start;
+}
+/* With a mouse the whole card lights up, not only the name band: the tap target is the card, and a
+   light box in the middle alone read as a text field. Done does not light up, because it receded. */
+@media (hover: hover) {
+  .exercise:not(.done):hover {
+    background: color-mix(in oklab, var(--surface-raised) 45%, var(--surface));
+    box-shadow: 0 0 0 1px var(--ring-strong);
+  }
+}
+
+.name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.32;
+  text-wrap: balance;
+}
+
+/* Muscles only, and non-default equipment. Station, video and note live in the viewer. */
+.muscles {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/* Follows the height of the sets and load box instead of floating in the middle: with both columns
+   closing on the same line, the card reads as one block. */
+.photo {
+  width: 68px;
+  align-self: stretch;
+  min-height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-card-inner);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+/* Image outline: pure white at 10% on a dark theme, drawn inside to hug the radius. */
+.photo img, #viewer-frame img { outline: 1px solid rgb(255 255 255 / 0.1); outline-offset: -1px; }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo svg { width: 22px; height: 22px; }
+
+/* Fixed width, not maximum: the viewer swaps content on every exercise, and with max-width it
+   shrank and grew on every tap. */
+dialog {
+  margin: auto;
+  width: min(340px, calc(100vw - 32px));
+  padding: 14px;
+  border: 0;
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--ring-strong);
+  color: var(--text);
+}
+dialog[open]::backdrop { background: color-mix(in oklab, var(--night-900, #0D0E17) 85%, transparent); }
+dialog h2 { margin: 2px 0 10px; font-size: 16px; line-height: 1.3; text-wrap: balance; }
+dialog p { margin: 0 0 16px; color: var(--text-secondary); font-size: 15px; }
+/* Cancel as wide as its text and the main action takes the rest: half and half did not fit
+   "Resetar progresso" on one line. */
+.actions { display: grid; grid-template-columns: auto 1fr; gap: 10px; }
+/* A hidden button is still a child, so :only-child will not do. */
+.actions:has(> [hidden]) > :not([hidden]) { grid-column: 1 / -1; }
+.stacked-actions { display: grid; gap: 10px; }
+.wide { width: 100%; margin-top: 10px; }
+
+/* Adjustment row of the exercise menu: label on the left, and the value between minus and plus, all
+   three with the minimum target. Same round icon as the photo actions. */
+.adjustment {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--target);
+  margin-bottom: 10px;
+}
+.adjustment[hidden] { display: none; }
+.adjustment-label { color: var(--text-secondary); font-size: 14px; font-weight: 600; }
+.adjustment-value { min-width: 72px; text-align: center; font-variant-numeric: tabular-nums; font-size: 15px; }
+.adjustment .icon { font-size: 22px; font-weight: 600; line-height: 1; }
+
+/* The tape is born inside the counter and covers it, overflowing up and down: the adjustment
+   happens where the finger is, not in a box in the middle of the screen. */
+.tape {
+  --line: 44px;
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: calc(5 * var(--line));
+  translate: 0 -50%;
+  overflow: hidden;
+  border-radius: var(--radius-card-inner);
+  /* The app background, not the card surface: the tape floats above the list and has to read as
+     another layer. The shadow is what lifts it off the cards it covers. */
+  background: var(--background);
+  box-shadow: 0 0 0 2px var(--accent), 0 10px 30px rgb(0 0 0 / 0.55);
+}
+/* A background veil over the numbers, instead of a mask on the tape: a mask would eat the accent
+   ring, and a mask on the column would travel with it instead of staying at the edge. */
+.tape::before, .tape::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: var(--line);
+  z-index: 1;
+  pointer-events: none;
+}
+.tape::before { top: 0; background: linear-gradient(var(--background), transparent); }
+.tape::after { bottom: 0; background: linear-gradient(transparent, var(--background)); }
+
+/* The two-row inset is what puts the first value in the center when the shift is zero. */
+.tape-column {
+  display: grid;
+  grid-auto-rows: var(--line);
+  padding-block: calc(2 * var(--line));
+  translate: 0 var(--shift, 0px);
+}
+.tape-value {
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  opacity: 0.4;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.tape-value.done { font-size: 15px; }
+.tape-value.chosen { color: var(--text); opacity: 1; }
+
+/* Someone in the circle does this exercise: their initial, in a badge in the card corner. No blue,
+   because the badge does not click, and with a letter, because color alone carries no meaning. */
+.together {
+  position: absolute;
+  top: -6px;
+  inset-inline-end: 10px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 5px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 1px var(--ring-strong);
+  color: var(--text-unit);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+/* The circle line in the viewer: who else does it, and how. Supporting text, no button. */
+#viewer-circle {
+  margin-block: -6px 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-wrap: pretty;
+}
+#viewer-circle[hidden] { display: none; }
+
+/* The label dims and the value becomes a chip. Emphasis by shape and brightness, never by a new
+   hue: this app's blue means "clickable", and painting a static number blue tells you to tap what does not tap. */
+#viewer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-block: -6px 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.value {
+  padding-inline: 8px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 1px var(--ring);
+  color: var(--text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 36vh and not 70: below the photo still come the reps, the note and four buttons, and all of that
+   has to fit without scrolling on a 667px-tall phone. */
+#viewer-frame {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  min-height: 160px;
+  overflow: hidden;
+  border-radius: var(--radius-panel-inner);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+/* With a photo the box disappears and the centered image remains: a phone photo is portrait, and
+   inside a wide box it floated with a frame around it. The box is only the empty state. */
+#viewer-frame:has(img) { background: none; }
+#viewer-frame img { display: block; max-width: 100%; max-height: 36vh; border-radius: var(--radius-panel-inner); }
+/* The photo, or the empty frame, is the button that shows the actions. It vanishes behind what it
+   holds: without a box of its own, the frame is still just the image or the empty state. */
+#viewer-frame { position: relative; }
+.touch-frame {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 160px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-panel-inner);
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+/* The actions float over the foot of the photo, a row of round icons with the minimum target. */
+.photo-actions {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.photo-actions[hidden] { display: none; }
+/* Without a photo there is no image to float over: the row drops below the notice. */
+#viewer-frame:not(:has(img)) .photo-actions { position: static; padding-bottom: 12px; }
+/* The dialog takes focus on open only so the keyboard does not jump to a field; a ring on it says
+   nothing, because the whole dialog is not a control. */
+dialog:focus-visible { outline: none; }
+.icon {
+  display: grid;
+  place-items: center;
+  width: var(--target);
+  height: var(--target);
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 1px var(--ring-strong);
+  color: var(--text);
+}
+.icon svg { width: 22px; height: 22px; }
+
+/* The history is a long list, so it takes almost the whole screen and scrolls inside instead of
+   growing until it bursts. Wider than the other dialogs: name, load and date fit on one line here. */
+#history, #plan {
+  width: min(420px, calc(100vw - 24px));
+  max-height: calc(100dvh - 48px);
+  padding: 14px;
+  overscroll-behavior: contain;
+}
+/* The history is the drawer the footer pulls, so it is a sheet stuck to the bottom, rounded only on
+   top, not a card in the middle of the screen. Slides in and out, in the motion block above. */
+#history {
+  margin-block: auto 0;
+  width: min(560px, 100vw);
+  /* The browser's sheet caps the dialog at 100% minus 2em; the drawer wants the full width. */
+  max-width: none;
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+}
+/* The two-view track lives in the history's flex, which already spaces: no margin from the loose track. */
+#history .choice-track { margin-bottom: 0; }
+/* Open only: author style beats the browser's display, and a loose flex would leave the panel
+   visible with the dialog closed. */
+#history[open], #plan[open] { display: flex; flex-direction: column; gap: 10px; }
+.history-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.history-top h2 { margin: 0; }
+#history-search {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-panel-inner);
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 1px var(--ring);
+  color: var(--text);
+  font: inherit;
+  /* 16px, otherwise iPhone Safari zooms the page on focus. */
+  font-size: 16px;
+}
+
+#history-list, #plan-list { overflow-y: auto; display: grid; gap: 8px; }
+/* Not sticky: inside a dialog that scrolls internally, mobile Chrome sometimes loses the layer and
+   stops painting the whole list. A title that scrolls along costs less than that. */
+.history-workout {
+  margin: 0;
+  padding-block: 6px 2px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.history-workout:not(:first-child) { padding-top: 10px; }
+#history-empty { margin: 0; padding-block: 8px; text-wrap: pretty; }
+
+.history-row {
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 1px var(--ring);
+}
+.history-summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  align-items: baseline;
+  padding: 10px 12px;
+  border-radius: var(--radius-card);
+  /* The native triangle would take the name column and misalign the two lines. */
+  list-style: none;
+}
+summary.history-summary { cursor: pointer; }
+.history-summary::-webkit-details-marker { display: none; }
+.history-summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Without load the row exists to say the exercise is there, not to compete with the ones that have a number. */
+.history-none { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+.history-name { font-weight: 600; font-size: 14px; line-height: 1.3; text-wrap: balance; }
+.history-now { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.history-muscles, .history-trend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.history-trend { justify-content: flex-end; white-space: nowrap; }
+.trend-day { font-size: 11px; }
+
+/* Out of the workout goes to the page background, a step below the panel: the row sinks instead of
+   floating, and the eye separates what is in the workout from what left before reading the title. */
+.history-out { background: var(--background); }
+.history-out .history-name, .history-out .history-now { color: var(--text-secondary); }
+
+.history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+.history-left { color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
+.history-actions .secondary { min-height: 34px; padding-inline: 14px; font-size: 13px; }
+
+/* Workout row of the restore dialog: same track and same pill as the tabs, because it is the same
+   choice, made from somewhere else. */
+.choice-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: var(--radius-track);
+  background: var(--surface-raised);
+}
+.choice-track label {
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  border-radius: var(--radius-track-inner);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.choice-track label:has(:checked) { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--ring); }
+.choice-track label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.progression-block { padding: 0 12px 12px; }
+.progression-summary {
+  margin: 0 0 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-wrap: pretty;
+}
+.progression { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.progression li { display: grid; grid-template-columns: 40px 1fr auto 48px; gap: 8px; align-items: center; }
+/* The day's step, right of the value: the reading that answers "how much did it change" without math. */
+.progression-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.progression-step svg { width: 12px; height: 12px; flex: none; }
+.step-gain { color: var(--gain); }
+.step-drop { color: var(--drop); }
+/* The day's bar follows the step's direction: whoever scrolls the progression sees the climb before
+   reading any number. */
+.progression li:has(.step-drop) .progression-bar {
+  background: color-mix(in oklab, var(--drop) 40%, var(--surface));
+}
+.progression-day, .progression-load {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.progression-load { color: var(--text); font-weight: 600; }
+/* One bar per day, so the climb is seen before it is read. Behind the number, never in its place:
+   a bar alone does not say how many kilos. */
+.progression-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--done) 45%, var(--surface));
+  width: var(--part, 100%);
+  justify-self: start;
+}
+
+/* Real fullscreen: no margin, radius, ring or height cap from the native <dialog>. */
+#fullscreen {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: var(--background);
+  box-shadow: none;
+  overflow: hidden;
+}
+/* touch-action: none hands pinch and drag to the app, otherwise the browser zooms the whole page. */
+#zoom {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+#zoom img {
+  max-width: 100%;
+  max-height: 100%;
+  transform-origin: center;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+.fullscreen-bar {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, color-mix(in oklab, var(--background) 85%, transparent), transparent);
+  pointer-events: none;
+}
+.fullscreen-bar > * { pointer-events: auto; }
+.fullscreen-bar p { margin: 0; min-width: 0; font-size: 14px; font-weight: 600; color: var(--text); text-wrap: balance; }
+#viewer-frame .touch-frame svg { width: 32px; height: 32px; }
+
+.label { display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+/* 16px in the field, otherwise iPhone Safari zooms the whole page on focus. */
+#note, .field {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-panel-inner);
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 1px var(--ring);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  resize: none;
+  /* Grows with the text where the browser knows how; where it does not, the two rows stay. */
+  field-sizing: content;
+  min-height: calc(2 * 1.4em + 20px);
+}
+.field { min-height: 0; margin-bottom: 0; }
+/* A placeholder is an example, not a value: dimmer than the supporting text, otherwise it reads as
+   filled. The "Ex:" in front is the second hint, for whoever cannot tell the two tones apart. */
+::placeholder { color: color-mix(in oklab, var(--text-secondary) 60%, transparent); opacity: 1; }
+/* The login error is text, not a box: the alert color already exists in the store notice. */
+#login-error { margin: 12px 0 0; color: var(--alert); font-size: 14px; }
+#login .actions, #circle .actions { margin-top: 16px; }
+/* Fifth time in this trap: a display declared by the class beats hidden. */
+#circle-members[hidden] { display: none; }
+.circle-empty { margin: 0; color: var(--text-secondary); text-wrap: pretty; }
+
+/* Edit mode. The bar takes the profile picker's place, every card gets the action row, and the rest
+   of the card sleeps: there the tap belongs to the editor, not the workout. */
+#editing { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
+#editing button { padding-inline: 12px; white-space: nowrap; }
+#editing[hidden] { display: none; }
+.editing #profiles { display: none; }
+/* Five round icons, the same as the photo actions, spread across the card width. The arrows stay
+   together on the left, the rest on the right: moving in the list and changing the exercise are two groups. */
+.edit-actions {
+  display: none;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--divider);
+}
+.editing .edit-actions { display: flex; }
+.editing .exercise > :not(.edit-actions) { pointer-events: none; opacity: 0.55; }
+.edit-actions .icon:nth-child(2) { margin-inline-end: auto; }
+.edit-actions .icon:disabled { opacity: 0.35; cursor: default; }
+
+/* Similar: what already exists with a name close to the one being typed, to reuse the machine,
+   video and photo instead of creating an "Adbução" next to "Abdução". */
+.similar { display: grid; gap: 6px; margin-top: 8px; }
+.similar[hidden] { display: none; }
+.similar button {
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--radius-panel-inner);
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 1px var(--ring);
+  color: var(--text);
+  font-size: 14px;
+  text-align: start;
+}
+.similar button span { display: block; color: var(--text-secondary); font-size: 12px; }
+
+/* New exercise form: two fields side by side where both are short. */
+.two-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.muscle-choice { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.muscle-choice label {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.muscle-choice label:has(:checked) { color: var(--text); box-shadow: 0 0 0 1px var(--ring-strong); }
+.muscle-choice label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* The attachment: a grid of options with the icon on top and the name below, radio hidden. The
+   chosen one gets the strong ring and full text, like the muscle group. */
+.accessory-choice {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.accessory-choice label {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: var(--radius-card-inner);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+.accessory-choice svg { width: 42px; height: 28px; color: var(--text-unit); }
+.accessory-choice label:has(:checked) { color: var(--text); box-shadow: 0 0 0 1px var(--ring-strong); }
+.accessory-choice label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* On the card only the icon, in its own badge on the muscle line, big enough to find standing up;
+   in the viewer, icon and name inside the chip. */
+.accessory-badge {
+  display: inline-grid;
+  place-items: center;
+  height: 22px;
+  padding-inline: 5px;
+  margin-inline-start: 2px;
+  vertical-align: -6px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 1px var(--ring);
+}
+.accessory-badge svg { width: 30px; height: 20px; color: var(--text-unit); }
+.value-accessory { display: inline-flex; align-items: center; gap: 4px; }
+.value-accessory svg { width: 21px; height: 14px; }
+#new-unit[hidden], #new-unit-label[hidden] { display: none; }

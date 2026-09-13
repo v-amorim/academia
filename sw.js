@@ -1,21 +1,21 @@
-// Service worker do app. Existe por um motivo só: a academia tem sinal ruim, e o app precisa
-// abrir sem rede depois de instalado na tela inicial.
+// The app's service worker. It exists for one reason: the gym has a weak signal, and the app has
+// to open offline once installed on the home screen.
 //
-// Subir VERSAO a cada publicação é o que troca o conteúdo guardado. Sem isso o aparelho fica
-// com a versão velha para sempre, que é o jeito clássico de um service worker estragar um app.
-const VERSAO = "v12";
-const CACHE = `academia-${VERSAO}`;
+// Bumping VERSION on every release is what swaps the cached content. Without it the device keeps
+// the old version forever, which is the classic way a service worker ruins an app.
+const VERSION = "v13";
+const CACHE = `academia-${VERSION}`;
 
-const ESSENCIAIS = [
+const ESSENTIALS = [
   "./",
   "index.html",
-  "estilo.css",
+  "styles.css",
   "mulish.woff2",
   "vendor/firebase-app-compat.js",
   "vendor/firebase-auth-compat.js",
   "vendor/firebase-firestore-compat.js",
-  "fichas.js",
-  "banco.js",
+  "plans.js",
+  "store.js",
   "app.js",
   "manifest.json",
   "icone.svg",
@@ -23,59 +23,59 @@ const ESSENCIAIS = [
   "icone-512.png"
 ];
 
-self.addEventListener("install", (evento) => {
-  evento.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ESSENCIAIS)).then(() => self.skipWaiting()));
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ESSENTIALS)).then(() => self.skipWaiting()));
 });
 
-self.addEventListener("activate", (evento) => {
-  evento.waitUntil(
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
     caches.keys()
-      .then((nomes) => Promise.all(nomes.filter((nome) => nome !== CACHE).map((nome) => caches.delete(nome))))
+      .then((names) => Promise.all(names.filter((name) => name !== CACHE).map((name) => caches.delete(name))))
       .then(() => self.clients.claim())
   );
 });
 
-// Guarda uma cópia só do que é arquivo do app: sem query, mesma origem, resposta inteira e boa.
-// Resposta parcial ou de outro site no cache reaparece quebrada offline.
-const guardavel = (pedido, resposta) =>
-  resposta?.ok && resposta.type === "basic" && new URL(pedido.url).search === "";
+// Caches only what is an app file: no query, same origin, whole and healthy response. A partial or
+// cross-site response in the cache comes back broken offline.
+const cacheable = (request, response) =>
+  response?.ok && response.type === "basic" && new URL(request.url).search === "";
 
-async function guardar(pedido, resposta) {
-  if (!guardavel(pedido, resposta)) return;
+async function keep(request, response) {
+  if (!cacheable(request, response)) return;
   const cache = await caches.open(CACHE);
-  await cache.put(pedido, resposta);
+  await cache.put(request, response);
 }
 
-// Navegação é rede primeiro: assim uma publicação nova aparece na primeira abertura com sinal,
-// e o cache só entra quando a rede falha. O contrário deixaria o treino aberto numa versão velha
-// sem jeito de sair dela.
-async function paginaDaRede(pedido) {
+// Navigation is network first: a new release shows on the first opening with signal, and the cache
+// only steps in when the network fails. The opposite would leave the workout open on an old
+// version with no way out.
+async function pageFromNetwork(request) {
   try {
-    const resposta = await fetch(pedido);
-    guardar(pedido, resposta.clone());
-    return resposta;
+    const response = await fetch(request);
+    keep(request, response.clone());
+    return response;
   } catch {
-    return (await caches.match(pedido)) ?? (await caches.match("index.html")) ?? Response.error();
+    return (await caches.match(request)) ?? (await caches.match("index.html")) ?? Response.error();
   }
 }
 
-// Arquivo do app é cache primeiro, com busca em segundo plano para a próxima abertura já ter a
-// versão nova. Abrir rápido na academia vale mais do que ter o CSS da última hora.
-async function arquivoDoCache(pedido) {
-  const guardado = await caches.match(pedido);
-  const daRede = fetch(pedido)
-    .then((resposta) => {
-      guardar(pedido, resposta.clone());
-      return resposta;
+// App files are cache first, with a background fetch so the next opening already has the new
+// version. Opening fast at the gym is worth more than having the last-minute CSS.
+async function fileFromCache(request) {
+  const cached = await caches.match(request);
+  const fromNetwork = fetch(request)
+    .then((response) => {
+      keep(request, response.clone());
+      return response;
     })
-    .catch(() => guardado);
-  return guardado ?? daRede;
+    .catch(() => cached);
+  return cached ?? fromNetwork;
 }
 
-self.addEventListener("fetch", (evento) => {
-  const pedido = evento.request;
-  if (pedido.method !== "GET") return;
-  if (new URL(pedido.url).origin !== self.location.origin) return;
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+  if (new URL(request.url).origin !== self.location.origin) return;
 
-  evento.respondWith(pedido.mode === "navigate" ? paginaDaRede(pedido) : arquivoDoCache(pedido));
+  event.respondWith(request.mode === "navigate" ? pageFromNetwork(request) : fileFromCache(request));
 });

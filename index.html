@@ -10,304 +10,304 @@
 <meta name="theme-color" content="#0D0E17">
 <title>Sunshine</title>
 <link rel="manifest" href="manifest.json">
-<!-- O iPhone ignora os ícones do manifest na tela inicial e usa só este. -->
+<!-- The iPhone ignores the manifest icons on the home screen and uses only this one. -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icone.svg" type="image/svg+xml">
-<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <header>
-  <h1 class="oculto-visual">Sunshine, treino ABC</h1>
-  <!-- A marca abre o menu: histórico, entrar e sair dividem o lugar desde a nuvem. -->
-  <button type="button" id="abrir-menu" aria-label="Abrir o menu">
+  <h1 class="visually-hidden">Sunshine, treino ABC</h1>
+  <!-- The logo opens the menu: history, sign in and sign out share the spot since the cloud. -->
+  <button type="button" id="open-menu" aria-label="Abrir o menu">
     <img src="icone.svg" width="40" height="40" alt="" class="logo">
   </button>
 </header>
 
 <main>
-  <p id="sem-banco" role="alert" hidden>Séries e fotos não serão salvas nesta sessão. O navegador bloqueia o banco de dados em página aberta como arquivo. Publique a pasta num endereço http ou https para gravar.</p>
+  <p id="no-store" role="alert" hidden>Séries e fotos não serão salvas nesta sessão. O navegador bloqueia o banco de dados em página aberta como arquivo. Publique a pasta num endereço http ou https para gravar.</p>
 
-  <section id="ciclo" role="status" hidden>
+  <section id="cycle" role="status" hidden>
     <p>Ciclo ABC completo. Os três treinos estão marcados.</p>
-    <button type="button" class="primario" id="abrir-recomecar">Recomeçar ciclo</button>
+    <button type="button" class="primary" id="open-restart">Recomeçar ciclo</button>
   </section>
 
-  <!-- Um painel por treino, lado a lado. Quem arrasta é o navegador, por scroll snap: o conteúdo
-       segue o dedo, volta sozinho quando o gesto não passa da metade, e diz onde parou. -->
-  <div id="carrossel"></div>
+  <!-- One panel per workout, side by side. The browser drags, through scroll snap: the content follows
+       the finger, returns by itself when the gesture stops short of halfway, and says where it stopped. -->
+  <div id="carousel"></div>
 </main>
 
-<!-- As duas fileiras ficam no rodapé, ao alcance do polegar: no meio do treino o celular está numa
-     mão só. O topo é da marca, que vira o menu de conta e histórico quando eles existirem. -->
+<!-- Both rows sit in the footer, within thumb reach: mid-workout the phone is in one hand. The top
+     belongs to the logo, which opens the account and history menu. -->
 <footer>
-  <!-- A alça de gaveta: puxar o rodapé para cima abre o histórico. Só desenho; o gesto é do rodapé. -->
-  <div class="alca" aria-hidden="true"></div>
-  <nav id="abas" role="tablist" aria-label="Treinos"></nav>
-  <!-- Nasce escondido: só o admin o vê, e isso só se sabe quando o Firebase responde quem entrou. -->
-  <fieldset id="perfis" hidden>
-    <legend class="oculto-visual">Quem está treinando</legend>
+  <!-- The drawer handle: pulling the footer up opens the history. Drawing only; the gesture belongs to the footer. -->
+  <div class="handle" aria-hidden="true"></div>
+  <nav id="tabs" role="tablist" aria-label="Treinos"></nav>
+  <!-- Born hidden: only the admin sees it, and that is only known once Firebase answers who signed in. -->
+  <fieldset id="profiles" hidden>
+    <legend class="visually-hidden">Quem está treinando</legend>
   </fieldset>
-  <!-- A barra do modo de edição toma o lugar do seletor de perfis enquanto dura. -->
-  <div id="edicao" hidden>
-    <button type="button" class="secundario" id="edicao-exercicio">+ Exercício</button>
-    <button type="button" class="secundario" id="edicao-treino">+ Treino</button>
-    <button type="button" class="primario" id="edicao-concluir">Concluir</button>
+  <!-- The edit-mode bar takes the profile picker's place while it lasts. -->
+  <div id="editing" hidden>
+    <button type="button" class="secondary" id="editing-exercise">+ Exercício</button>
+    <button type="button" class="secondary" id="editing-workout">+ Treino</button>
+    <button type="button" class="primary" id="editing-done">Concluir</button>
   </div>
 </footer>
 
-<p id="aviso" class="oculto-visual" role="status"></p>
+<p id="notice" class="visually-hidden" role="status"></p>
 
-<dialog id="visor" aria-labelledby="visor-titulo" tabindex="-1">
-  <h2 id="visor-titulo"></h2>
-  <p id="visor-meta"></p>
-  <p id="visor-circulo" hidden></p>
-  <div id="visor-quadro"></div>
-  <label for="repeticoes" class="rotulo" id="repeticoes-rotulo">Repetições por série</label>
-  <input id="repeticoes" class="campo" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done">
-  <label for="observacao" class="rotulo">Observação</label>
-  <textarea id="observacao" rows="2" placeholder="Ex: banco 4, pino 7" autocomplete="off" enterkeyhint="done"></textarea>
-  <!-- As ações de foto moram sobre a própria foto, e aparecem ao tocar nela: ver desenharVisor.
-       Resetar saiu daqui para o menu do exercício, o de segurar no cartão. -->
-  <button type="button" class="secundario largo" id="visor-fechar">Fechar</button>
-  <!-- Dois seletores: com `capture` o Android abre a câmera direto e pula a galeria, e sem ele o
-       seletor de fotos do Android 13 em diante não oferece câmera. Dentro do diálogo, senão ficam
-       inertes enquanto o visor está aberto e o seletor não dispara. -->
-  <input id="foto-galeria" type="file" accept="image/*" class="oculto-visual" tabindex="-1">
-  <input id="foto-camera" type="file" accept="image/*" capture="environment" class="oculto-visual" tabindex="-1">
+<dialog id="viewer" aria-labelledby="viewer-title" tabindex="-1">
+  <h2 id="viewer-title"></h2>
+  <p id="viewer-meta"></p>
+  <p id="viewer-circle" hidden></p>
+  <div id="viewer-frame"></div>
+  <label for="reps-field" class="label" id="reps-field-label">Repetições por série</label>
+  <input id="reps-field" class="field" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done">
+  <label for="note" class="label">Observação</label>
+  <textarea id="note" rows="2" placeholder="Ex: banco 4, pino 7" autocomplete="off" enterkeyhint="done"></textarea>
+  <!-- Photo actions live over the photo itself and show on tapping it: see renderViewer. Reset moved
+       from here to the exercise menu, the one opened by holding the card. -->
+  <button type="button" class="secondary wide" id="viewer-close">Fechar</button>
+  <!-- Two pickers: with `capture` Android opens the camera directly and skips the gallery, and without
+       it the Android 13+ photo picker offers no camera. Inside the dialog, otherwise they are inert
+       while the viewer is open and the picker does not fire. -->
+  <input id="photo-gallery" type="file" accept="image/*" class="visually-hidden" tabindex="-1">
+  <input id="photo-camera" type="file" accept="image/*" capture="environment" class="visually-hidden" tabindex="-1">
 </dialog>
 
-<dialog id="menu" aria-labelledby="menu-titulo">
-  <h2 id="menu-titulo">Sunshine</h2>
-  <p id="menu-quem"></p>
-  <div class="acoes-empilhadas">
-    <button type="button" class="secundario" id="menu-historico">Histórico</button>
-    <button type="button" class="secundario" id="menu-circulo" hidden>Círculo</button>
-    <button type="button" class="secundario" id="menu-editar">Editar treino</button>
-    <button type="button" class="primario" id="menu-entrar">Entrar</button>
-    <button type="button" class="secundario" id="menu-sair" hidden>Sair</button>
+<dialog id="menu" aria-labelledby="menu-title">
+  <h2 id="menu-title">Sunshine</h2>
+  <p id="menu-who"></p>
+  <div class="stacked-actions">
+    <button type="button" class="secondary" id="menu-history">Histórico</button>
+    <button type="button" class="secondary" id="menu-circle" hidden>Círculo</button>
+    <button type="button" class="secondary" id="menu-edit">Editar treino</button>
+    <button type="button" class="primary" id="menu-sign-in">Entrar</button>
+    <button type="button" class="secondary" id="menu-sign-out" hidden>Sair</button>
   </div>
 </dialog>
 
-<dialog id="login" aria-labelledby="login-titulo">
-  <h2 id="login-titulo">Entrar</h2>
+<dialog id="login" aria-labelledby="login-title">
+  <h2 id="login-title">Entrar</h2>
   <form novalidate>
-    <label for="login-usuario" class="rotulo">Usuário</label>
-    <input id="login-usuario" class="campo" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" enterkeyhint="next" required>
-    <label for="login-senha" class="rotulo">Senha</label>
-    <input id="login-senha" class="campo" type="password" autocomplete="current-password" enterkeyhint="go" required>
-    <p id="login-erro" role="alert" hidden></p>
-    <div class="acoes">
-      <button type="button" class="secundario" id="login-cancelar">Cancelar</button>
-      <button type="submit" class="primario" id="login-confirmar">Entrar</button>
+    <label for="login-username" class="label">Usuário</label>
+    <input id="login-username" class="field" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" enterkeyhint="next" required>
+    <label for="login-password" class="label">Senha</label>
+    <input id="login-password" class="field" type="password" autocomplete="current-password" enterkeyhint="go" required>
+    <p id="login-error" role="alert" hidden></p>
+    <div class="actions">
+      <button type="button" class="secondary" id="login-cancel">Cancelar</button>
+      <button type="submit" class="primary" id="login-confirm">Entrar</button>
     </div>
   </form>
 </dialog>
 
-<dialog id="historico" aria-labelledby="historico-titulo" tabindex="-1">
-  <div class="historico-topo">
-    <h2 id="historico-titulo">Histórico</h2>
-    <button type="button" class="secundario" id="historico-fechar">Fechar</button>
+<dialog id="history" aria-labelledby="history-title" tabindex="-1">
+  <div class="history-top">
+    <h2 id="history-title">Histórico</h2>
+    <button type="button" class="secondary" id="history-close">Fechar</button>
   </div>
-  <label for="historico-busca" class="oculto-visual">Buscar por exercício ou grupo</label>
-  <input id="historico-busca" type="search" placeholder="Ex: puxada, costas, bíceps" autocomplete="off" enterkeyhint="search">
-  <!-- Duas vistas: o que está no treino, e o que saiu dele (tirado no editor ou de treino que não
-       existe mais). O peso levantado continua contando nas duas. -->
-  <div id="historico-vista" class="trilho-escolha" role="radiogroup" aria-label="O que mostrar">
-    <label><input type="radio" name="historico-vista" value="treino" class="oculto-visual" checked>No treino</label>
-    <label><input type="radio" name="historico-vista" value="fora" class="oculto-visual">Fora do treino</label>
+  <label for="history-search" class="visually-hidden">Buscar por exercício ou grupo</label>
+  <input id="history-search" type="search" placeholder="Ex: puxada, costas, bíceps" autocomplete="off" enterkeyhint="search">
+  <!-- Two views: what is in the workout, and what left it (removed in the editor or from a workout that
+       no longer exists). The weight lifted still counts in both. -->
+  <div id="history-view" class="choice-track" role="radiogroup" aria-label="O que mostrar">
+    <label><input type="radio" name="history-view" value="workout" class="visually-hidden" checked>No treino</label>
+    <label><input type="radio" name="history-view" value="out" class="visually-hidden">Fora do treino</label>
   </div>
-  <div id="historico-lista"></div>
-  <p id="historico-vazio" hidden></p>
+  <div id="history-list"></div>
+  <p id="history-empty" hidden></p>
 </dialog>
 
-<dialog id="circulo" aria-labelledby="circulo-titulo" tabindex="-1">
-  <h2 id="circulo-titulo">Círculo</h2>
-  <p id="circulo-corpo"></p>
-  <form id="circulo-entrar" novalidate>
-    <label for="circulo-codigo" class="rotulo">Código do convite</label>
-    <input id="circulo-codigo" class="campo" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="6" enterkeyhint="go">
-    <p id="circulo-erro" role="alert" hidden></p>
-    <div class="acoes">
-      <button type="button" class="secundario" id="circulo-criar">Criar círculo</button>
-      <button type="submit" class="primario" id="circulo-confirmar">Entrar</button>
+<dialog id="circle" aria-labelledby="circle-title" tabindex="-1">
+  <h2 id="circle-title">Círculo</h2>
+  <p id="circle-body"></p>
+  <form id="circle-join" novalidate>
+    <label for="circle-code" class="label">Código do convite</label>
+    <input id="circle-code" class="field" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="6" enterkeyhint="go">
+    <p id="circle-error" role="alert" hidden></p>
+    <div class="actions">
+      <button type="button" class="secondary" id="circle-create">Criar círculo</button>
+      <button type="submit" class="primary" id="circle-confirm">Entrar</button>
     </div>
   </form>
-  <div id="circulo-membros" class="acoes-empilhadas" hidden></div>
-  <button type="button" class="secundario largo" id="circulo-sair" hidden>Sair do círculo</button>
-  <button type="button" class="secundario largo" id="circulo-fechar">Fechar</button>
+  <div id="circle-members" class="stacked-actions" hidden></div>
+  <button type="button" class="secondary wide" id="circle-leave" hidden>Sair do círculo</button>
+  <button type="button" class="secondary wide" id="circle-close">Fechar</button>
 </dialog>
 
-<!-- A ficha de quem divide o círculo: só leitura, sem contador e sem editor, por construção. -->
-<dialog id="ficha" aria-labelledby="ficha-titulo" tabindex="-1">
-  <div class="historico-topo">
-    <h2 id="ficha-titulo"></h2>
-    <button type="button" class="secundario" id="ficha-fechar">Fechar</button>
+<!-- The plan of whoever shares the circle: read only, no counter and no editor, by construction. -->
+<dialog id="plan" aria-labelledby="plan-title" tabindex="-1">
+  <div class="history-top">
+    <h2 id="plan-title"></h2>
+    <button type="button" class="secondary" id="plan-close">Fechar</button>
   </div>
-  <div id="ficha-lista"></div>
-  <p id="ficha-vazio" hidden>Nada para mostrar ainda.</p>
+  <div id="plan-list"></div>
+  <p id="plan-empty" hidden>Nada para mostrar ainda.</p>
 </dialog>
 
-<dialog id="tela-cheia" aria-labelledby="tela-cheia-titulo">
+<dialog id="fullscreen" aria-labelledby="fullscreen-title">
   <div id="zoom"><img alt="" draggable="false"></div>
-  <div class="tela-cheia-barra">
-    <p id="tela-cheia-titulo"></p>
-    <button type="button" class="secundario" id="tela-cheia-fechar">Fechar</button>
+  <div class="fullscreen-bar">
+    <p id="fullscreen-title"></p>
+    <button type="button" class="secondary" id="fullscreen-close">Fechar</button>
   </div>
 </dialog>
 
-<dialog id="dialogo-apagar" aria-labelledby="apagar-titulo">
-  <h2 id="apagar-titulo">Apagar esta foto?</h2>
-  <p id="apagar-corpo"></p>
-  <form method="dialog" class="acoes">
-    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
-    <button type="submit" class="primario" value="apagar">Apagar foto</button>
+<dialog id="delete-dialog" aria-labelledby="delete-title">
+  <h2 id="delete-title">Apagar esta foto?</h2>
+  <p id="delete-body"></p>
+  <form method="dialog" class="actions">
+    <button type="submit" class="secondary" value="cancel">Cancelar</button>
+    <button type="submit" class="primary" value="delete">Apagar foto</button>
   </form>
 </dialog>
 
-<dialog id="dialogo-tirar" aria-labelledby="tirar-titulo">
-  <h2 id="tirar-titulo">Tirar do treino?</h2>
-  <p id="tirar-corpo"></p>
-  <form method="dialog" class="acoes">
-    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
-    <button type="submit" class="primario" value="tirar">Tirar do treino</button>
+<dialog id="remove-dialog" aria-labelledby="remove-title">
+  <h2 id="remove-title">Tirar do treino?</h2>
+  <p id="remove-body"></p>
+  <form method="dialog" class="actions">
+    <button type="submit" class="secondary" value="cancel">Cancelar</button>
+    <button type="submit" class="primary" value="remove">Tirar do treino</button>
   </form>
 </dialog>
 
-<!-- O menu do exercício: segurar no corpo do cartão, ou a tecla de menu de contexto. Ajuste fino
-     de séries e carga, e o reset, que saiu do visor. -->
-<dialog id="menu-exercicio" aria-labelledby="menu-exercicio-titulo" tabindex="-1">
-  <h2 id="menu-exercicio-titulo"></h2>
-  <div class="ajuste" id="ajuste-series">
-    <span class="ajuste-rotulo">Séries feitas</span>
-    <button type="button" class="icone" id="series-menos" aria-label="Uma série a menos">−</button>
-    <b class="ajuste-valor" id="series-valor"></b>
-    <button type="button" class="icone" id="series-mais" aria-label="Uma série a mais">+</button>
+<!-- The exercise menu: hold the card body, or the context menu key. Fine adjustment of sets and
+     load, and the reset, which moved out of the viewer. -->
+<dialog id="exercise-menu" aria-labelledby="exercise-menu-title" tabindex="-1">
+  <h2 id="exercise-menu-title"></h2>
+  <div class="adjustment" id="sets-adjustment">
+    <span class="adjustment-label">Séries feitas</span>
+    <button type="button" class="icon" id="sets-minus" aria-label="Uma série a menos">−</button>
+    <b class="adjustment-value" id="sets-value"></b>
+    <button type="button" class="icon" id="sets-plus" aria-label="Uma série a mais">+</button>
   </div>
-  <div class="ajuste" id="ajuste-carga">
-    <span class="ajuste-rotulo" id="carga-rotulo">Carga</span>
-    <button type="button" class="icone" id="carga-menos" aria-label="Menos carga">−</button>
-    <b class="ajuste-valor" id="carga-valor-menu"></b>
-    <button type="button" class="icone" id="carga-mais" aria-label="Mais carga">+</button>
+  <div class="adjustment" id="load-adjustment">
+    <span class="adjustment-label" id="load-label">Carga</span>
+    <button type="button" class="icon" id="load-minus" aria-label="Menos carga">−</button>
+    <b class="adjustment-value" id="menu-load-value"></b>
+    <button type="button" class="icon" id="load-plus" aria-label="Mais carga">+</button>
   </div>
-  <button type="button" class="secundario largo" id="menu-exercicio-resetar">Resetar progresso</button>
-  <button type="button" class="secundario largo" id="menu-exercicio-fechar">Fechar</button>
+  <button type="button" class="secondary wide" id="exercise-menu-reset">Resetar progresso</button>
+  <button type="button" class="secondary wide" id="exercise-menu-close">Fechar</button>
 </dialog>
 
-<dialog id="dialogo-exercicio" aria-labelledby="exercicio-titulo">
-  <h2 id="exercicio-titulo">Resetar progresso?</h2>
-  <p id="exercicio-corpo"></p>
-  <form method="dialog" class="acoes">
-    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
-    <button type="submit" class="primario" value="resetar">Resetar progresso</button>
+<dialog id="exercise-dialog" aria-labelledby="exercise-title">
+  <h2 id="exercise-title">Resetar progresso?</h2>
+  <p id="exercise-body"></p>
+  <form method="dialog" class="actions">
+    <button type="submit" class="secondary" value="cancel">Cancelar</button>
+    <button type="submit" class="primary" value="reset">Resetar progresso</button>
   </form>
 </dialog>
 
-<dialog id="dialogo-treino" aria-labelledby="treino-titulo">
-  <h2 id="treino-titulo"></h2>
+<dialog id="workout-dialog" aria-labelledby="workout-title">
+  <h2 id="workout-title"></h2>
   <p>Encerrar grava o treino de hoje no histórico. Exercício que você não fez entra com zero séries.</p>
-  <form method="dialog" class="acoes-empilhadas">
-    <button type="submit" class="primario" value="encerrar">Encerrar treino aqui</button>
-    <button type="submit" class="secundario" value="resetar">Resetar progresso</button>
-    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
+  <form method="dialog" class="stacked-actions">
+    <button type="submit" class="primary" value="finish">Encerrar treino aqui</button>
+    <button type="submit" class="secondary" value="reset">Resetar progresso</button>
+    <button type="submit" class="secondary" value="cancel">Cancelar</button>
   </form>
 </dialog>
 
-<dialog id="dialogo-reativar" aria-labelledby="reativar-titulo">
-  <h2 id="reativar-titulo">Voltar para o treino</h2>
-  <p id="reativar-corpo"></p>
-  <div id="reativar-treinos" class="trilho-escolha" role="radiogroup" aria-label="Em qual treino ele entra"></div>
-  <form method="dialog" class="acoes">
-    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
-    <button type="submit" class="primario" value="reativar" id="reativar-confirmar">Voltar para o treino</button>
+<dialog id="restore-dialog" aria-labelledby="restore-title">
+  <h2 id="restore-title">Voltar para o treino</h2>
+  <p id="restore-body"></p>
+  <div id="restore-workouts" class="choice-track" role="radiogroup" aria-label="Em qual treino ele entra"></div>
+  <form method="dialog" class="actions">
+    <button type="submit" class="secondary" value="cancel">Cancelar</button>
+    <button type="submit" class="primary" value="restore" id="restore-confirm">Voltar para o treino</button>
   </form>
 </dialog>
 
-<dialog id="dialogo-nome-treino" aria-labelledby="nome-treino-titulo">
-  <h2 id="nome-treino-titulo">Novo treino</h2>
+<dialog id="workout-name-dialog" aria-labelledby="workout-name-title">
+  <h2 id="workout-name-title">Novo treino</h2>
   <form method="dialog">
-    <label for="nome-treino" class="rotulo">Nome do treino</label>
-    <input id="nome-treino" class="campo" type="text" maxlength="24" autocomplete="off" enterkeyhint="done" required>
-    <div class="acoes">
-      <button type="submit" class="secundario" value="cancelar" formnovalidate>Cancelar</button>
-      <button type="submit" class="primario" value="salvar">Salvar</button>
+    <label for="workout-name" class="label">Nome do treino</label>
+    <input id="workout-name" class="field" type="text" maxlength="24" autocomplete="off" enterkeyhint="done" required>
+    <div class="actions">
+      <button type="submit" class="secondary" value="cancel" formnovalidate>Cancelar</button>
+      <button type="submit" class="primary" value="save">Salvar</button>
     </div>
   </form>
 </dialog>
 
-<dialog id="dialogo-editar-treino" aria-labelledby="editar-treino-titulo">
-  <h2 id="editar-treino-titulo"></h2>
+<dialog id="edit-workout-dialog" aria-labelledby="edit-workout-title">
+  <h2 id="edit-workout-title"></h2>
   <p>Tirar o treino não apaga nada: os dias dele continuam no histórico.</p>
-  <form method="dialog" class="acoes-empilhadas">
-    <button type="submit" class="secundario" value="renomear">Renomear</button>
-    <button type="submit" class="secundario" value="antes">Mover para antes</button>
-    <button type="submit" class="secundario" value="depois">Mover para depois</button>
-    <button type="submit" class="secundario" value="tirar">Tirar este treino</button>
-    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
+  <form method="dialog" class="stacked-actions">
+    <button type="submit" class="secondary" value="rename">Renomear</button>
+    <button type="submit" class="secondary" value="before">Mover para antes</button>
+    <button type="submit" class="secondary" value="after">Mover para depois</button>
+    <button type="submit" class="secondary" value="remove">Tirar este treino</button>
+    <button type="submit" class="secondary" value="cancel">Cancelar</button>
   </form>
 </dialog>
 
-<dialog id="dialogo-novo-exercicio" aria-labelledby="novo-exercicio-titulo">
-  <h2 id="novo-exercicio-titulo">Novo exercício</h2>
+<dialog id="new-exercise-dialog" aria-labelledby="new-exercise-title">
+  <h2 id="new-exercise-title">Novo exercício</h2>
   <form method="dialog">
-    <label for="novo-nome" class="rotulo">Nome</label>
-    <input id="novo-nome" class="campo" type="text" maxlength="60" autocomplete="off" required>
-    <div id="novo-parecidos" class="parecidos" role="group" aria-label="Exercícios parecidos que já existem" hidden></div>
-    <div class="dois-campos">
+    <label for="new-name" class="label">Nome</label>
+    <input id="new-name" class="field" type="text" maxlength="60" autocomplete="off" required>
+    <div id="new-similar" class="similar" role="group" aria-label="Exercícios parecidos que já existem" hidden></div>
+    <div class="two-fields">
       <div>
-        <label for="novo-aparelho" class="rotulo">Aparelho</label>
-        <input id="novo-aparelho" class="campo" type="text" maxlength="12" autocomplete="off" placeholder="Ex: 47, em pé">
+        <label for="new-station" class="label">Aparelho</label>
+        <input id="new-station" class="field" type="text" maxlength="12" autocomplete="off" placeholder="Ex: 47, em pé">
       </div>
       <div>
-        <label for="novo-cod" class="rotulo">Vídeo</label>
-        <input id="novo-cod" class="campo" type="text" inputmode="numeric" maxlength="6" autocomplete="off">
-      </div>
-    </div>
-    <div class="dois-campos">
-      <div>
-        <label for="novo-series" class="rotulo">Séries</label>
-        <input id="novo-series" class="campo" type="text" inputmode="numeric" value="3" required>
-      </div>
-      <div>
-        <label for="novo-reps" class="rotulo">Repetições</label>
-        <input id="novo-reps" class="campo" type="text" inputmode="numeric" value="12">
+        <label for="new-video-code" class="label">Vídeo</label>
+        <input id="new-video-code" class="field" type="text" inputmode="numeric" maxlength="6" autocomplete="off">
       </div>
     </div>
-    <p class="rotulo" id="novo-tipo-rotulo">Tipo</p>
-    <div id="novo-tipo" class="trilho-escolha" role="radiogroup" aria-labelledby="novo-tipo-rotulo">
-      <label><input type="radio" name="novo-tipo" value="" class="oculto-visual" checked>Peso</label>
-      <label><input type="radio" name="novo-tipo" value="corpo" class="oculto-visual">Peso do corpo</label>
-      <label><input type="radio" name="novo-tipo" value="tempo" class="oculto-visual">Aeróbico</label>
+    <div class="two-fields">
+      <div>
+        <label for="new-sets" class="label">Séries</label>
+        <input id="new-sets" class="field" type="text" inputmode="numeric" value="3" required>
+      </div>
+      <div>
+        <label for="new-reps" class="label">Repetições</label>
+        <input id="new-reps" class="field" type="text" inputmode="numeric" value="12">
+      </div>
     </div>
-    <label for="novo-unidade" class="rotulo" id="novo-unidade-rotulo" hidden>Unidade da intensidade</label>
-    <input id="novo-unidade" class="campo" type="text" maxlength="8" autocomplete="off" placeholder="Ex: km/h, nível" hidden>
-    <p class="rotulo" id="novo-grupos-rotulo">Músculos</p>
-    <div id="novo-grupos" class="grupos-escolha" role="group" aria-labelledby="novo-grupos-rotulo"></div>
-    <p class="rotulo" id="novo-acessorio-rotulo">Acessório da polia</p>
-    <div id="novo-acessorio" class="acessorios-escolha" role="radiogroup" aria-labelledby="novo-acessorio-rotulo"></div>
-    <div class="acoes">
-      <button type="submit" class="secundario" value="cancelar" formnovalidate>Cancelar</button>
-      <button type="submit" class="primario" value="criar">Adicionar</button>
+    <p class="label" id="new-kind-label">Tipo</p>
+    <div id="new-kind" class="choice-track" role="radiogroup" aria-labelledby="new-kind-label">
+      <label><input type="radio" name="new-kind" value="" class="visually-hidden" checked>Peso</label>
+      <label><input type="radio" name="new-kind" value="bodyweight" class="visually-hidden">Peso do corpo</label>
+      <label><input type="radio" name="new-kind" value="time" class="visually-hidden">Aeróbico</label>
+    </div>
+    <label for="new-unit" class="label" id="new-unit-label" hidden>Unidade da intensidade</label>
+    <input id="new-unit" class="field" type="text" maxlength="8" autocomplete="off" placeholder="Ex: km/h, nível" hidden>
+    <p class="label" id="new-muscles-label">Músculos</p>
+    <div id="new-muscles" class="muscle-choice" role="group" aria-labelledby="new-muscles-label"></div>
+    <p class="label" id="new-accessory-label">Acessório da polia</p>
+    <div id="new-accessory" class="accessory-choice" role="radiogroup" aria-labelledby="new-accessory-label"></div>
+    <div class="actions">
+      <button type="submit" class="secondary" value="cancel" formnovalidate>Cancelar</button>
+      <button type="submit" class="primary" value="create">Adicionar</button>
     </div>
   </form>
 </dialog>
 
-<dialog id="dialogo-recomecar" aria-labelledby="recomecar-titulo">
-  <h2 id="recomecar-titulo">Recomeçar o ciclo?</h2>
+<dialog id="restart-dialog" aria-labelledby="restart-title">
+  <h2 id="restart-title">Recomeçar o ciclo?</h2>
   <p>As marcações de A, B e C voltam ao início. As fotos dos equipamentos continuam salvas.</p>
-  <form method="dialog" class="acoes">
-    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
-    <button type="submit" class="primario" value="recomecar">Recomeçar ciclo</button>
+  <form method="dialog" class="actions">
+    <button type="submit" class="secondary" value="cancel">Cancelar</button>
+    <button type="submit" class="primary" value="restart">Recomeçar ciclo</button>
   </form>
 </dialog>
 
-<!-- Compat, e não modular: type="module" não executa em file://. Vendorizado para o service
-     worker guardar e o app abrir sem rede. -->
+<!-- Compat, not modular: type="module" does not run on file://. Vendored so the service worker
+     can cache it and the app opens offline. -->
 <script src="vendor/firebase-app-compat.js"></script>
 <script src="vendor/firebase-auth-compat.js"></script>
 <script src="vendor/firebase-firestore-compat.js"></script>
-<script src="fichas.js"></script>
-<script src="banco.js"></script>
+<script src="plans.js"></script>
+<script src="store.js"></script>
 <script src="app.js"></script>
 
 </body>

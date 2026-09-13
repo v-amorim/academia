@@ -1,2381 +1,2380 @@
-// Traço de 1.5px porque o ícone fica ao lado de texto de peso 400, e currentColor porque um SVG
-// só é recolorido por estado, nunca trocado por outro arquivo.
-const ICONE_CAMERA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2a1.5 1.5 0 0 0 1.2-.6l.9-1.2a1.5 1.5 0 0 1 1.2-.6h4a1.5 1.5 0 0 1 1.2.6l.9 1.2a1.5 1.5 0 0 0 1.2.6h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5Z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
-// Os três irmãos da câmera, no mesmo traço: galeria, lixeira e ampliar. Vivem sobre a foto do visor.
-const ICONE_GALERIA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-4.5-4.5L8 19"/></svg>`;
-const ICONE_LIXEIRA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7M6 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h7.4a1.5 1.5 0 0 0 1.5-1.4L18 7M10 11v6M14 11v6"/></svg>`;
-const ICONE_AMPLIAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h5v5M9 20H4v-5M20 4l-6 6M4 20l6-6"/></svg>`;
+// 1.5px stroke because the icon sits next to weight-400 text, and currentColor because an SVG is
+// only recolored by state, never swapped for another file.
+const ICON_CAMERA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2a1.5 1.5 0 0 0 1.2-.6l.9-1.2a1.5 1.5 0 0 1 1.2-.6h4a1.5 1.5 0 0 1 1.2.6l.9 1.2a1.5 1.5 0 0 0 1.2.6h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5Z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+// The camera's three siblings, same stroke: gallery, trash and zoom. They live over the viewer photo.
+const ICON_GALLERY = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-4.5-4.5L8 19"/></svg>`;
+const ICON_TRASH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7M6 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h7.4a1.5 1.5 0 0 0 1.5-1.4L18 7M10 11v6M14 11v6"/></svg>`;
+const ICON_ZOOM = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h5v5M9 20H4v-5M20 4l-6 6M4 20l6-6"/></svg>`;
 
-// Traço 2 porque o ícone tem 13px: a 1.5 a linha some ao lado do número em peso 700. Mesmo
-// vocabulário do ícone da câmera, currentColor e nada de arquivo por estado.
-const traco = (miolo) =>
-  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${miolo}</svg>`;
+// Stroke 2 because the icon is 13px: at 1.5 the line vanishes next to the weight-700 number. Same
+// vocabulary as the camera icon, currentColor and no file per state.
+const stroke = (inner) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 
-const ICONE_SUBIU = traco(`<path d="M3 17 9.5 10.5 14 15 21 8"/><path d="M15 8h6v6"/>`);
-const ICONE_DESCEU = traco(`<path d="M3 7 9.5 13.5 14 9 21 16"/><path d="M15 16h6v-6"/>`);
-const ICONE_MANTEVE = traco(`<path d="M5 9h14"/><path d="M5 15h14"/>`);
+const ICON_UP = stroke(`<path d="M3 17 9.5 10.5 14 15 21 8"/><path d="M15 8h6v6"/>`);
+const ICON_DOWN = stroke(`<path d="M3 7 9.5 13.5 14 9 21 16"/><path d="M15 16h6v-6"/>`);
+const ICON_FLAT = stroke(`<path d="M5 9h14"/><path d="M5 15h14"/>`);
 
-// A fileira do modo de edição, no traço fino dos ícones da foto: subir, descer, editar, mudar de
-// treino e tirar. Tirar é arquivar, então é uma caixa e não uma lixeira.
-const fino = (miolo) =>
-  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${miolo}</svg>`;
-const ICONE_SUBIR = fino(`<path d="m6 14 6-6 6 6"/>`);
-const ICONE_DESCER = fino(`<path d="m6 10 6 6 6-6"/>`);
-const ICONE_EDITAR = fino(`<path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z"/><path d="m13.5 6.5 4 4"/>`);
-const ICONE_MOVER = fino(`<path d="M13 5h5.5A1.5 1.5 0 0 1 20 6.5v11a1.5 1.5 0 0 1-1.5 1.5H13"/><path d="M3 12h11"/><path d="m10 8 4 4-4 4"/>`);
-const ICONE_ARQUIVAR = fino(`<path d="M3 5.5A1.5 1.5 0 0 1 4.5 4h15A1.5 1.5 0 0 1 21 5.5V8H3Z"/><path d="M4 8v10.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V8"/><path d="M12 11v6"/><path d="m9 14 3 3 3-3"/>`);
+// The edit-mode toolbar, in the thin stroke of the photo icons: up, down, edit, change workout and
+// remove. Removing is archiving, so it is a box and not a trash can.
+const thin = (inner) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+const ICON_MOVE_UP = thin(`<path d="m6 14 6-6 6 6"/>`);
+const ICON_MOVE_DOWN = thin(`<path d="m6 10 6 6 6-6"/>`);
+const ICON_EDIT = thin(`<path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z"/><path d="m13.5 6.5 4 4"/>`);
+const ICON_MOVE = thin(`<path d="M13 5h5.5A1.5 1.5 0 0 1 20 6.5v11a1.5 1.5 0 0 1-1.5 1.5H13"/><path d="M3 12h11"/><path d="m10 8 4 4-4 4"/>`);
+const ICON_ARCHIVE = thin(`<path d="M3 5.5A1.5 1.5 0 0 1 4.5 4h15A1.5 1.5 0 0 1 21 5.5V8H3Z"/><path d="M4 8v10.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V8"/><path d="M12 11v6"/><path d="m9 14 3 3 3-3"/>`);
 
-// Os acessórios, desenhados com o Vinicius em 2026-09-13 a partir das fotos da academia dele. Os
-// de polia pendem do mesmo gancho, olhal e haste, e embaixo vai só a silhueta em uma linha. Fio de
-// nylon e corda são tracejados; pegada anatômica é gota cheia. Os livres não têm gancho. O campo
-// `acessorio` do exercício guarda a chave; vazio quer dizer nenhum.
-const GANCHO_DA_POLIA = `<circle cx="24" cy="4.5" r="2.5"/><path d="M24 7v4"/>`;
-const FIO = `stroke-dasharray="2 1.5"`;
-const bolaCheia = (x, y) => `<circle cx="${x}" cy="${y}" r="2.5" fill="currentColor" stroke="none"/>`;
-const gotaCheia = (x, y, lado) => `<ellipse cx="${x}" cy="${y}" rx="1.9" ry="3" transform="rotate(${lado * 28} ${x} ${y})" fill="currentColor" stroke="none"/>`;
-const magGrip = (meia, altura, plana, sobe) => {
-  const x = 24 - meia;
-  const y = 11 + altura;
-  return `<path d="M24 11L${x} ${y}h-${plana}v-${sobe}M24 11L${48 - x} ${y}h${plana}v-${sobe}"/>`
-    + gotaCheia(x - plana, y - sobe - 2, -1) + gotaCheia(48 - x + plana, y - sobe - 2, 1);
+// The attachments, drawn with Vinicius on 2026-09-13 from photos of his gym. Pulley ones hang from
+// the same hook, eye and rod, with only a one-line silhouette below. Nylon and rope are dashed;
+// an anatomical grip is a filled drop. Free ones have no hook. The exercise's `accessory` field
+// holds the key; empty means none.
+const PULLEY_HOOK = `<circle cx="24" cy="4.5" r="2.5"/><path d="M24 7v4"/>`;
+const DASHED = `stroke-dasharray="2 1.5"`;
+const filledDot = (x, y) => `<circle cx="${x}" cy="${y}" r="2.5" fill="currentColor" stroke="none"/>`;
+const filledDrop = (x, y, side) => `<ellipse cx="${x}" cy="${y}" rx="1.9" ry="3" transform="rotate(${side * 28} ${x} ${y})" fill="currentColor" stroke="none"/>`;
+const magGrip = (half, height, flat, rise) => {
+  const x = 24 - half;
+  const y = 11 + height;
+  return `<path d="M24 11L${x} ${y}h-${flat}v-${rise}M24 11L${48 - x} ${y}h${flat}v-${rise}"/>`
+    + filledDrop(x - flat, y - rise - 2, -1) + filledDrop(48 - x + flat, y - rise - 2, 1);
 };
-const ANILHAS_DA_BARRA = `<rect x="9" y="8" width="5" height="16" rx="1.5"/><rect x="34" y="8" width="5" height="16" rx="1.5"/><path d="M15.5 13v6M32.5 13v6"/>`;
-const ACESSORIOS = {
-  "barra-reta-curta": { nome: "Barra reta curta", polia: true, desenho: `<path d="M14 11h20"/>` },
-  "barra-reta-longa": { nome: "Barra reta longa", polia: true, desenho: `<path d="M3 11h42"/>` },
-  "barra-curva-longa": { nome: "Barra curva longa", polia: true, desenho: `<path d="M3 18l7-7h28l7 7"/>` },
-  "barra-w": { nome: "Barra W", polia: true, desenho: `<path d="M3 11l8 6 8-6h10l8 6 8-6"/>` },
-  "barra-v": { nome: "Barra V", polia: true, desenho: `<path d="M24 11l-9 12M24 11l9 12"/><path d="M15 23h-6M33 23h6" stroke-width="3"/>` },
-  "corda": { nome: "Corda", polia: true, desenho: `<path d="M24 11c-9 3-12 8-12 13M24 11c9 3 12 8 12 13" ${FIO}/>${bolaCheia(12, 26.5)}${bolaCheia(36, 26.5)}` },
-  "estribo-ferro": { nome: "Estribo de ferro", polia: true, desenho: `<path d="M13 26v-4a11 11 0 0 1 22 0v4"/><path d="M11 26h26" stroke-width="3"/>` },
-  "estribo-nylon": { nome: "Estribo de nylon", polia: true, desenho: `<path d="M24 11l-10 15M24 11l10 15" ${FIO}/><path d="M12 26h24" stroke-width="3"/>` },
-  "romano": { nome: "Puxador romano", polia: true, desenho: `<path d="M17 11h14"/><rect x="3" y="7.5" width="14" height="7" rx="1"/><rect x="31" y="7.5" width="14" height="7" rx="1"/><path d="M8 7.5v7M12 7.5v7M36 7.5v7M40 7.5v7" stroke-width="1"/>` },
-  "triangulo": { nome: "Triângulo", polia: true, desenho: `<path d="M24 11l-11 12M24 11l11 12"/>${bolaCheia(13, 23)}${bolaCheia(35, 23)}` },
-  "mag-fechada-neutra": { nome: "Mag grip fechada neutra", polia: true, desenho: magGrip(5, 6, 3, 5) },
-  "mag-fechada-pronada": { nome: "Mag grip fechada pronada", polia: true, desenho: magGrip(7, 5, 4, 4) },
-  "mag-media": { nome: "Mag grip média", polia: true, desenho: magGrip(10, 7, 5, 4) },
-  "mag-larga": { nome: "Mag grip larga", polia: true, desenho: magGrip(13, 8, 6, 4) },
-  "mag-extra-larga": { nome: "Mag grip extra larga", polia: true, desenho: magGrip(16, 9, 6, 4) },
-  "tornozeleira": { nome: "Tornozeleira", polia: true, desenho: `<path d="M24 11l-9 11M24 11l9 11" ${FIO}/><path d="M15 22q9 8 18 0" stroke-width="3"/>` },
-  "halter": { nome: "Halter", polia: false, desenho: `<path d="M17 16h14"/><rect x="9" y="10" width="7" height="12" rx="1.5"/><rect x="32" y="10" width="7" height="12" rx="1.5"/><path d="M6 13v6M42 13v6"/>` },
-  "barra-livre": { nome: "Barra livre", polia: false, desenho: `<path d="M3 16h6M14 16h20M39 16h6"/>${ANILHAS_DA_BARRA}` },
-  "barra-w-livre": { nome: "Barra W livre", polia: false, desenho: `<path d="M3 16h6M39 16h6"/><path d="M14 16h3l3.5-4 3.5 4 3.5-4 3.5 4h3"/>${ANILHAS_DA_BARRA}` },
-  "kettlebell": { nome: "Kettlebell", polia: false, desenho: `<path d="M18 13a6 6 0 0 1 12 0"/><circle cx="24" cy="20" r="8"/>` },
-  "anilha": { nome: "Anilha", polia: false, desenho: `<circle cx="24" cy="16" r="11"/><circle cx="24" cy="16" r="3"/>` }
+const BAR_PLATES = `<rect x="9" y="8" width="5" height="16" rx="1.5"/><rect x="34" y="8" width="5" height="16" rx="1.5"/><path d="M15.5 13v6M32.5 13v6"/>`;
+const ACCESSORIES = {
+  "short-straight-bar": { name: "Barra reta curta", pulley: true, drawing: `<path d="M14 11h20"/>` },
+  "long-straight-bar": { name: "Barra reta longa", pulley: true, drawing: `<path d="M3 11h42"/>` },
+  "long-curved-bar": { name: "Barra curva longa", pulley: true, drawing: `<path d="M3 18l7-7h28l7 7"/>` },
+  "ez-bar": { name: "Barra W", pulley: true, drawing: `<path d="M3 11l8 6 8-6h10l8 6 8-6"/>` },
+  "v-bar": { name: "Barra V", pulley: true, drawing: `<path d="M24 11l-9 12M24 11l9 12"/><path d="M15 23h-6M33 23h6" stroke-width="3"/>` },
+  "rope": { name: "Corda", pulley: true, drawing: `<path d="M24 11c-9 3-12 8-12 13M24 11c9 3 12 8 12 13" ${DASHED}/>${filledDot(12, 26.5)}${filledDot(36, 26.5)}` },
+  "iron-stirrup": { name: "Estribo de ferro", pulley: true, drawing: `<path d="M13 26v-4a11 11 0 0 1 22 0v4"/><path d="M11 26h26" stroke-width="3"/>` },
+  "nylon-stirrup": { name: "Estribo de nylon", pulley: true, drawing: `<path d="M24 11l-10 15M24 11l10 15" ${DASHED}/><path d="M12 26h24" stroke-width="3"/>` },
+  "roman-handle": { name: "Puxador romano", pulley: true, drawing: `<path d="M17 11h14"/><rect x="3" y="7.5" width="14" height="7" rx="1"/><rect x="31" y="7.5" width="14" height="7" rx="1"/><path d="M8 7.5v7M12 7.5v7M36 7.5v7M40 7.5v7" stroke-width="1"/>` },
+  "triangle": { name: "Triângulo", pulley: true, drawing: `<path d="M24 11l-11 12M24 11l11 12"/>${filledDot(13, 23)}${filledDot(35, 23)}` },
+  "mag-close-neutral": { name: "Mag grip fechada neutra", pulley: true, drawing: magGrip(5, 6, 3, 5) },
+  "mag-close-pronated": { name: "Mag grip fechada pronada", pulley: true, drawing: magGrip(7, 5, 4, 4) },
+  "mag-medium": { name: "Mag grip média", pulley: true, drawing: magGrip(10, 7, 5, 4) },
+  "mag-wide": { name: "Mag grip larga", pulley: true, drawing: magGrip(13, 8, 6, 4) },
+  "mag-extra-wide": { name: "Mag grip extra larga", pulley: true, drawing: magGrip(16, 9, 6, 4) },
+  "ankle-strap": { name: "Tornozeleira", pulley: true, drawing: `<path d="M24 11l-9 11M24 11l9 11" ${DASHED}/><path d="M15 22q9 8 18 0" stroke-width="3"/>` },
+  "dumbbell": { name: "Halter", pulley: false, drawing: `<path d="M17 16h14"/><rect x="9" y="10" width="7" height="12" rx="1.5"/><rect x="32" y="10" width="7" height="12" rx="1.5"/><path d="M6 13v6M42 13v6"/>` },
+  "free-bar": { name: "Barra livre", pulley: false, drawing: `<path d="M3 16h6M14 16h20M39 16h6"/>${BAR_PLATES}` },
+  "free-ez-bar": { name: "Barra W livre", pulley: false, drawing: `<path d="M3 16h6M39 16h6"/><path d="M14 16h3l3.5-4 3.5 4 3.5-4 3.5 4h3"/>${BAR_PLATES}` },
+  "kettlebell": { name: "Kettlebell", pulley: false, drawing: `<path d="M18 13a6 6 0 0 1 12 0"/><circle cx="24" cy="20" r="8"/>` },
+  "plate": { name: "Anilha", pulley: false, drawing: `<circle cx="24" cy="16" r="11"/><circle cx="24" cy="16" r="3"/>` }
 };
-const svgDoAcessorio = (chave) => {
-  const acessorio = ACESSORIOS[chave];
-  if (!acessorio) return "";
-  return `<svg viewBox="0 0 48 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${acessorio.polia ? GANCHO_DA_POLIA : ""}${acessorio.desenho}</svg>`;
+const accessorySvg = (key) => {
+  const accessory = ACCESSORIES[key];
+  if (!accessory) return "";
+  return `<svg viewBox="0 0 48 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${accessory.pulley ? PULLEY_HOOK : ""}${accessory.drawing}</svg>`;
 };
-const nomeDoAcessorio = (chave) => ACESSORIOS[chave]?.nome ?? "";
+const accessoryName = (key) => ACCESSORIES[key]?.name ?? "";
 
-// O dado guarda o valor cru, minúsculo e sem acento; a tela mostra a palavra como um nativo
-// escreve, com diacrítico completo e maiúscula inicial.
-const NOME_DO_GRUPO = {
-  peito: "Peito", costas: "Costas", ombro: "Ombro", biceps: "Bíceps", triceps: "Tríceps",
-  quadriceps: "Quadríceps", posterior: "Posterior", gluteo: "Glúteo", adutor: "Adutor",
-  panturrilha: "Panturrilha", lombar: "Lombar", abdomen: "Abdômen"
+// Data holds the raw key; the screen shows the word as a native speaker writes it, with full
+// diacritics and a capital.
+const MUSCLE_NAME = {
+  chest: "Peito", back: "Costas", shoulders: "Ombro", biceps: "Bíceps", triceps: "Tríceps",
+  quads: "Quadríceps", hamstrings: "Posterior", glutes: "Glúteo", adductors: "Adutor",
+  calves: "Panturrilha", "lower-back": "Lombar", abs: "Abdômen"
 };
 
-// Os treinos vêm do banco a cada carga, e a ficha só serve de fallback sem banco. `letra` é o
-// id do treino, que sessões e exercícios guardam; o nome é o que a aba mostra.
-let LETRAS = Object.keys(TREINOS);
-let treinos = LETRAS.map((letra, ordem) => ({ id: letra, nome: letra, ordem }));
-const nomeDoTreino = (letra) => treinos.find((treino) => treino.id === letra)?.nome ?? letra;
-// "Treino A" para nome curto, e o nome sozinho quando ele já é uma palavra ("Pernas").
-const tituloDoTreino = (letra) => {
-  const nome = nomeDoTreino(letra);
-  return nome.length <= 2 ? `Treino ${nome}` : nome;
+// Workouts come from the store on every load, and the plan is only a fallback without one. The
+// workout id is what sessions and exercises store; the name is what the tab shows.
+let WORKOUT_IDS = Object.keys(SUN_WORKOUTS);
+let workouts = WORKOUT_IDS.map((workoutId, order) => ({ id: workoutId, name: workoutId, order: order }));
+const workoutName = (workoutId) => workouts.find((workout) => workout.id === workoutId)?.name ?? workoutId;
+// "Treino A" for a short name, and the name alone when it is already a word ("Pernas").
+const workoutTitle = (workoutId) => {
+  const name = workoutName(workoutId);
+  return name.length <= 2 ? `Treino ${name}` : name;
 };
-const ESPERA_TOQUE_LONGO = 400;
-// Abaixo disto o dedo ainda está parado: é tremor de quem segura, não gesto.
-const FOLGA_DO_DEDO = 10;
-// A foto mora na vaga 0 desde que havia três por exercício. As vagas de ajuste saíram em
-// 2026-09-12, porque a tira ocupava o visor; detalhe de ajuste vai na observação. A chave ficou.
-const VAGA_DA_MAQUINA = 0;
+const LONG_PRESS_DELAY = 400;
+// Below this the finger is still: it is the tremor of holding, not a gesture.
+const FINGER_SLACK = 10;
+// The photo lives in slot 0 since the days of three per exercise. The setting slots left on
+// 2026-09-12 because the strip crowded the viewer; setting details go in the note. The key stayed.
+const MACHINE_SLOT = 0;
 
-const restantes = new Map();
-// exId para a carga digitada hoje, e exId para a carga dos outros dias, da mais nova para a mais
-// velha. A de hoje sai da sessão; as outras, do histórico.
-const cargasDeHoje = new Map();
-const minutosDeHoje = new Map();
-const historicoDeCarga = new Map();
-// exId para lista de object URL por vaga. Lista esparsa: vaga sem foto é buraco.
-const fotos = new Map();
-let perfilAtivo = Banco.lerPreferencia("perfil") ?? "sun";
-let letraAtiva = LETRAS[0];
-let concluidas = new Set();
-const exerciciosPorLetra = new Map();
-const cartaoPorId = new Map();
-let alvoVisor = null;
-let alvoExercicio = null;
-let alvoTreino = null;
+const remaining = new Map();
+// Exercise id to today's typed load, and exercise id to the loads of other days, newest first.
+// Today's comes from the session; the others, from the history.
+const todayLoads = new Map();
+const todayMinutes = new Map();
+const loadHistory = new Map();
+// Exercise id to a list of object URLs per slot. Sparse: a slot without a photo is a hole.
+const photos = new Map();
+let activeProfile = Store.readPreference("perfil") ?? "sun";
+let activeWorkoutId = WORKOUT_IDS[0];
+let finished = new Set();
+const exercisesByWorkoutId = new Map();
+const cardById = new Map();
+let viewerTarget = null;
+let exerciseTarget = null;
+let workoutTarget = null;
 
-const perfis = document.getElementById("perfis");
-const abas = document.getElementById("abas");
-const principal = document.querySelector("main");
-const carrossel = document.getElementById("carrossel");
-const secaoCiclo = document.getElementById("ciclo");
-const aviso = document.getElementById("aviso");
-const seletorDaGaleria = document.getElementById("foto-galeria");
-const seletorDaCamera = document.getElementById("foto-camera");
-const visor = document.getElementById("visor");
-const visorTitulo = document.getElementById("visor-titulo");
-const visorMeta = document.getElementById("visor-meta");
-const visorCirculo = document.getElementById("visor-circulo");
-const visorQuadro = document.getElementById("visor-quadro");
-const observacao = document.getElementById("observacao");
-const repeticoes = document.getElementById("repeticoes");
-const repeticoesRotulo = document.getElementById("repeticoes-rotulo");
-const dialogoApagar = document.getElementById("dialogo-apagar");
-const telaCheia = document.getElementById("tela-cheia");
-const telaCheiaTitulo = document.getElementById("tela-cheia-titulo");
+const profiles = document.getElementById("profiles");
+const tabs = document.getElementById("tabs");
+const mainElement = document.querySelector("main");
+const carousel = document.getElementById("carousel");
+const cycleSection = document.getElementById("cycle");
+const notice = document.getElementById("notice");
+const galleryPicker = document.getElementById("photo-gallery");
+const cameraPicker = document.getElementById("photo-camera");
+const viewer = document.getElementById("viewer");
+const viewerTitle = document.getElementById("viewer-title");
+const viewerMeta = document.getElementById("viewer-meta");
+const viewerCircle = document.getElementById("viewer-circle");
+const viewerFrame = document.getElementById("viewer-frame");
+const note = document.getElementById("note");
+const repsField = document.getElementById("reps-field");
+const repsFieldLabel = document.getElementById("reps-field-label");
+const deleteDialog = document.getElementById("delete-dialog");
+const fullscreen = document.getElementById("fullscreen");
+const fullscreenTitle = document.getElementById("fullscreen-title");
 const zoom = document.getElementById("zoom");
 const zoomImg = zoom.querySelector("img");
-const dialogoRecomecar = document.getElementById("dialogo-recomecar");
-const dialogoExercicio = document.getElementById("dialogo-exercicio");
-const dialogoTreino = document.getElementById("dialogo-treino");
+const restartDialog = document.getElementById("restart-dialog");
+const exerciseDialog = document.getElementById("exercise-dialog");
+const workoutDialog = document.getElementById("workout-dialog");
 
-// Sem banco a tela nasce do seed e o contador funciona só na memória. O aviso âmbar do topo
-// é quem conta que nada será salvo; desligar o contador esconderia o app de quem abre o arquivo.
-const catalogoDe = (perfil) => FICHA_DE[perfil] ?? TREINOS;
-const exerciciosDe = (letra) =>
-  Banco.disponivel() ? Banco.listarExercicios(letra, perfilAtivo) : Promise.resolve(catalogoDe(perfilAtivo)[letra] ?? []);
+// Without a store the screen is born from the seed and the counter works in memory only. The amber
+// notice at the top says nothing will be saved; disabling the counter would hide the app from
+// whoever opens the file.
+const catalogOf = (profile) => PLAN_OF[profile] ?? SUN_WORKOUTS;
+const exercisesOf = (workoutId) =>
+  Store.isAvailable() ? Store.listExercises(workoutId, activeProfile) : Promise.resolve(catalogOf(activeProfile)[workoutId] ?? []);
 
-// Só o catálogo de quem está na tela: na nuvem cada perfil tem o seu, e quem não é admin não
-// pode escrever no dos outros. O histórico de exemplo vem junto, e só na primeira vez.
-async function seedPerfil(perfil) {
-  if (perfil === "example") {
-    await Banco.seed(TREINOS_EXEMPLO, DONO_DO_EXEMPLO, ARQUIVADOS_EXEMPLO);
-    await Banco.seedHistorico("example", TREINOS_EXEMPLO, ARQUIVADOS_EXEMPLO);
-    // O exemplo é vitrine, não ficha de gente: campo novo na ficha chega a quem já o abriu, sem
-    // esperar um catálogo novo. Só completa o que ainda não existe no gravado.
-    for (const exercicio of [...Object.values(TREINOS_EXEMPLO).flat(), ...ARQUIVADOS_EXEMPLO]) {
-      if (exercicio.acessorio) await Banco.completarCampo("example", exercicio.id, "acessorio", exercicio.acessorio);
+// Only the catalog of whoever is on screen: in the cloud each profile has its own, and non-admins
+// cannot write to the others. The example history comes along, first time only.
+async function seedProfile(profile) {
+  if (profile === "example") {
+    await Store.seed(EXAMPLE_WORKOUTS, EXAMPLE_OWNER, EXAMPLE_ARCHIVED);
+    await Store.seedHistory("example", EXAMPLE_WORKOUTS, EXAMPLE_ARCHIVED);
+    // The example is a showcase, not someone's plan: a new plan field reaches whoever already opened
+    // it, without waiting for a new catalog. Only fills what the stored record lacks.
+    for (const exercise of [...Object.values(EXAMPLE_WORKOUTS).flat(), ...EXAMPLE_ARCHIVED]) {
+      if (exercise.accessory) await Store.fillMissingField("example", exercise.id, "accessory", exercise.accessory);
     }
   } else {
-    await Banco.seed(catalogoDe(perfil), [perfil]);
+    await Store.seed(catalogOf(profile), [profile]);
   }
-  await Banco.tirarIntrusos(perfil, idsDasOutrasFichas(perfil));
+  await Store.removeStrays(profile, idsOfOtherPlans(profile));
 }
 
-// Os ids fixos das fichas dos outros perfis: se um deles está neste branch, veio do seed
-// compartilhado de antes de cada perfil ter a própria ficha.
-const idsDasOutrasFichas = (perfil) => Object.entries(FICHA_DE)
-  .filter(([dono]) => dono !== perfil)
-  .flatMap(([, ficha]) => Object.values(ficha).flat().map((exercicio) => exercicio.id));
+// The fixed ids of the other profiles' plans: one of them in this branch came from the shared seed
+// from before each profile had its own plan.
+const idsOfOtherPlans = (profile) => Object.entries(PLAN_OF)
+  .filter(([owner]) => owner !== profile)
+  .flatMap(([, plan]) => Object.values(plan).flat().map((exercise) => exercise.id));
 
-// Quem entrou decide o que a tela mostra. Sem login é o exemplo. Sun e Shine abrem no próprio
-// treino. Só o admin vê o rodapé de perfis: para quem não é admin, os demais nem existem.
-const PAPEL_POR_UID = Object.fromEntries(Object.entries(CONTAS).map(([papel, uid]) => [uid, papel]));
-let usuario = null;
+// Whoever signed in decides what the screen shows. No login is the example. Sun and Shine open on
+// their own workout. Only the admin sees the profile footer: for anyone else the others do not exist.
+const ROLE_BY_UID = Object.fromEntries(Object.entries(ACCOUNTS).map(([role, uid]) => [uid, role]));
+let username = null;
 
-async function aplicarUsuario(uid) {
-  usuario = PAPEL_POR_UID[uid] ?? null;
-  const permitidos = usuario === "admin" ? Object.keys(PERFIS) : usuario ? [usuario] : ["example"];
-  for (const perfil of permitidos.filter((outro) => outro !== "example")) {
-    await Banco.ligarNuvem(perfil, CONTAS[perfil]);
+async function applyUser(uid) {
+  username = ROLE_BY_UID[uid] ?? null;
+  const allowed = username === "admin" ? Object.keys(PROFILES) : username ? [username] : ["example"];
+  for (const profile of allowed.filter((other) => other !== "example")) {
+    await Store.connectCloud(profile, ACCOUNTS[profile]);
   }
-  perfis.hidden = usuario !== "admin";
-  // Easter eggs: a marca ganha um coração quando é a Shine que entrou, e um sol quando é o Sun.
-  document.getElementById("abrir-menu").classList.toggle("com-coracao", usuario === "shine");
-  document.getElementById("abrir-menu").classList.toggle("com-sol", usuario === "sun");
-  const lembrado = Banco.lerPreferencia("perfil");
-  perfilAtivo = permitidos.includes(lembrado) ? lembrado : permitidos[0];
-  perfis.querySelector(`input[value="${perfilAtivo}"]`).checked = true;
+  profiles.hidden = username !== "admin";
+  // Easter eggs: the logo gets a heart when Shine signed in, and a sun when it is Sun.
+  document.getElementById("open-menu").classList.toggle("with-heart", username === "shine");
+  document.getElementById("open-menu").classList.toggle("with-sun", username === "sun");
+  const remembered = Store.readPreference("perfil");
+  activeProfile = allowed.includes(remembered) ? remembered : allowed[0];
+  profiles.querySelector(`input[value="${activeProfile}"]`).checked = true;
 
-  await seedPerfil(perfilAtivo);
-  concluidas = await Banco.letrasConcluidas(perfilAtivo);
-  await carregarCirculo();
-  await carregarTreinos();
-  irPara(LETRAS.find((letra) => !letraFeita(letra)) ?? LETRAS[0], false);
-  atualizarMenu();
+  await seedProfile(activeProfile);
+  finished = await Store.finishedWorkouts(activeProfile);
+  await loadCircle();
+  await loadWorkouts();
+  goTo(WORKOUT_IDS.find((workoutId) => !isWorkoutDone(workoutId)) ?? WORKOUT_IDS[0], false);
+  updateMenu();
 }
 
-// O que o usuário marcou enquanto o banco não abria vence o que estava gravado, e é gravado por cima.
-async function adotarBanco() {
-  const pendentes = new Map(restantes);
-  await seedPerfil(perfilAtivo);
+// What the user ticked while the store was still opening beats what was stored, and is written over it.
+async function adoptStore() {
+  const pending = new Map(remaining);
+  await seedProfile(activeProfile);
 
-  for (const letra of LETRAS) {
-    for (const exercicio of await exerciciosDe(letra)) {
-      if (pendentes.has(exercicio.id)) {
-        await Banco.salvarSerie(perfilAtivo, letra, exercicio.id, pendentes.get(exercicio.id));
+  for (const workoutId of WORKOUT_IDS) {
+    for (const exercise of await exercisesOf(workoutId)) {
+      if (pending.has(exercise.id)) {
+        await Store.saveSet(activeProfile, workoutId, exercise.id, pending.get(exercise.id));
       }
     }
   }
 
-  concluidas = await Banco.letrasConcluidas(perfilAtivo);
-  document.getElementById("sem-banco").hidden = true;
-  await carregarTreinos();
+  finished = await Store.finishedWorkouts(activeProfile);
+  document.getElementById("no-store").hidden = true;
+  await loadWorkouts();
 }
 
-// Depois dos exercícios e antes dos cartões: a chave da foto é o código do exercício, então a
-// migração das chaves velhas e a subida do que ficou só no aparelho precisam do catálogo.
-async function carregarFotos() {
-  await Banco.migrarChavesDeFoto([...exerciciosPorLetra.values()].flat());
-  await Banco.sincronizarFotos();
-  fotos.clear();
-  for (const [chave, porVaga] of await Banco.lerFotos()) {
-    fotos.set(chave, porVaga.map((foto) => URL.createObjectURL(foto)));
+// After the exercises and before the cards: the photo key is the exercise's video code, so migrating
+// old keys and uploading what stayed on the device both need the catalog.
+async function loadPhotos() {
+  await Store.migratePhotoKeys([...exercisesByWorkoutId.values()].flat());
+  await Store.syncPhotos();
+  photos.clear();
+  for (const [key, bySlot] of await Store.readPhotos()) {
+    photos.set(key, bySlot.map((photo) => URL.createObjectURL(photo)));
   }
 }
 
-const fotoDa = (exercicio, vaga) => fotos.get(Banco.chaveDaFoto(exercicio))?.[vaga];
-const capaDe = (exercicio) => fotoDa(exercicio, VAGA_DA_MAQUINA);
+const photoOf = (exercise, slot) => photos.get(Store.photoKey(exercise))?.[slot];
+const coverOf = (exercise) => photoOf(exercise, MACHINE_SLOT);
 
-const faltam = (exercicio) => restantes.get(exercicio.id) ?? exercicio.series;
+const setsLeft = (exercise) => remaining.get(exercise.id) ?? exercise.sets;
 
-// A carga vale para o exercício inteiro, e não por série: no 3×12 as três são com o mesmo peso.
-// O que está na tela é o de hoje, se existir, e senão o da última vez, que é o que a pessoa vai
-// repetir. O número é o que está escrito no equipamento, sem conta de cabeça.
-// A última vez que aquele número foi anotado, que não é a última sessão: o dia em que a carga
-// entrou pode não ser o mesmo em que o tempo entrou.
-const ultimoDe = (exercicio, campo) =>
-  historicoDeCarga.get(exercicio.id)?.find((entrada) => entrada[campo] != null);
+// The load is for the whole exercise, not per set: in a 3×12 all three use the same weight. What is
+// on screen is today's if there is one, otherwise the last time's, which is what the person repeats.
+// The number is what is written on the machine, no mental math.
+// The last time that number was written down, which is not the last session: the day the load came
+// in may not be the day the time did.
+const lastOf = (exercise, field) =>
+  loadHistory.get(exercise.id)?.find((entry) => entry[field] != null);
 
-const ultimaCarga = (exercicio) => ultimoDe(exercicio, "carga");
-const cargaDe = (exercicio) => cargasDeHoje.get(exercicio.id) ?? ultimaCarga(exercicio)?.carga;
-const minutosDe = (exercicio) => minutosDeHoje.get(exercicio.id) ?? ultimoDe(exercicio, "minutos")?.minutos;
+const lastLoad = (exercise) => lastOf(exercise, "load");
+const loadOf = (exercise) => todayLoads.get(exercise.id) ?? lastLoad(exercise)?.load;
+const minutesOf = (exercise) => todayMinutes.get(exercise.id) ?? lastOf(exercise, "minutes")?.minutes;
 
-// Nem todo exercício se mede em quilo: a esteira se mede em km/h, a bicicleta em nível, e o
-// tempo do aeróbico em minutos. A unidade vive no exercício, e o padrão é o peso da máquina.
-const unidadeDe = (exercicio) => exercicio.unidade ?? "kg";
-const ehAerobico = (exercicio) => exercicio.tipo === "tempo";
-const semCarga = (exercicio) => exercicio.tipo === "corpo";
+// Not every exercise is measured in kilos: the treadmill in km/h, the bike in levels, and cardio
+// time in minutes. The unit lives in the exercise, and the default is machine weight.
+const unitOf = (exercise) => exercise.unit ?? "kg";
+const isCardio = (exercise) => exercise.kind === "time";
+const isBodyweight = (exercise) => exercise.kind === "bodyweight";
 
-// Vírgula, como se fala. Sem casa decimal quando o número é redondo, porque halter de 14 é 14.
-const soONumero = (valor) => String(Math.round(valor * 100) / 100).replace(".", ",");
-const emMedida = (valor, unidade) => `${soONumero(valor)} ${unidade}`;
+// Comma, as spoken. No decimal when the number is round, because a 14 dumbbell is 14.
+const formatNumber = (value) => String(Math.round(value * 100) / 100).replace(".", ",");
+const asMeasure = (value, unit) => `${formatNumber(value)} ${unit}`;
 
-// A unidade vira caixa alta pelo CSS, e o texto continua natural no código. Em minúscula o k sobe
-// e o g desce, e ao lado de dígitos tabulares o conjunto fica torto.
+// The unit goes uppercase through CSS, and the text stays natural in code. In lowercase the k rises
+// and the g drops, and next to tabular digits the pair looks crooked.
 //
-// Número e unidade saem num nó só de propósito: soltos dentro de um contêiner flex eles viram
-// dois itens, o alinhamento centralizado levanta a unidade, e "30 kg" passa a ler "30 elevado
-// a kg". Juntos, a unidade volta a ser texto na mesma linha de base.
-function comTexto(conteudo, unidade) {
-  const bloco = Object.assign(document.createElement("span"), { className: "quilos" });
-  bloco.append(texto(conteudo),
-    Object.assign(document.createElement("span"), { className: "unidade", textContent: unidade }));
-  return bloco;
+// Number and unit come out as one node on purpose: loose inside a flex container they become two
+// items, centered alignment lifts the unit, and "30 kg" reads as "30 to the power of kg".
+function withText(content, unit) {
+  const block = Object.assign(document.createElement("span"), { className: "kilos" });
+  block.append(text(content),
+    Object.assign(document.createElement("span"), { className: "unit", textContent: unit }));
+  return block;
 }
 
-const comUnidade = (valor, unidade) => comTexto(soONumero(valor), unidade);
+const withUnit = (value, unit) => withText(formatNumber(value), unit);
 
-// Texto que só existe para o leitor de tela, onde a tela se satisfaz com um ícone.
-const oculto = (conteudo) =>
-  Object.assign(document.createElement("span"), { className: "oculto-visual", textContent: conteudo });
-const emDia = (data) => `${data.slice(8)}/${data.slice(5, 7)}`;
-const emNumero = (texto) => {
-  const valor = Number(texto.trim().replace(",", "."));
-  return texto.trim() !== "" && Number.isFinite(valor) && valor >= 0 && valor < 1000 ? valor : null;
+// Text that exists only for the screen reader, where the screen is happy with an icon.
+const visuallyHidden = (content) =>
+  Object.assign(document.createElement("span"), { className: "visually-hidden", textContent: content });
+const asDayMonth = (date) => `${date.slice(8)}/${date.slice(5, 7)}`;
+const asNumber = (text) => {
+  const value = Number(text.trim().replace(",", "."));
+  return text.trim() !== "" && Number.isFinite(value) && value >= 0 && value < 1000 ? value : null;
 };
-const letraFeita = (letra) => concluidas.has(letra);
-const rotulo = (faltando, reps) => (faltando === 0 ? "feito" : `${faltando}×${reps}`);
+const isWorkoutDone = (workoutId) => finished.has(workoutId);
+const label = (missing, reps) => (missing === 0 ? "feito" : `${missing}×${reps}`);
 
-// Só músculo. O equipamento vive dentro do nome do exercício, onde ele é parte de como a pessoa
-// chama o movimento, e não uma etiqueta de catálogo ao lado dele.
-const etiquetasDe = (exercicio) =>
-  exercicio.grupos.map((grupo) => NOME_DO_GRUPO[grupo]).join(" · ");
+// Muscles only. The equipment lives inside the exercise name, where it is part of how the person
+// calls the movement, not a catalog label next to it.
+const labelsOf = (exercise) =>
+  exercise.muscles.map((muscle) => MUSCLE_NAME[muscle]).join(" · ");
 
-// As séries que faltam são o número grande, e as repetições a linha pequena embaixo.
-// Sinal de multiplicação, não a letra x: é o que um nativo lê como "doze vezes".
-// O haltere da marca, na mesma geometria do icone.svg em 24 unidades: o "feito" ganha a forma de
-// duas linhas do "3 × 12 rep", com o ícone no lugar do número. O texto continua embaixo, porque
-// ícone sozinho não carrega significado.
-const ICONE_HALTERE = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="11.05" width="12" height="1.9" rx="0.95"/><rect x="3.9" y="8.4" width="2.75" height="7.2" rx="1.2"/><rect x="17.35" y="8.4" width="2.75" height="7.2" rx="1.2"/><rect x="1.9" y="9.9" width="1.6" height="4.2" rx="0.8"/><rect x="20.5" y="9.9" width="1.6" height="4.2" rx="0.8"/></svg>`;
+// Sets left are the big number, reps the small line below.
+// Multiplication sign, not the letter x: it is what a native reads as "twelve times".
+// The brand's dumbbell, same geometry as icone.svg in 24 units: "done" takes the two-line shape of
+// "3 × 12 rep", with the icon where the number was. The text stays below, because an icon alone
+// carries no meaning.
+const ICON_DUMBBELL = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="11.05" width="12" height="1.9" rx="0.95"/><rect x="3.9" y="8.4" width="2.75" height="7.2" rx="1.2"/><rect x="17.35" y="8.4" width="2.75" height="7.2" rx="1.2"/><rect x="1.9" y="9.9" width="1.6" height="4.2" rx="0.8"/><rect x="20.5" y="9.9" width="1.6" height="4.2" rx="0.8"/></svg>`;
 
-const rotuloDoContador = (faltando, reps) =>
-  faltando === 0
-    ? `<span class="serie feito">${ICONE_HALTERE}</span><span class="reps"><span class="unidade">Feito</span></span>`
-    : `<span class="serie">${faltando}<span class="vezes">×</span></span><span class="reps">${reps}<span class="unidade">rep</span></span>`;
+const counterLabel = (missing, reps) =>
+  missing === 0
+    ? `<span class="sets done">${ICON_DUMBBELL}</span><span class="reps"><span class="unit">Feito</span></span>`
+    : `<span class="sets">${missing}<span class="times">×</span></span><span class="reps">${reps}<span class="unit">rep</span></span>`;
 
-function refrescar() {
-  cartaoPorId.forEach((cartao) => cartao.atualizar());
-  atualizarAbas();
-  atualizarCiclo();
+function refresh() {
+  cardById.forEach((card) => card.update());
+  updateTabs();
+  updateCycle();
 }
 
-async function definir(exercicio, valor) {
-  if (valor === faltam(exercicio)) return;
+async function setRemaining(exercise, value) {
+  if (value === setsLeft(exercise)) return;
 
-  restantes.set(exercicio.id, valor);
-  // A letra vem do exercício, e não da aba visível: com os três painéis montados ao mesmo tempo,
-  // o que está na tela não é mais garantia de quem está sendo mexido.
-  Banco.salvarSerie(perfilAtivo, exercicio.letra, exercicio.id, valor);
+  remaining.set(exercise.id, value);
+  // The workout id comes from the exercise, not from the visible tab: with all panels mounted at once,
+  // what is on screen no longer says which one is being touched.
+  Store.saveSet(activeProfile, exercise.workout, exercise.id, value);
 
-  // O chip herdado é da tela, e só vira registro quando uma série desce. Sem esta condição, um
-  // treino aberto e abandonado gravaria peso em exercício que ninguém fez, e a tendência do
-  // histórico passaria a mentir. Subir a série de volta não conta: nada foi levantado.
-  if (valor < exercicio.series && !cargasDeHoje.has(exercicio.id) && ultimaCarga(exercicio)) {
-    gravarDigitado(exercicio, "carga", ultimaCarga(exercicio).carga);
+  // The inherited chip belongs to the screen, and only becomes a record when a set goes down. Without
+  // this, an opened and abandoned workout would record weight on an exercise nobody did, and the
+  // history trend would lie. Raising the set back does not count: nothing was lifted.
+  if (value < exercise.sets && !todayLoads.has(exercise.id) && lastLoad(exercise)) {
+    saveTyped(exercise, "load", lastLoad(exercise).load);
   }
 
-  const letra = exercicio.letra;
-  cartaoPorId.get(exercicio.id)?.atualizar({ animar: true });
-  aviso.textContent = `${exercicio.nome}: ${rotulo(valor, exercicio.reps)}.`;
+  const workoutId = exercise.workout;
+  cardById.get(exercise.id)?.update({ animate: true });
+  notice.textContent = `${exercise.name}: ${label(value, exercise.reps)}.`;
 
-  if ((exerciciosPorLetra.get(letra) ?? []).every((outro) => faltam(outro) === 0)) {
-    await encerrar(letra);
-    aviso.textContent = `${exercicio.nome}: feito. ${tituloDoTreino(letra)} completo e gravado no histórico.`;
+  if ((exercisesByWorkoutId.get(workoutId) ?? []).every((other) => setsLeft(other) === 0)) {
+    await finish(workoutId);
+    notice.textContent = `${exercise.name}: feito. ${workoutTitle(workoutId)} completo e gravado no histórico.`;
   }
-  atualizarAbas();
-  atualizarCiclo();
+  updateTabs();
+  updateCycle();
 }
 
-async function encerrar(letra) {
-  concluidas.add(letra);
-  await Banco.encerrarSessao(perfilAtivo, letra);
-  if (letra === letraAtiva) refrescar();
+async function finish(workoutId) {
+  finished.add(workoutId);
+  await Store.finishSession(activeProfile, workoutId);
+  if (workoutId === activeWorkoutId) refresh();
   else {
-    atualizarAbas();
-    atualizarCiclo();
+    updateTabs();
+    updateCycle();
   }
 }
 
-async function resetarLetra(letra) {
-  await Banco.resetarTreino(perfilAtivo, letra);
-  concluidas.delete(letra);
-  for (const exercicio of await exerciciosDe(letra)) restantes.set(exercicio.id, exercicio.series);
+async function resetWorkoutProgress(workoutId) {
+  await Store.resetWorkout(activeProfile, workoutId);
+  finished.delete(workoutId);
+  for (const exercise of await exercisesOf(workoutId)) remaining.set(exercise.id, exercise.sets);
 }
 
-function ligarToqueLongo(elemento, aoSegurar) {
-  let cronometro;
-  let disparou = false;
-  let origem = null;
+function bindLongPress(element, onHold) {
+  let timer;
+  let fired = false;
+  let origin = null;
 
-  elemento.addEventListener("pointerdown", (evento) => {
-    disparou = false;
-    origem = { x: evento.clientX, y: evento.clientY };
-    cronometro = setTimeout(() => { disparou = true; aoSegurar(); }, ESPERA_TOQUE_LONGO);
+  element.addEventListener("pointerdown", (event) => {
+    fired = false;
+    origin = { x: event.clientX, y: event.clientY };
+    timer = setTimeout(() => { fired = true; onHold(); }, LONG_PRESS_DELAY);
   });
-  // Dedo que anda é rolagem ou troca de treino, e nenhuma das duas pode virar toque longo.
-  elemento.addEventListener("pointermove", (evento) => {
-    if (origem && Math.hypot(evento.clientX - origem.x, evento.clientY - origem.y) > FOLGA_DO_DEDO) {
-      clearTimeout(cronometro);
+  // A moving finger is a scroll or a workout switch, and neither may become a long press.
+  element.addEventListener("pointermove", (event) => {
+    if (origin && Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > FINGER_SLACK) {
+      clearTimeout(timer);
     }
   });
-  for (const evento of ["pointerup", "pointercancel", "pointerleave"]) {
-    elemento.addEventListener(evento, () => clearTimeout(cronometro));
+  for (const event of ["pointerup", "pointercancel", "pointerleave"]) {
+    element.addEventListener(event, () => clearTimeout(timer));
   }
-  elemento.addEventListener("contextmenu", (evento) => evento.preventDefault());
+  element.addEventListener("contextmenu", (event) => event.preventDefault());
 
-  // Consome a marca ao ser lida. Sem isso ela ficaria ligada até o próximo pointerdown, e o
-  // clique do Enter, que não tem pointerdown, seria engolido para sempre depois de um toque longo.
+  // Consumes the flag on read. Otherwise it would stay on until the next pointerdown, and the Enter
+  // click, which has no pointerdown, would be swallowed forever after a long press.
   return () => {
-    const houve = disparou;
-    disparou = false;
-    return houve;
+    const hadFired = fired;
+    fired = false;
+    return hadFired;
   };
 }
 
-function criarPerfil([valor, nome]) {
-  const rotuloPerfil = document.createElement("label");
+function createProfileOption([value, name]) {
+  const profileLabel = document.createElement("label");
   const radio = document.createElement("input");
   radio.type = "radio";
-  radio.name = "perfil";
-  radio.value = valor;
-  radio.className = "oculto-visual";
-  radio.checked = valor === perfilAtivo;
-  radio.onchange = () => trocarPerfil(valor);
-  rotuloPerfil.append(radio, nome);
-  return rotuloPerfil;
+  radio.name = "profile";
+  radio.value = value;
+  radio.className = "visually-hidden";
+  radio.checked = value === activeProfile;
+  radio.onchange = () => switchProfile(value);
+  profileLabel.append(radio, name);
+  return profileLabel;
 }
 
-async function trocarPerfil(valor) {
-  perfilAtivo = valor;
-  Banco.gravarPreferencia("perfil", valor);
-  restantes.clear();
-  await seedPerfil(valor);
-  concluidas = await Banco.letrasConcluidas(valor);
-  await carregarTreinos();
-  irPara(LETRAS.find((letra) => !letraFeita(letra)) ?? LETRAS[0], false);
-  aviso.textContent = `Treino de ${PERFIS[valor]}.`;
+async function switchProfile(value) {
+  activeProfile = value;
+  Store.savePreference("perfil", value);
+  remaining.clear();
+  await seedProfile(value);
+  finished = await Store.finishedWorkouts(value);
+  await loadWorkouts();
+  goTo(WORKOUT_IDS.find((workoutId) => !isWorkoutDone(workoutId)) ?? WORKOUT_IDS[0], false);
+  notice.textContent = `Treino de ${PROFILES[value]}.`;
 }
 
-function criarAba(letra, posicao) {
-  const botao = document.createElement("button");
-  botao.type = "button";
-  botao.id = `aba-${letra}`;
-  botao.className = "aba";
-  botao.setAttribute("role", "tab");
-  botao.setAttribute("aria-controls", "lista");
+function createTab(workoutId, position) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.id = `tab-${workoutId}`;
+  button.className = "tab";
+  button.setAttribute("role", "tab");
+  button.setAttribute("aria-controls", "lista");
 
-  // Editando, a aba ativa abre as opções do treino em si (nome, ordem, tirar); fora da edição,
-  // as do dia (encerrar, resetar).
-  const abrirOpcoes = () => (editando ? abrirEditarTreino(letra) : abrirMenuTreino(letra));
-  const segurou = ligarToqueLongo(botao, abrirOpcoes);
-  botao.onclick = () => {
-    if (segurou()) return;
-    if (letra === letraAtiva) abrirOpcoes();
-    else irPara(letra);
+  // While editing, the active tab opens the workout's own options (name, order, remove); otherwise
+  // the day's (finish, reset).
+  const openOptions = () => (editing ? openEditWorkout(workoutId) : openWorkoutMenu(workoutId));
+  const held = bindLongPress(button, openOptions);
+  button.onclick = () => {
+    if (held()) return;
+    if (workoutId === activeWorkoutId) openOptions();
+    else goTo(workoutId);
   };
 
-  botao.onkeydown = async (evento) => {
-    const passos = { ArrowRight: 1, ArrowLeft: -1, Home: -posicao, End: LETRAS.length - 1 - posicao };
-    const passo = passos[evento.key];
-    if (passo === undefined) return;
-    evento.preventDefault();
-    const destino = (posicao + passo + LETRAS.length) % LETRAS.length;
-    irPara(LETRAS[destino]);
-    abas.children[destino].focus();
+  button.onkeydown = async (event) => {
+    const steps = { ArrowRight: 1, ArrowLeft: -1, Home: -position, End: WORKOUT_IDS.length - 1 - position };
+    const step = steps[event.key];
+    if (step === undefined) return;
+    event.preventDefault();
+    const destination = (position + step + WORKOUT_IDS.length) % WORKOUT_IDS.length;
+    goTo(WORKOUT_IDS[destination]);
+    tabs.children[destination].focus();
   };
-  return botao;
+  return button;
 }
 
-function atualizarAbas() {
-  LETRAS.forEach((letra, posicao) => {
-    const botao = abas.children[posicao];
-    const ativa = letra === letraAtiva;
-    const concluido = letraFeita(letra);
-    botao.setAttribute("aria-selected", ativa);
-    botao.classList.toggle("perto", ativa);
-    botao.tabIndex = ativa ? 0 : -1;
-    // A posição do traço da aba ativa não vem daqui: ela segue a rolagem do carrossel, quadro a quadro.
-    botao.replaceChildren(nomeDoTreino(letra));
-    botao.classList.toggle("feita", concluido);
-    botao.setAttribute("aria-label", [
-      `${tituloDoTreino(letra)}`,
-      concluido ? ", concluído" : "",
-      ativa ? ". Ativar de novo abre as opções do treino." : ""
+function updateTabs() {
+  WORKOUT_IDS.forEach((workoutId, position) => {
+    const button = tabs.children[position];
+    const active = workoutId === activeWorkoutId;
+    const completed = isWorkoutDone(workoutId);
+    button.setAttribute("aria-selected", active);
+    button.classList.toggle("near", active);
+    button.tabIndex = active ? 0 : -1;
+    // The active tab's underline is not positioned here: it follows the carousel scroll, frame by frame.
+    button.replaceChildren(workoutName(workoutId));
+    button.classList.toggle("completed", completed);
+    button.setAttribute("aria-label", [
+      `${workoutTitle(workoutId)}`,
+      completed ? ", concluído" : "",
+      active ? ". Ativar de novo abre as opções do treino." : ""
     ].join(""));
   });
 }
 
-function atualizarCiclo() {
-  secaoCiclo.hidden = !LETRAS.every(letraFeita);
+function updateCycle() {
+  cycleSection.hidden = !WORKOUT_IDS.every(isWorkoutDone);
 }
 
-// Carrega os treinos todos de uma vez e monta um painel por treino. Antes era um treino por vez,
-// com uma guarda de geração para o caso de o dedo trocar de aba no meio da leitura; com todos
-// montados, essa corrida deixa de existir.
-async function carregarTreinos() {
-  exerciciosPorLetra.clear();
-  restantes.clear();
-  cargasDeHoje.clear();
-  minutosDeHoje.clear();
-  historicoDeCarga.clear();
+// Loads every workout at once and mounts one panel each. It used to be one workout at a time, with
+// a generation guard for the finger switching tabs mid-read; with all mounted, that race is gone.
+async function loadWorkouts() {
+  exercisesByWorkoutId.clear();
+  remaining.clear();
+  todayLoads.clear();
+  todayMinutes.clear();
+  loadHistory.clear();
 
-  if (Banco.disponivel()) {
-    treinos = await Banco.listarTreinos(perfilAtivo);
+  if (Store.isAvailable()) {
+    workouts = await Store.listWorkouts(activeProfile);
   } else {
-    treinos = Object.keys(catalogoDe(perfilAtivo)).map((letra, ordem) => ({ id: letra, nome: letra, ordem }));
+    workouts = Object.keys(catalogOf(activeProfile)).map((workoutId, order) => ({ id: workoutId, name: workoutId, order: order }));
   }
-  LETRAS = treinos.map((treino) => treino.id);
-  if (!LETRAS.includes(letraAtiva)) letraAtiva = LETRAS[0];
-  abas.replaceChildren(...LETRAS.map(criarAba));
-  abas.style.setProperty("--quantas", LETRAS.length);
+  WORKOUT_IDS = workouts.map((workout) => workout.id);
+  if (!WORKOUT_IDS.includes(activeWorkoutId)) activeWorkoutId = WORKOUT_IDS[0];
+  tabs.replaceChildren(...WORKOUT_IDS.map(createTab));
+  tabs.style.setProperty("--count", WORKOUT_IDS.length);
 
-  for (const letra of LETRAS) {
-    exerciciosPorLetra.set(letra, await exerciciosDe(letra));
+  for (const workoutId of WORKOUT_IDS) {
+    exercisesByWorkoutId.set(workoutId, await exercisesOf(workoutId));
 
-    const { registros } = await Banco.lerSessaoDeHoje(perfilAtivo, letra);
-    for (const [exId, registro] of registros) {
-      restantes.set(exId, registro.restantes);
-      if (registro.carga != null) cargasDeHoje.set(exId, registro.carga);
-      if (registro.minutos != null) minutosDeHoje.set(exId, registro.minutos);
+    const { records: records } = await Store.readTodaySession(activeProfile, workoutId);
+    for (const [exerciseId, record] of records) {
+      remaining.set(exerciseId, record.remaining);
+      if (record.load != null) todayLoads.set(exerciseId, record.load);
+      if (record.minutes != null) todayMinutes.set(exerciseId, record.minutes);
     }
 
-    for (const [exId, cargas] of await Banco.cargasAnteriores(perfilAtivo, letra)) {
-      historicoDeCarga.set(exId, cargas);
+    for (const [exerciseId, loads] of await Store.previousLoads(activeProfile, workoutId)) {
+      loadHistory.set(exerciseId, loads);
     }
   }
 
-  await carregarFotos();
-  montarPaineis();
-  atualizarAbas();
-  atualizarCiclo();
+  await loadPhotos();
+  buildPanels();
+  updateTabs();
+  updateCycle();
 }
 
-function montarPaineis() {
-  cartaoPorId.clear();
-  carrossel.replaceChildren(...LETRAS.map((letra) => {
-    const painel = document.createElement("section");
-    painel.className = "painel";
-    painel.id = `painel-${letra}`;
-    painel.dataset.letra = letra;
-    painel.setAttribute("role", "tabpanel");
-    painel.setAttribute("aria-labelledby", `aba-${letra}`);
+function buildPanels() {
+  cardById.clear();
+  carousel.replaceChildren(...WORKOUT_IDS.map((workoutId) => {
+    const panel = document.createElement("section");
+    panel.className = "panel";
+    panel.id = `panel-${workoutId}`;
+    panel.dataset.workoutId = workoutId;
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-labelledby", `tab-${workoutId}`);
 
-    const lista = document.createElement("ul");
-    lista.className = "lista";
-    lista.append(...(exerciciosPorLetra.get(letra) ?? []).map((exercicio, posicao) => {
-      const cartao = criarCartao(exercicio, posicao);
-      cartaoPorId.set(exercicio.id, cartao);
-      return cartao.item;
+    const list = document.createElement("ul");
+    list.className = "list";
+    list.append(...(exercisesByWorkoutId.get(workoutId) ?? []).map((exercise, position) => {
+      const card = createCard(exercise, position);
+      cardById.set(exercise.id, card);
+      return card.item;
     }));
 
-    painel.append(lista);
-    return painel;
+    panel.append(list);
+    return panel;
   }));
 
-  irPara(letraAtiva, false);
+  goTo(activeWorkoutId, false);
 }
 
-// Rolar até o painel. O navegador anima quando pode; sob movimento reduzido ele salta, que é o
-// que a pessoa pediu ao ligar a preferência.
-function irPara(letra, suave = true) {
-  const painel = document.getElementById(`painel-${letra}`);
-  if (!painel) return;
-  // A rolagem suave leva quadros para chegar, e no meio do caminho o carrossel está parado em
-  // cima do painel de onde saiu. Sem guardar para onde ela vai, o pouso atrasado dessa animação
-  // desfaz a escolha que o dedo acabou de fazer na aba seguinte.
+// Scroll to the panel. The browser animates when it can; under reduced motion it jumps, which is
+// what the person asked for by turning the preference on.
+function goTo(workoutId, smooth = true) {
+  const panel = document.getElementById(`panel-${workoutId}`);
+  if (!panel) return;
+  // Smooth scrolling takes frames to arrive, and midway the carousel still rests on the panel it
+  // left. Without remembering where it is going, the late landing of that animation undoes the
+  // choice the finger just made on the next tab.
   //
-  // Já estando lá, não há rolagem nenhuma, e marcar destino aqui o deixaria marcado para sempre:
-  // sem evento de rolagem para limpá-lo, todo gesto seguinte seria descartado por ele.
-  const jaEstaLa = Math.abs(carrossel.scrollLeft - painel.offsetLeft) < 1;
-  destinoDaRolagem = jaEstaLa ? null : letra;
-  clearTimeout(esqueceroDestino);
-  // Rede de segurança: rolagem que não chega, por tela escondida ou aba em segundo plano, não
-  // pode trancar a troca de treino.
-  if (!jaEstaLa) esqueceroDestino = setTimeout(() => { destinoDaRolagem = null; }, PRAZO_DO_DESTINO);
-  carrossel.scrollTo({ left: painel.offsetLeft, behavior: suave ? "smooth" : "instant" });
-  assumir(letra);
+  // Already there, there is no scroll at all, and marking a destination here would leave it marked
+  // forever: with no scroll event to clear it, every following gesture would be discarded.
+  const alreadyThere = Math.abs(carousel.scrollLeft - panel.offsetLeft) < 1;
+  scrollDestination = alreadyThere ? null : workoutId;
+  clearTimeout(forgetDestination);
+  // Safety net: a scroll that never arrives, hidden screen or background tab, cannot lock the switch.
+  if (!alreadyThere) forgetDestination = setTimeout(() => { scrollDestination = null; }, DESTINATION_TIMEOUT);
+  carousel.scrollTo({ left: panel.offsetLeft, behavior: smooth ? "smooth" : "instant" });
+  activate(workoutId);
 }
 
-// Quem manda na aba ativa é onde o carrossel parou. Chamar de novo com a mesma letra não faz
-// nada, então o clique na aba e o evento de snap podem chegar os dois sem trabalho repetido.
-function assumir(letra, anunciar = false) {
-  if (letra === letraAtiva || !LETRAS.includes(letra)) return;
-  letraAtiva = letra;
-  atualizarAbas();
-  atualizarCiclo();
-  if (anunciar) aviso.textContent = `${tituloDoTreino(letra)}.`;
+// Where the carousel stopped rules the active tab. Calling again with the same id does nothing, so
+// the tab click and the snap event can both arrive without repeated work.
+function activate(workoutId, announce = false) {
+  if (workoutId === activeWorkoutId || !WORKOUT_IDS.includes(workoutId)) return;
+  activeWorkoutId = workoutId;
+  updateTabs();
+  updateCycle();
+  if (announce) notice.textContent = `${workoutTitle(workoutId)}.`;
 }
 
-// O traço da aba ativa anda com a rolagem, em fração de painel: é o que faz o indicador acompanhar o dedo em
-// vez de pular quando o gesto termina. Passivo de propósito, porque isto roda a cada quadro.
-// Só um gesto de verdade anuncia a troca de treino. Rolagem que o próprio app pediu já tem a
-// mensagem dela, e anunciar de novo apagaria o "ciclo recomeçado" que acabou de ser escrito.
-let gestoNoCarrossel = false;
-for (const nome of ["pointerdown", "wheel", "touchstart"]) {
-  carrossel.addEventListener(nome, () => { gestoNoCarrossel = true; }, { passive: true });
+// The active tab's underline moves with the scroll, in panel fractions: that is what makes the
+// indicator follow the finger instead of jumping when the gesture ends. Passive on purpose, this
+// runs every frame.
+// Only a real gesture announces the workout switch. A scroll the app itself asked for already has
+// its message, and announcing again would erase the "cycle restarted" just written.
+let carouselGesture = false;
+for (const name of ["pointerdown", "wheel", "touchstart"]) {
+  carousel.addEventListener(name, () => { carouselGesture = true; }, { passive: true });
 }
 
-carrossel.addEventListener("scroll", () => {
-  if (carrossel.clientWidth > 0) {
-    const fracao = carrossel.scrollLeft / carrossel.clientWidth;
-    abas.style.setProperty("--ativa", fracao);
-    // O texto da aba troca na metade do caminho, junto com o traço. Esperar o pouso deixava o
-    // nome chegar atrasado, e a transição de cor por cima parecia lenta.
-    realcarAba(Math.round(fracao));
+carousel.addEventListener("scroll", () => {
+  if (carousel.clientWidth > 0) {
+    const fraction = carousel.scrollLeft / carousel.clientWidth;
+    tabs.style.setProperty("--active", fraction);
+    // The tab text switches halfway, together with the underline. Waiting for the landing made the
+    // name arrive late, and the color transition on top looked slow.
+    highlightTab(Math.round(fraction));
   }
-  agendarPouso();
+  scheduleLanding();
 }, { passive: true });
 
-function realcarAba(posicao) {
-  [...abas.children].forEach((aba, i) => aba.classList.toggle("perto", i === posicao));
+function highlightTab(position) {
+  [...tabs.children].forEach((tab, i) => tab.classList.toggle("near", i === position));
 }
 
-// `scrollsnapchange` é o evento certo, e diz sozinho em qual painel o gesto pousou. Onde ele não
-// existe, o mesmo trabalho sai de uma rolagem que ficou quieta.
-if ("onscrollsnapchange" in carrossel) {
-  carrossel.addEventListener("scrollsnapchange", (evento) => {
-    const letra = evento.snapTargetInline?.dataset.letra;
-    if (letra) pousarEm(letra);
+// `scrollsnapchange` is the right event, and says by itself which panel the gesture landed on.
+// Where it does not exist, the same work comes from a scroll that went quiet.
+if ("onscrollsnapchange" in carousel) {
+  carousel.addEventListener("scrollsnapchange", (event) => {
+    const workoutId = event.snapTargetInline?.dataset.workoutId;
+    if (workoutId) landOn(workoutId);
   });
 }
 
-// Uma rolagem pedida pelo app deixa eventos de snap para trás. Sem esta guarda, o snap atrasado
-// da rolagem anterior desfaz a aba que o app acabou de escolher.
-function pousarEm(letra) {
-  if (destinoDaRolagem !== null && letra !== destinoDaRolagem) return;
-  destinoDaRolagem = null;
-  assumir(letra, gestoNoCarrossel);
-  gestoNoCarrossel = false;
+// A scroll the app asked for leaves snap events behind. Without this guard, the late snap of the
+// previous scroll undoes the tab the app just chose.
+function landOn(workoutId) {
+  if (scrollDestination !== null && workoutId !== scrollDestination) return;
+  scrollDestination = null;
+  activate(workoutId, carouselGesture);
+  carouselGesture = false;
 }
 
 const ESPERA_POUSO = 120;
-const PRAZO_DO_DESTINO = 1000;
-let pouso;
-let esqueceroDestino;
-let destinoDaRolagem = null;
+const DESTINATION_TIMEOUT = 1000;
+let landing;
+let forgetDestination;
+let scrollDestination = null;
 
-function agendarPouso() {
-  clearTimeout(pouso);
-  pouso = setTimeout(() => {
-    const largura = carrossel.clientWidth;
-    if (largura === 0) return;
-    // A rolagem ficou quieta, então onde ela parou é a verdade, venha de gesto ou de animação.
-    // O destino não entra aqui: uma animação interrompida no meio pelo dedo deixaria a guarda
-    // rejeitando o painel onde a pessoa de fato parou.
-    destinoDaRolagem = null;
-    assumir(LETRAS[Math.round(carrossel.scrollLeft / largura)], gestoNoCarrossel);
-    gestoNoCarrossel = false;
+function scheduleLanding() {
+  clearTimeout(landing);
+  landing = setTimeout(() => {
+    const width = carousel.clientWidth;
+    if (width === 0) return;
+    // The scroll went quiet, so where it stopped is the truth, whether from a gesture or an animation.
+    // The destination does not enter here: an animation interrupted midway by the finger would leave
+    // the guard rejecting the panel where the person actually stopped.
+    scrollDestination = null;
+    activate(WORKOUT_IDS[Math.round(carousel.scrollLeft / width)], carouselGesture);
+    carouselGesture = false;
   }, ESPERA_POUSO);
 }
 
-// No desktop o navegador não arrasta conteúdo com o mouse, então o deslize entre treinos é
-// feito à mão só para ele: o dedo continua com o scroll snap nativo. Durante o arrasto o snap
-// desliga, senão ele puxa o painel de volta a cada quadro, e volta depois que o pouso animado
-// termina. Arrasto que começa no contador não entra, porque ali o gesto é o ajuste de séries.
-const ARRASTO = { origemX: 0, origemScroll: 0, arrastando: false, arrastou: false };
-let devolverSnap;
+// On desktop the browser does not drag content with the mouse, so the swipe between workouts is
+// done by hand for it only: the finger keeps native scroll snap. Snap turns off during the drag,
+// otherwise it pulls the panel back every frame, and returns after the animated landing ends. A
+// drag that starts on the counter does not count, because there the gesture is the sets adjustment.
+const DRAG = { originX: 0, originScroll: 0, dragging: false, dragged: false };
+let snapRestore;
 
-carrossel.addEventListener("pointerdown", (evento) => {
-  if (evento.pointerType !== "mouse" || evento.button !== 0 || evento.target.closest(".contador")) return;
-  ARRASTO.origemX = evento.clientX;
-  ARRASTO.origemScroll = carrossel.scrollLeft;
-  ARRASTO.arrastando = false;
-  ARRASTO.arrastou = false;
+carousel.addEventListener("pointerdown", (event) => {
+  if (event.pointerType !== "mouse" || event.button !== 0 || event.target.closest(".counter")) return;
+  DRAG.originX = event.clientX;
+  DRAG.originScroll = carousel.scrollLeft;
+  DRAG.dragging = false;
+  DRAG.dragged = false;
 });
 
-carrossel.addEventListener("pointermove", (evento) => {
-  if (evento.pointerType !== "mouse" || !(evento.buttons & 1)) return;
-  const distancia = evento.clientX - ARRASTO.origemX;
-  if (!ARRASTO.arrastando) {
-    if (Math.abs(distancia) <= FOLGA_DO_DEDO) return;
-    ARRASTO.arrastando = true;
-    ARRASTO.arrastou = true;
-    clearTimeout(devolverSnap);
-    carrossel.classList.add("arrastando");
-    try { carrossel.setPointerCapture(evento.pointerId); } catch { /* ponteiro sintético */ }
+carousel.addEventListener("pointermove", (event) => {
+  if (event.pointerType !== "mouse" || !(event.buttons & 1)) return;
+  const distance = event.clientX - DRAG.originX;
+  if (!DRAG.dragging) {
+    if (Math.abs(distance) <= FINGER_SLACK) return;
+    DRAG.dragging = true;
+    DRAG.dragged = true;
+    clearTimeout(snapRestore);
+    carousel.classList.add("dragging");
+    try { carousel.setPointerCapture(event.pointerId); } catch { /* synthetic pointer */ }
   }
-  carrossel.scrollLeft = ARRASTO.origemScroll - distancia;
+  carousel.scrollLeft = DRAG.originScroll - distance;
 });
 
-function soltarArrasto() {
-  if (!ARRASTO.arrastando) return;
-  ARRASTO.arrastando = false;
-  const largura = carrossel.clientWidth;
-  if (largura > 0) irPara(LETRAS[Math.min(LETRAS.length - 1, Math.max(0, Math.round(carrossel.scrollLeft / largura)))]);
-  // O snap só volta depois que a rolagem pousou, senão ele corta a animação e o painel salta.
-  const devolver = () => {
-    carrossel.classList.remove("arrastando");
-    carrossel.removeEventListener("scrollend", devolver);
+function releaseDrag() {
+  if (!DRAG.dragging) return;
+  DRAG.dragging = false;
+  const width = carousel.clientWidth;
+  if (width > 0) goTo(WORKOUT_IDS[Math.min(WORKOUT_IDS.length - 1, Math.max(0, Math.round(carousel.scrollLeft / width)))]);
+  // Snap only returns after the scroll landed, otherwise it cuts the animation and the panel jumps.
+  const restore = () => {
+    carousel.classList.remove("dragging");
+    carousel.removeEventListener("scrollend", restore);
   };
-  carrossel.addEventListener("scrollend", devolver);
-  devolverSnap = setTimeout(devolver, PRAZO_DO_DESTINO);
+  carousel.addEventListener("scrollend", restore);
+  snapRestore = setTimeout(restore, DESTINATION_TIMEOUT);
 }
-carrossel.addEventListener("pointerup", soltarArrasto);
-carrossel.addEventListener("pointercancel", soltarArrasto);
+carousel.addEventListener("pointerup", releaseDrag);
+carousel.addEventListener("pointercancel", releaseDrag);
 
-// Soltar o mouse depois de arrastar ainda dispara um clique no que estiver embaixo, e ele
-// baixaria uma série ou abriria o visor. A marca é consumida aqui, na captura, antes de todos.
-carrossel.addEventListener("click", (evento) => {
-  if (!ARRASTO.arrastou) return;
-  ARRASTO.arrastou = false;
-  evento.stopPropagation();
-  evento.preventDefault();
+// Releasing the mouse after a drag still fires a click on whatever is below, and it would tick a
+// set or open the viewer. The flag is consumed here, in capture, before everyone else.
+carousel.addEventListener("click", (event) => {
+  if (!DRAG.dragged) return;
+  DRAG.dragged = false;
+  event.stopPropagation();
+  event.preventDefault();
 }, { capture: true });
 
-// Tocar na esteira é dizer "fiz". O tempo que estava na caixa vira registro do dia, e tocar de
-// novo desfaz: sem série para baixar, é o toque que abre e fecha o exercício. Desfazer não apaga
-// o tempo, como subir uma série não apaga a carga: o segundo toque perdia o que a fita escolheu.
-function concluirAerobico(exercicio) {
-  const feito = faltam(exercicio) === 0;
-  if (!feito) {
-    const minutos = minutosDe(exercicio);
-    if (minutos !== undefined) gravarDigitado(exercicio, "minutos", minutos);
+// Tapping the treadmill means "done". The time in the box becomes the day's record, and tapping
+// again undoes it: with no set to tick, the tap is what opens and closes the exercise. Undoing does
+// not erase the time, just as raising a set does not erase the load: the second tap used to lose
+// what the tape had chosen.
+function finishCardio(exercise) {
+  const done = setsLeft(exercise) === 0;
+  if (!done) {
+    const minutes = minutesOf(exercise);
+    if (minutes !== undefined) saveTyped(exercise, "minutes", minutes);
   }
-  definir(exercicio, feito ? exercicio.series : 0);
-  aviso.textContent = feito
-    ? `${exercicio.nome}: desfeito.`
-    : `${exercicio.nome}: feito, ${emMedida(minutosDe(exercicio) ?? 0, "min")}.`;
+  setRemaining(exercise, done ? exercise.sets: 0);
+  notice.textContent = done
+    ? `${exercise.name}: desfeito.`
+    : `${exercise.name}: feito, ${asMeasure(minutesOf(exercise) ?? 0, "min")}.`;
 }
 
-function criarCampo(exercicio, qual) {
-  const campo = document.createElement("input");
-  campo.type = "text";
-  // decimal, e não number: o campo numérico recusa vírgula e ainda traz setas que ninguém usa.
-  campo.inputMode = "decimal";
-  campo.className = "carga-campo";
-  campo.hidden = true;
-  campo.setAttribute("aria-label", `Carga de ${exercicio.nome}, em ${unidadeDe(exercicio)}`);
-  return campo;
+function createField(exercise, which) {
+  const field = document.createElement("input");
+  field.type = "text";
+  // decimal, not number: the numeric field refuses commas and brings spinners nobody uses.
+  field.inputMode = "decimal";
+  field.className = "load-field";
+  field.hidden = true;
+  field.setAttribute("aria-label", `Carga de ${exercise.name}, em ${unitOf(exercise)}`);
+  return field;
 }
 
-function criarCartao(exercicio, posicao) {
+function createCard(exercise, position) {
   const item = document.createElement("li");
-  item.className = "exercicio";
-  // Só serve à escada da entrada: é o que dá a cada cartão o seu atraso.
-  item.style.setProperty("--posicao", posicao);
+  item.className = "exercise";
+  // Only feeds the entrance stagger: it gives each card its delay.
+  item.style.setProperty("--position", position);
 
-  const contador = document.createElement("button");
-  contador.type = "button";
-  contador.className = "contador";
+  const counter = document.createElement("button");
+  counter.type = "button";
+  counter.className = "counter";
 
-  // Na esteira não há série para baixar: a caixa de cima vira o tempo. Tocar marca feito com o
-  // tempo que já estava ali, e segurar abre a mesma fita do contador, só que em minutos.
-  if (ehAerobico(exercicio)) ligarTempo(contador, exercicio);
-  else ligarContador(contador, exercicio);
+  // On the treadmill there is no set to tick: the top box becomes the time. Tapping marks done with
+  // the time already there, and holding opens the same tape as the counter, in minutes.
+  if (isCardio(exercise)) bindTime(counter, exercise);
+  else bindCounter(counter, exercise);
 
-  const meio = document.createElement("button");
-  meio.type = "button";
-  meio.className = "descricao";
-  // Toque curto no corpo faz o mesmo que no contador: baixa uma série. Segurar abre o menu do
-  // exercício, e o evento de menu de contexto é o mesmo caminho para mouse e teclado. O visor
-  // abre só pela foto, desde 2026-09-13.
-  const segurouNome = ligarToqueLongo(meio, () => abrirMenuExercicio(exercicio));
-  meio.onclick = () => {
-    if (segurouNome()) return;
-    contador.click();
+  const middle = document.createElement("button");
+  middle.type = "button";
+  middle.className = "description";
+  // A short tap on the body does the same as on the counter: ticks a set. Holding opens the exercise
+  // menu, and the contextmenu event is the same path for mouse and keyboard. The viewer opens only
+  // through the photo, since 2026-09-13.
+  const heldName = bindLongPress(middle, () => openExerciseMenu(exercise));
+  middle.onclick = () => {
+    if (heldName()) return;
+    counter.click();
   };
-  meio.addEventListener("contextmenu", (evento) => {
-    evento.preventDefault();
-    if (!menuExercicio.open) abrirMenuExercicio(exercicio);
+  middle.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    if (!exerciseMenu.open) openExerciseMenu(exercise);
   });
-  const nome = document.createElement("div");
-  nome.className = "nome";
-  nome.textContent = exercicio.nome;
+  const name = document.createElement("div");
+  name.className = "name";
+  name.textContent = exercise.name;
 
-  const grupos = document.createElement("div");
-  grupos.className = "grupos";
-  grupos.textContent = etiquetasDe(exercicio);
-  // O acessório vai no fim da linha dos músculos, só o ícone: o nome dele mora no visor.
-  if (exercicio.acessorio && ACESSORIOS[exercicio.acessorio]) {
-    const selo = document.createElement("span");
-    selo.className = "acessorio-selo";
-    selo.title = nomeDoAcessorio(exercicio.acessorio);
-    selo.innerHTML = svgDoAcessorio(exercicio.acessorio);
-    grupos.append(" ", selo);
+  const muscles = document.createElement("div");
+  muscles.className = "muscles";
+  muscles.textContent = labelsOf(exercise);
+  // The attachment goes at the end of the muscle line, icon only: its name lives in the viewer.
+  if (exercise.accessory && ACCESSORIES[exercise.accessory]) {
+    const badge = document.createElement("span");
+    badge.className = "accessory-badge";
+    badge.title = accessoryName(exercise.accessory);
+    badge.innerHTML = accessorySvg(exercise.accessory);
+    muscles.append(" ", badge);
   }
 
-  meio.append(nome, grupos);
+  middle.append(name, muscles);
 
-  // Alguém do círculo faz o mesmo exercício: a inicial de quem, num selo no canto. Inicial e não
-  // só cor, porque cor sozinha não carrega significado neste app.
-  const juntos = compartilhados.get(exercicio.cod) ?? [];
-  meio.setAttribute("aria-label", `${exercicio.nome}. ${etiquetasDe(exercicio)}.`
-    + (exercicio.acessorio && ACESSORIOS[exercicio.acessorio] ? ` Com ${nomeDoAcessorio(exercicio.acessorio).toLowerCase()}.` : "")
-    + (juntos.length > 0 ? ` Também no treino de ${juntos.map((outro) => outro.nome).join(" e ")}.` : "")
+  // Someone in the circle does the same exercise: their initial, in a badge in the corner. Initial and
+  // not just color, because color alone carries no meaning in this app.
+  const together = shared.get(exercise.videoCode) ?? [];
+  middle.setAttribute("aria-label", `${exercise.name}. ${labelsOf(exercise)}.`
+    + (exercise.accessory && ACCESSORIES[exercise.accessory] ? ` Com ${accessoryName(exercise.accessory).toLowerCase()}.` : "")
+    + (together.length > 0 ? ` Também no treino de ${together.map((other) => other.name).join(" e ")}.` : "")
     + " Tocar baixa uma série. Segurar, ou a tecla de menu, abre o menu do exercício.");
-  if (juntos.length > 0) {
-    const selo = document.createElement("span");
-    selo.className = "junto";
-    selo.setAttribute("aria-hidden", "true");
-    selo.textContent = juntos.map((outro) => outro.nome[0]).join("");
-    item.append(selo);
+  if (together.length > 0) {
+    const badge = document.createElement("span");
+    badge.className = "together";
+    badge.setAttribute("aria-hidden", "true");
+    badge.textContent = together.map((other) => other.name[0]).join("");
+    item.append(badge);
   }
 
-  const foto = document.createElement("button");
-  foto.type = "button";
-  foto.className = "foto";
-  foto.onclick = () => abrirVisor(exercicio);
+  const photo = document.createElement("button");
+  photo.type = "button";
+  photo.className = "photo";
+  photo.onclick = () => openViewer(exercise);
 
-  // Carga e séries dividem a mesma caixa, separadas por um traço: de pé na máquina as duas são a
-  // mesma pergunta, e ler uma no canto do cartão e a outra embaixo obriga o olho a viajar.
-  const bloco = document.createElement("div");
-  bloco.className = "bloco";
+  // Load and sets share one box, split by a line: standing at the machine they are the same question,
+  // and reading one in the card corner and the other below makes the eye travel.
+  const block = document.createElement("div");
+  block.className = "block";
 
   const chip = document.createElement("button");
   chip.type = "button";
-  chip.className = "carga-valor";
+  chip.className = "load-value";
 
-  const campo = criarCampo(exercicio, "carga");
-  // Tocar na carga abre o campo direto. Já foi "segurar abre, tocar baixa série", e ele pediu de
-  // volta o toque simples em 2026-09-13: quem toca no número quer mexer no número.
-  chip.onclick = () => abrirCampoDaCarga(exercicio, chip, campo);
-  ligarCampoDaCarga(exercicio, chip, campo);
+  const field = createField(exercise, "load");
+  // Tapping the load opens the field directly. It used to be "hold opens, tap ticks a set", and he
+  // asked for the simple tap back on 2026-09-13: whoever taps the number wants to change the number.
+  chip.onclick = () => openLoadField(exercise, chip, field);
+  bindLoadField(exercise, chip, field);
 
-  bloco.append(contador);
-  // Flexão e abdominal não têm peso na máquina, então a caixa de baixo some em vez de ficar
-  // esperando um número que nunca vem.
-  if (!semCarga(exercicio)) bloco.append(chip, campo);
+  block.append(counter);
+  // Push-ups and crunches have no machine weight, so the bottom box disappears instead of waiting for
+  // a number that never comes.
+  if (!isBodyweight(exercise)) block.append(chip, field);
 
-  const cartao = {
+  const card = {
     item,
-    // Só quem mudou anima, e só quando mudou: montar a lista inteira com entrada seria
-    // animação de carga, que não diz nada.
-    atualizar({ animar = false } = {}) {
-      const faltando = faltam(exercicio);
-      item.classList.toggle("feito", faltando === 0);
-      contador.dataset.feito = faltando === 0 ? "1" : "0";
+    // Only what changed animates, and only when it changed: mounting the whole list with an entrance
+    // would be a loading animation, which says nothing.
+    update({ animate = false } = {}) {
+      const missing = setsLeft(exercise);
+      item.classList.toggle("done", missing === 0);
+      counter.dataset.done = missing === 0 ? "1" : "0";
 
-      if (ehAerobico(exercicio)) {
-        const minutos = minutosDe(exercicio);
-        // Mesmo desenho do contador de séries: o número grande em cima e a unidade na linha de
-        // baixo, onde nos outros cartões fica o "12 rep".
-        contador.innerHTML = minutos === undefined
-          ? `<span class="serie">+</span><span class="reps"><span class="unidade">min</span></span>`
-          : `<span class="serie">${tempoCurto(minutos)}</span><span class="reps"><span class="unidade">${unidadeDoTempo(minutos)}</span></span>`;
-        contador.dataset.vazio = minutos === undefined ? "1" : "0";
-        contador.style.setProperty("--progresso", "0%");
-        contador.setAttribute("aria-label", minutos === undefined
-          ? `Anotar o tempo de ${exercicio.nome}. Segurar para escolher os minutos.`
-          : `${exercicio.nome}: ${emMedida(minutos, "min")}. Tocar marca feito, segurar ajusta o tempo, setas mudam de cinco em cinco.`);
+      if (isCardio(exercise)) {
+        const minutes = minutesOf(exercise);
+        // Same drawing as the sets counter: the big number on top and the unit on the line below, where
+        // the other cards show "12 rep".
+        counter.innerHTML = minutes === undefined
+          ? `<span class="sets">+</span><span class="reps"><span class="unit">min</span></span>`
+          : `<span class="sets">${shortTime(minutes)}</span><span class="reps"><span class="unit">${timeUnit(minutes)}</span></span>`;
+        counter.dataset.empty = minutes === undefined ? "1" : "0";
+        counter.style.setProperty("--progress", "0%");
+        counter.setAttribute("aria-label", minutes === undefined
+          ? `Anotar o tempo de ${exercise.name}. Segurar para escolher os minutos.`
+          : `${exercise.name}: ${asMeasure(minutes, "min")}. Tocar marca feito, segurar ajusta o tempo, setas mudam de cinco em cinco.`);
       } else {
-        contador.innerHTML = rotuloDoContador(faltando, exercicio.reps);
-        if (animar) contador.querySelector(".serie").classList.add("entrando");
-        // O preenchimento sobe com o que já foi executado, não com o que falta.
-        contador.style.setProperty("--progresso", `${((exercicio.series - faltando) / exercicio.series) * 100}%`);
-        contador.setAttribute("aria-label",
-          faltando === 0
-            ? `${exercicio.nome}: feito. Use as setas para ajustar.`
-            : `${exercicio.nome}: ${rotulo(faltando, exercicio.reps)} restantes. Tocar para baixar uma série, setas para ajustar.`);
+        counter.innerHTML = counterLabel(missing, exercise.reps);
+        if (animate) counter.querySelector(".sets").classList.add("entering");
+        // The fill rises with what was done, not with what is left.
+        counter.style.setProperty("--progress", `${((exercise.sets - missing) / exercise.sets) * 100}%`);
+        counter.setAttribute("aria-label",
+          missing === 0
+            ? `${exercise.name}: feito. Use as setas para ajustar.`
+            : `${exercise.name}: ${label(missing, exercise.reps)} restantes. Tocar para baixar uma série, setas para ajustar.`);
       }
 
-      const capa = capaDe(exercicio);
-      foto.innerHTML = capa ? `<img src="${capa}" alt="">` : ICONE_CAMERA;
-      foto.setAttribute("aria-label", capa
-        ? `Fotos do equipamento de ${exercicio.nome}`
-        : `Fotos do equipamento de ${exercicio.nome}, nenhuma ainda`);
+      const cover = coverOf(exercise);
+      photo.innerHTML = cover ? `<img src="${cover}" alt="">` : ICON_CAMERA;
+      photo.setAttribute("aria-label", cover
+        ? `Fotos do equipamento de ${exercise.name}`
+        : `Fotos do equipamento de ${exercise.name}, nenhuma ainda`);
 
-      if (semCarga(exercicio)) return;
-      const carga = cargaDe(exercicio);
-      const rumo = rumoDaCarga(exercicio);
-      const unidade = unidadeDe(exercicio);
-      chip.dataset.vazio = carga === undefined ? "1" : "0";
-      // O ícone só aparece quando a carga mudou hoje. O quanto mudou mora no histórico: nesta
-      // caixa cabe a direção, e direção é o que se quer saber de pé na máquina.
-      chip.innerHTML = rumo === 0 ? "" : rumo > 0 ? ICONE_SUBIU : ICONE_DESCEU;
-      chip.classList.toggle("carga-ganho", rumo > 0);
-      chip.classList.toggle("carga-queda", rumo < 0);
-      chip.append(carga === undefined ? comTexto("+", unidade) : comUnidade(carga, unidade));
-      chip.setAttribute("aria-label", rotuloDaCarga(exercicio, carga, rumo));
+      if (isBodyweight(exercise)) return;
+      const load = loadOf(exercise);
+      const direction = loadDirection(exercise);
+      const unit = unitOf(exercise);
+      chip.dataset.empty = load === undefined ? "1" : "0";
+      // The icon only shows when the load changed today. How much lives in the history: this box fits
+      // the direction, and direction is what you want to know standing at the machine.
+      chip.innerHTML = direction === 0 ? "" : direction > 0 ? ICON_UP : ICON_DOWN;
+      chip.classList.toggle("load-gain", direction > 0);
+      chip.classList.toggle("load-drop", direction < 0);
+      chip.append(load === undefined ? withText("+", unit) : withUnit(load, unit));
+      chip.setAttribute("aria-label", loadLabel(exercise, load, direction));
     }
   };
 
-  cartao.atualizar();
-  item.append(bloco, meio, foto, acoesDeEdicao(exercicio));
-  return cartao;
+  card.update();
+  item.append(block, middle, photo, editActions(exercise));
+  return card;
 }
 
-// A fileira do modo de edição, presente em todo cartão e visível só editando: subir, descer,
-// mudar de treino e tirar. Tirar é arquivar, e o histórico é o caminho de volta.
-function acoesDeEdicao(exercicio) {
-  const fileira = document.createElement("div");
-  fileira.className = "edicao-acoes";
-  // Ícone e nome acessível, sem texto à vista: cinco palavras lado a lado não cabiam em 390px, e
-  // o data-acao é o que a suíte lê.
-  const botao = (acao, icone, rotulo, agir) => {
-    const elemento = document.createElement("button");
-    elemento.type = "button";
-    elemento.className = "icone";
-    elemento.dataset.acao = acao;
-    elemento.innerHTML = icone;
-    elemento.setAttribute("aria-label", `${rotulo}: ${exercicio.nome}`);
-    elemento.onclick = agir;
-    return elemento;
+// The edit-mode toolbar, present on every card and visible only while editing: up, down, change
+// workout and remove. Removing is archiving, and the history is the way back.
+function editActions(exercise) {
+  const toolbar = document.createElement("div");
+  toolbar.className = "edit-actions";
+  // Icon and accessible name, no visible text: five words side by side did not fit in 390px, and
+  // data-action is what the suite reads.
+  const button = (action, icon, label, act) => {
+    const element = document.createElement("button");
+    element.type = "button";
+    element.className = "icon";
+    element.dataset.action = action;
+    element.innerHTML = icon;
+    element.setAttribute("aria-label", `${label}: ${exercise.name}`);
+    element.onclick = act;
+    return element;
   };
-  const subir = botao("subir", ICONE_SUBIR, "Subir", () => deslocarExercicio(exercicio, -1));
-  const descer = botao("descer", ICONE_DESCER, "Descer", () => deslocarExercicio(exercicio, 1));
-  const lista = exerciciosPorLetra.get(exercicio.letra) ?? [];
-  subir.disabled = lista[0]?.id === exercicio.id;
-  descer.disabled = lista[lista.length - 1]?.id === exercicio.id;
-  fileira.append(
-    subir,
-    descer,
-    botao("editar", ICONE_EDITAR, "Editar", () => abrirEdicaoDeExercicio(exercicio)),
-    botao("mover", ICONE_MOVER, "Mudar de treino", () => abrirEscolhaDeTreino(exercicio, "mover")),
-    botao("tirar", ICONE_ARQUIVAR, "Tirar do treino", () => tirarExercicio(exercicio))
+  const moveUp = button("up", ICON_MOVE_UP, "Subir", () => shiftExercise(exercise, -1));
+  const moveDown = button("down", ICON_MOVE_DOWN, "Descer", () => shiftExercise(exercise, 1));
+  const list = exercisesByWorkoutId.get(exercise.workout) ?? [];
+  moveUp.disabled = list[0]?.id === exercise.id;
+  moveDown.disabled = list[list.length - 1]?.id === exercise.id;
+  toolbar.append(
+    moveUp,
+    moveDown,
+    button("edit", ICON_EDIT, "Editar", () => openExerciseEdit(exercise)),
+    button("move", ICON_MOVE, "Mudar de treino", () => openWorkoutChoice(exercise, "move")),
+    button("remove", ICON_ARCHIVE, "Tirar do treino", () => removeExercise(exercise))
   );
-  return fileira;
+  return toolbar;
 }
 
-// O selo diz a direção três vezes: no ícone, na cor e no sinal do número. Assim ele continua
-// legível para quem não distingue as duas cores, e continua bonito para quem distingue.
-function selo(diferenca, unidade) {
-  const marca = document.createElement("span");
-  const subiu = diferenca > 0;
-  marca.className = `selo ${diferenca === 0 ? "selo-neutro" : subiu ? "selo-ganho" : "selo-queda"}`;
-  marca.innerHTML = diferenca === 0 ? ICONE_MANTEVE : subiu ? ICONE_SUBIU : ICONE_DESCEU;
-  // Sem palavra quando não mudou: o sinal de igual já diz tudo, e a palavra ao lado dele era
-  // ruído. Quem lê por leitor de tela continua ouvindo, porque o ícone é mudo.
-  if (diferenca === 0) marca.append(oculto("sem mudança"));
-  else marca.append(comTexto(comSinal(diferenca), unidade));
-  return marca;
+// The badge states the direction three times: icon, color and the number's sign. So it stays
+// readable for whoever cannot tell the two colors apart, and pretty for whoever can.
+function badge(difference, unit) {
+  const mark = document.createElement("span");
+  const wentUp = difference > 0;
+  mark.className = `badge ${difference === 0 ? "badge-neutral" : wentUp ? "badge-gain" : "badge-drop"}`;
+  mark.innerHTML = difference === 0 ? ICON_FLAT : wentUp ? ICON_UP : ICON_DOWN;
+  // No word when nothing changed: the equals sign says it all, and the word beside it was noise. The
+  // screen reader still hears it, because the icon is mute.
+  if (difference === 0) mark.append(visuallyHidden("sem mudança"));
+  else mark.append(withText(withSign(difference), unit));
+  return mark;
 }
 
-const seloNeutro = (palavra) => {
-  const marca = document.createElement("span");
-  marca.className = "selo selo-neutro";
-  marca.textContent = palavra;
-  return marca;
+const neutralBadge = (word) => {
+  const mark = document.createElement("span");
+  mark.className = "badge badge-neutral";
+  mark.textContent = word;
+  return mark;
 };
 
-// Subiu, caiu ou está igual, comparando o que foi digitado hoje com a última vez. Carga apenas
-// herdada não tem rumo: ela é a da última vez, e não mudou coisa nenhuma.
-function rumoDaCarga(exercicio) {
-  const anterior = ultimaCarga(exercicio);
-  const hoje = cargasDeHoje.get(exercicio.id);
-  if (hoje === undefined || !anterior) return 0;
-  return Math.sign(diferencaEntre(hoje, anterior.carga));
+// Up, down or level, comparing what was typed today with the last time. A load that is only
+// inherited has no direction: it is the last time's, and nothing changed.
+function loadDirection(exercise) {
+  const previous = lastLoad(exercise);
+  const today = todayLoads.get(exercise.id);
+  if (today === undefined || !previous) return 0;
+  return Math.sign(differenceBetween(today, previous.load));
 }
 
-// O ícone é enfeite do que o rótulo já diz por extenso: quem lê por leitor de tela ouve a
-// diferença em quilos, que na caixa não caberia.
-function rotuloDaCarga(exercicio, carga, rumo) {
-  if (carga === undefined) return `Carga de ${exercicio.nome}: nenhuma. Segurar para digitar.`;
-  const anterior = ultimaCarga(exercicio);
-  const comparacao = rumo === 0 ? ""
-    : ` ${comSinal(diferencaEntre(cargasDeHoje.get(exercicio.id), anterior.carga))} ${unidadeDe(exercicio)} desde ${emDia(anterior.data)}.`;
-  return `Carga de ${exercicio.nome}: ${emMedida(carga, unidadeDe(exercicio))}.${comparacao} Tocar para mudar.`;
+// The icon decorates what the label already spells out: the screen reader user hears the
+// difference in kilos, which would not fit in the box.
+function loadLabel(exercise, load, direction) {
+  if (load === undefined) return `Carga de ${exercise.name}: nenhuma. Segurar para digitar.`;
+  const previous = lastLoad(exercise);
+  const comparison = direction === 0 ? ""
+    : ` ${withSign(differenceBetween(todayLoads.get(exercise.id), previous.load))} ${unitOf(exercise)} desde ${asDayMonth(previous.date)}.`;
+  return `Carga de ${exercise.name}: ${asMeasure(load, unitOf(exercise))}.${comparison} Tocar para mudar.`;
 }
 
-const texto = (conteudo) => document.createTextNode(conteudo);
+const text = (content) => document.createTextNode(content);
 
-// Os dois números que se digitam num cartão. A caixa não sabe onde eles moram: recebe como ler o
-// de hoje, o que mostrar quando não há nada de hoje, e como gravar e apagar.
-const DIGITADOS = {
-  carga: {
-    deHoje: (exercicio) => cargasDeHoje.get(exercicio.id),
-    mostrar: cargaDe,
-    guardar: (exercicio, valor) => cargasDeHoje.set(exercicio.id, valor),
-    esquecer: (exercicio) => cargasDeHoje.delete(exercicio.id),
-    unidade: unidadeDe,
-    aoApagar: (exercicio) => `Carga de ${exercicio.nome} apagada.`
+// The two numbers typed on a card. The box does not know where they live: it receives how to read
+// today's, what to show when there is nothing today, and how to save and erase.
+const TYPED = {
+  load: {
+    ofToday: (exercise) => todayLoads.get(exercise.id),
+    show: loadOf,
+    keep: (exercise, value) => todayLoads.set(exercise.id, value),
+    forget: (exercise) => todayLoads.delete(exercise.id),
+    unit: unitOf,
+    onDelete: (exercise) => `Carga de ${exercise.name} apagada.`
   },
-  minutos: {
-    deHoje: (exercicio) => minutosDeHoje.get(exercicio.id),
-    mostrar: minutosDe,
-    guardar: (exercicio, valor) => minutosDeHoje.set(exercicio.id, valor),
-    esquecer: (exercicio) => minutosDeHoje.delete(exercicio.id),
-    unidade: () => "min",
-    aoApagar: (exercicio) => `Tempo de ${exercicio.nome} apagado.`
+  minutes: {
+    ofToday: (exercise) => todayMinutes.get(exercise.id),
+    show: minutesOf,
+    keep: (exercise, value) => todayMinutes.set(exercise.id, value),
+    forget: (exercise) => todayMinutes.delete(exercise.id),
+    unit: () => "min",
+    onDelete: (exercise) => `Tempo de ${exercise.name} apagado.`
   }
 };
 
-function abrirCampoDaCarga(exercicio, chip, campo, qual = "carga") {
-  const valor = DIGITADOS[qual].mostrar(exercicio);
-  campo.value = valor === undefined ? "" : String(valor).replace(".", ",");
+function openLoadField(exercise, chip, field, which = "load") {
+  const value = TYPED[which].show(exercise);
+  field.value = value === undefined ? "" : String(value).replace(".", ",");
   chip.hidden = true;
-  campo.hidden = false;
-  campo.focus();
-  campo.select();
+  field.hidden = false;
+  field.focus();
+  field.select();
 }
 
-function ligarCampoDaCarga(exercicio, chip, campo, qual = "carga") {
-  const fechar = () => {
-    campo.hidden = true;
+function bindLoadField(exercise, chip, field, which = "load") {
+  const closeDialog = () => {
+    field.hidden = true;
     chip.hidden = false;
   };
 
-  let desistiu = false;
+  let gaveUp = false;
 
-  // Sai do campo e vale. Enter e tocar fora passam por aqui, e no celular Enter é o que fecha o
-  // teclado. Campo apagado apaga a carga do dia, e o chip volta a mostrar a da última vez.
-  // Número impossível não grava nada e deixa tudo como estava.
-  campo.addEventListener("blur", () => {
-    fechar();
-    if (desistiu) {
-      desistiu = false;
+  // Leaving the field commits. Enter and tapping outside both come through here, and on the phone
+  // Enter is what closes the keyboard. An emptied field erases the day's load, and the chip goes back
+  // to showing the last time's. An impossible number saves nothing and leaves everything as it was.
+  field.addEventListener("blur", () => {
+    closeDialog();
+    if (gaveUp) {
+      gaveUp = false;
       return;
     }
 
-    const anunciar = (texto) => {
-      cartaoPorId.get(exercicio.id)?.atualizar();
-      aviso.textContent = texto;
+    const announce = (text) => {
+      cardById.get(exercise.id)?.update();
+      notice.textContent = text;
     };
 
-    const dono = DIGITADOS[qual];
+    const owner = TYPED[which];
 
-    if (campo.value.trim() === "") {
-      if (dono.deHoje(exercicio) === undefined) return;
-      dono.esquecer(exercicio);
-      Banco.apagarValor(perfilAtivo, exercicio.letra, exercicio.id, qual);
-      return anunciar(dono.aoApagar(exercicio));
+    if (field.value.trim() === "") {
+      if (owner.ofToday(exercise) === undefined) return;
+      owner.forget(exercise);
+      Store.deleteValue(activeProfile, exercise.workout, exercise.id, which);
+      return announce(owner.onDelete(exercise));
     }
 
-    const valor = emNumero(campo.value);
-    if (valor === null || valor === dono.deHoje(exercicio)) return;
-    gravarDigitado(exercicio, qual, valor);
-    // Anotar o tempo é o que conclui o aeróbico: não há série para baixar numa esteira.
-    anunciar(`${exercicio.nome}: ${emMedida(valor, dono.unidade(exercicio))}.`);
+    const value = asNumber(field.value);
+    if (value === null || value === owner.ofToday(exercise)) return;
+    saveTyped(exercise, which, value);
+    // Writing the time is what completes cardio: there is no set to tick on a treadmill.
+    announce(`${exercise.name}: ${asMeasure(value, owner.unit(exercise))}.`);
   });
 
-  campo.addEventListener("keydown", (evento) => {
-    if (evento.key !== "Enter" && evento.key !== "Escape") return;
-    evento.preventDefault();
-    // Lido antes do blur, porque o ouvinte de lá consome a marca ao passar por ela.
-    const cancelou = evento.key === "Escape";
-    desistiu = cancelou;
-    campo.blur();
-    if (cancelou) chip.focus();
+  field.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== "Escape") return;
+    event.preventDefault();
+    // Read before blur, because the listener there consumes the flag on its way through.
+    const cancelled = event.key === "Escape";
+    gaveUp = cancelled;
+    field.blur();
+    if (cancelled) chip.focus();
   });
 }
 
-const gravarDigitado = (exercicio, qual, valor) => {
-  DIGITADOS[qual].guardar(exercicio, valor);
-  Banco.salvarValor(perfilAtivo, exercicio.letra, exercicio.id, qual, valor);
+const saveTyped = (exercise, which, value) => {
+  TYPED[which].keep(exercise, value);
+  Store.saveValue(activeProfile, exercise.workout, exercise.id, which, value);
 };
 
-// Segurar o contador e arrastar muda o valor no lugar, como o seletor de hora do celular. A fita
-// de números nasce dentro do próprio contador, cobrindo-o, e acompanha o dedo. Não é diálogo: o
-// ajuste acontece onde o dedo está, e soltar confirma.
-// O mesmo gesto serve ao contador de séries e ao tempo do aeróbico: toque faz, segurar abre a
-// fita e arrasta, setas andam um passo. O que muda é a lista de opções e o que fazer com a
-// escolhida, e isso vem de fora.
-function ligarAjuste(contador, { opcoes, atual, aplicar, aoTocar }) {
-  let ajuste = null;
-  let cronometro;
-  let ajustou = false;
-  let origem = 0;
+// Holding the counter and dragging changes the value in place, like the phone's time picker. The
+// number tape is born inside the counter itself, covering it, and follows the finger. Not a dialog:
+// the adjustment happens where the finger is, and releasing confirms.
+// The same gesture serves the sets counter and the cardio time: tap does, hold opens the tape and
+// drags, arrows step. What changes is the option list and what to do with the chosen one, and
+// that comes from outside.
+function bindAdjustment(counter, { options, current, apply, onTap }) {
+  let adjustment = null;
+  let timer;
+  let adjusted = false;
+  let origin = 0;
 
-  const desistir = () => clearTimeout(cronometro);
-  const ultimo = () => opcoes().length - 1;
+  const giveUp = () => clearTimeout(timer);
+  const last = () => options().length - 1;
 
-  contador.addEventListener("pointerdown", (evento) => {
-    origem = evento.clientY;
-    ajustou = false;
-    cronometro = setTimeout(() => {
-      ajuste = { origem, inicial: atual(), valor: atual() };
-      // Ponteiro sintético não existe para o navegador, e capturá-lo lança.
-      try { contador.setPointerCapture(evento.pointerId); } catch { /* gesto sem captura */ }
-      abrirFita(contador, opcoes(), ajuste.valor);
+  counter.addEventListener("pointerdown", (event) => {
+    origin = event.clientY;
+    adjusted = false;
+    timer = setTimeout(() => {
+      adjustment = { origin, initial: current(), value: current() };
+      // A synthetic pointer does not exist for the browser, and capturing it throws.
+      try { counter.setPointerCapture(event.pointerId); } catch { /* gesture without capture */ }
+      openTape(counter, options(), adjustment.value);
       navigator.vibrate?.(10);
-    }, ESPERA_TOQUE_LONGO);
+    }, LONG_PRESS_DELAY);
   });
 
-  contador.addEventListener("pointermove", (evento) => {
-    // Antes do gesto pegar, dedo que anda é rolagem da lista, não ajuste.
-    if (!ajuste) {
-      if (Math.abs(evento.clientY - origem) > FOLGA_DO_DEDO) desistir();
+  counter.addEventListener("pointermove", (event) => {
+    // Before the gesture takes, a moving finger is a list scroll, not an adjustment.
+    if (!adjustment) {
+      if (Math.abs(event.clientY - origin) > FINGER_SLACK) giveUp();
       return;
     }
-    const continuo = Math.min(ultimo(),
-      Math.max(0, ajuste.inicial + (ajuste.origem - evento.clientY) / PASSO_DO_AJUSTE));
-    ajuste.valor = Math.round(continuo);
-    moverFita(continuo, ajuste.valor);
+    const continuous = Math.min(last(),
+      Math.max(0, adjustment.initial + (adjustment.origin - event.clientY) / ADJUST_STEP));
+    adjustment.value = Math.round(continuous);
+    moveTape(continuous, adjustment.value);
   });
 
-  const soltar = () => {
-    desistir();
-    if (!ajuste) return;
-    const valor = ajuste.valor;
-    ajuste = null;
-    ajustou = true;
-    fecharFita(contador);
-    aplicar(valor);
+  const release = () => {
+    giveUp();
+    if (!adjustment) return;
+    const value = adjustment.value;
+    adjustment = null;
+    adjusted = true;
+    closeTape(counter);
+    apply(value);
   };
-  contador.addEventListener("pointerup", soltar);
-  contador.addEventListener("pointercancel", soltar);
-  contador.addEventListener("pointerleave", desistir);
-  contador.addEventListener("contextmenu", (evento) => evento.preventDefault());
+  counter.addEventListener("pointerup", release);
+  counter.addEventListener("pointercancel", release);
+  counter.addEventListener("pointerleave", giveUp);
+  counter.addEventListener("contextmenu", (event) => event.preventDefault());
 
-  // O pointerup do gesto ainda gera um clique. Sem esta guarda, o ajuste seria seguido de uma
-  // série a menos. A marca é consumida na leitura, senão o clique do Enter morreria depois.
-  contador.addEventListener("click", () => {
-    if (ajustou) {
-      ajustou = false;
+  // The gesture's pointerup still generates a click. Without this guard the adjustment would be
+  // followed by one set less. The flag is consumed on read, or the Enter click would die afterwards.
+  counter.addEventListener("click", () => {
+    if (adjusted) {
+      adjusted = false;
       return;
     }
-    aoTocar();
+    onTap();
   });
 
-  contador.addEventListener("keydown", (evento) => {
-    const passos = { ArrowDown: -1, ArrowLeft: -1, ArrowUp: 1, ArrowRight: 1 };
-    const passo = passos[evento.key];
-    if (passo === undefined) return;
-    evento.preventDefault();
-    aplicar(Math.min(ultimo(), Math.max(0, atual() + passo)));
-  });
-}
-
-function ligarContador(contador, exercicio) {
-  ligarAjuste(contador, {
-    opcoes: () => [{ texto: "Feito", feito: true },
-      ...Array.from({ length: exercicio.series }, (_, i) => ({ texto: String(i + 1) }))],
-    atual: () => faltam(exercicio),
-    aplicar: (valor) => definir(exercicio, valor),
-    aoTocar: () => definir(exercicio, Math.max(0, faltam(exercicio) - 1))
+  counter.addEventListener("keydown", (event) => {
+    const steps = { ArrowDown: -1, ArrowLeft: -1, ArrowUp: 1, ArrowRight: 1 };
+    const step = steps[event.key];
+    if (step === undefined) return;
+    event.preventDefault();
+    apply(Math.min(last(), Math.max(0, current() + step)));
   });
 }
 
-// O tempo anda de 5 em 5 até a hora, e de 15 em 15 até três horas: na esteira ninguém corre 23
-// minutos, e a fita precisa caber no polegar. Quem quer 1h30 arrasta até lá.
-const MINUTOS = [...Array.from({ length: 12 }, (_, i) => (i + 1) * 5), ...Array.from({ length: 8 }, (_, i) => 75 + i * 15)];
-const indiceDoTempo = (minutos) => {
-  const alvo = minutos ?? 30;
-  return MINUTOS.reduce((melhor, opcao, i) => (Math.abs(opcao - alvo) < Math.abs(MINUTOS[melhor] - alvo) ? i : melhor), 0);
+function bindCounter(counter, exercise) {
+  bindAdjustment(counter, {
+    options: () => [{ text: "Feito", done: true },
+      ...Array.from({ length: exercise.sets }, (_, i) => ({ text: String(i + 1) }))],
+    current: () => setsLeft(exercise),
+    apply: (value) => setRemaining(exercise, value),
+    onTap: () => setRemaining(exercise, Math.max(0, setsLeft(exercise) - 1))
+  });
+}
+
+// Time steps by 5 up to the hour, and by 15 up to three hours: nobody runs 23 minutes on a
+// treadmill, and the tape has to fit under a thumb. Whoever wants 1h30 drags there.
+const MINUTE_OPTIONS = [...Array.from({ length: 12 }, (_, i) => (i + 1) * 5), ...Array.from({ length: 8 }, (_, i) => 75 + i * 15)];
+const timeIndex = (minutes) => {
+  const target = minutes ?? 30;
+  return MINUTE_OPTIONS.reduce((best, option, i) => (Math.abs(option - target) < Math.abs(MINUTE_OPTIONS[best] - target) ? i : best), 0);
 };
-// Até 59 é "30" sobre "min"; da hora em diante vira "1:30" sobre "h", como um relógio.
-const tempoCurto = (minutos) => (minutos < 60 ? String(minutos) : `${Math.floor(minutos / 60)}:${String(minutos % 60).padStart(2, "0")}`);
-const unidadeDoTempo = (minutos) => (minutos < 60 ? "min" : "h");
+// Up to 59 it is "30" over "min"; from the hour on it becomes "1:30" over "h", like a clock.
+const shortTime = (minutes) => (minutes < 60 ? String(minutes) : `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`);
+const timeUnit = (minutes) => (minutes < 60 ? "min" : "h");
 
-function ligarTempo(contador, exercicio) {
-  ligarAjuste(contador, {
-    opcoes: () => MINUTOS.map((minutos) => ({ texto: tempoCurto(minutos) })),
-    atual: () => indiceDoTempo(minutosDe(exercicio)),
-    aplicar: (indice) => {
-      const minutos = MINUTOS[indice];
-      gravarDigitado(exercicio, "minutos", minutos);
-      cartaoPorId.get(exercicio.id)?.atualizar();
-      aviso.textContent = `${exercicio.nome}: ${emMedida(minutos, "min")}.`;
+function bindTime(counter, exercise) {
+  bindAdjustment(counter, {
+    options: () => MINUTE_OPTIONS.map((minutes) => ({ text: shortTime(minutes) })),
+    current: () => timeIndex(minutesOf(exercise)),
+    apply: (index) => {
+      const minutes = MINUTE_OPTIONS[index];
+      saveTyped(exercise, "minutes", minutes);
+      cardById.get(exercise.id)?.update();
+      notice.textContent = `${exercise.name}: ${asMeasure(minutes, "min")}.`;
     },
-    aoTocar: () => concluirAerobico(exercicio)
+    onTap: () => finishCardio(exercise)
   });
 }
 
-// Uma linha da fita por unidade, e o dedo anda com ela: 44px de arrasto muda o valor em um.
-const PASSO_DO_AJUSTE = 44;
-let fita = null;
+// One tape row per unit, and the finger moves with it: 44px of drag changes the value by one.
+const ADJUST_STEP = 44;
+let tape = null;
 
-function abrirFita(contador, opcoes, valor) {
-  fita = document.createElement("div");
-  fita.className = "fita";
-  // O contador guarda o rótulo de acessibilidade, e a fita é o desenho do mesmo número.
-  fita.setAttribute("aria-hidden", "true");
+function openTape(counter, options, value) {
+  tape = document.createElement("div");
+  tape.className = "tape";
+  // The counter keeps the accessibility label, and the tape is the drawing of the same number.
+  tape.setAttribute("aria-hidden", "true");
 
-  const coluna = document.createElement("div");
-  coluna.className = "fita-coluna";
-  coluna.append(...opcoes.map((opcao) => {
-    const linha = document.createElement("span");
-    linha.className = opcao.feito ? "fita-valor feito" : "fita-valor";
-    linha.textContent = opcao.texto;
-    return linha;
+  const column = document.createElement("div");
+  column.className = "tape-column";
+  column.append(...options.map((option) => {
+    const row = document.createElement("span");
+    row.className = option.done ? "tape-value done" : "tape-value";
+    row.textContent = option.text;
+    return row;
   }));
 
-  fita.append(coluna);
-  contador.classList.add("ajustando");
-  contador.append(fita);
-  moverFita(valor, valor);
+  tape.append(column);
+  counter.classList.add("adjusting");
+  counter.append(tape);
+  moveTape(value, value);
 }
 
-function moverFita(continuo, escolhido) {
-  const coluna = fita?.firstElementChild;
-  if (!coluna) return;
-  coluna.style.setProperty("--desvio", `${-continuo * PASSO_DO_AJUSTE}px`);
-  [...coluna.children].forEach((linha, opcao) => linha.classList.toggle("escolhido", opcao === escolhido));
+function moveTape(continuous, chosen) {
+  const column = tape?.firstElementChild;
+  if (!column) return;
+  column.style.setProperty("--shift", `${-continuous * ADJUST_STEP}px`);
+  [...column.children].forEach((row, option) => row.classList.toggle("chosen", option === chosen));
 }
 
-function fecharFita(contador) {
-  contador.classList.remove("ajustando");
-  fita?.remove();
-  fita = null;
+function closeTape(counter) {
+  counter.classList.remove("adjusting");
+  tape?.remove();
+  tape = null;
 }
 
-function abrirResetExercicio(exercicio) {
-  alvoExercicio = exercicio;
-  document.getElementById("exercicio-corpo").textContent =
-    `${exercicio.nome} volta para ${exercicio.series}x${exercicio.reps}.`;
-  dialogoExercicio.returnValue = "";
-  dialogoExercicio.showModal();
+function openExerciseReset(exercise) {
+  exerciseTarget = exercise;
+  document.getElementById("exercise-body").textContent =
+    `${exercise.name} volta para ${exercise.sets}x${exercise.reps}.`;
+  exerciseDialog.returnValue = "";
+  exerciseDialog.showModal();
 }
 
-dialogoExercicio.addEventListener("close", () => {
-  if (dialogoExercicio.returnValue !== "resetar") return;
-  definir(alvoExercicio, alvoExercicio.series);
+exerciseDialog.addEventListener("close", () => {
+  if (exerciseDialog.returnValue !== "reset") return;
+  setRemaining(exerciseTarget, exerciseTarget.sets);
 });
 
-// O menu do exercício: segurar no corpo do cartão. Ajuste fino de séries e de carga, um passo por
-// toque, e o reset. Aeróbico não tem série para ajustar, e peso do corpo não tem carga.
-const menuExercicio = document.getElementById("menu-exercicio");
-const ajusteSeries = document.getElementById("ajuste-series");
-const ajusteCarga = document.getElementById("ajuste-carga");
-const seriesValor = document.getElementById("series-valor");
-const cargaValorMenu = document.getElementById("carga-valor-menu");
-let alvoMenu = null;
+// The exercise menu: hold the card body. Fine adjustment of sets and load, one step per tap, and
+// the reset. Cardio has no sets to adjust, and bodyweight has no load.
+const exerciseMenu = document.getElementById("exercise-menu");
+const setsAdjustment = document.getElementById("sets-adjustment");
+const loadAdjustment = document.getElementById("load-adjustment");
+const setsValue = document.getElementById("sets-value");
+const menuLoadValue = document.getElementById("menu-load-value");
+let menuTarget = null;
 
-// Meio quilo é o menor degrau de anilha; nível e velocidade andam de um em um.
-const passoDaCarga = (exercicio) => (unidadeDe(exercicio) === "kg" ? 2.5 : 1);
+// Half a kilo is the smallest plate step; level and speed go one by one.
+const loadStep = (exercise) => (unitOf(exercise) === "kg" ? 2.5 : 1);
 
-function desenharMenuExercicio() {
-  const exercicio = alvoMenu;
-  document.getElementById("menu-exercicio-titulo").textContent = exercicio.nome;
-  ajusteSeries.hidden = ehAerobico(exercicio);
-  ajusteCarga.hidden = semCarga(exercicio);
-  seriesValor.textContent = `${exercicio.series - faltam(exercicio)} de ${exercicio.series}`;
-  const carga = cargaDe(exercicio);
-  cargaValorMenu.textContent = carga === undefined ? "sem carga" : emMedida(carga, unidadeDe(exercicio));
+function renderExerciseMenu() {
+  const exercise = menuTarget;
+  document.getElementById("exercise-menu-title").textContent = exercise.name;
+  setsAdjustment.hidden = isCardio(exercise);
+  loadAdjustment.hidden = isBodyweight(exercise);
+  setsValue.textContent = `${exercise.sets - setsLeft(exercise)} de ${exercise.sets}`;
+  const load = loadOf(exercise);
+  menuLoadValue.textContent = load === undefined ? "sem carga" : asMeasure(load, unitOf(exercise));
 }
 
-function abrirMenuExercicio(exercicio) {
-  alvoMenu = exercicio;
-  desenharMenuExercicio();
-  menuExercicio.showModal();
-  menuExercicio.focus();
+function openExerciseMenu(exercise) {
+  menuTarget = exercise;
+  renderExerciseMenu();
+  exerciseMenu.showModal();
+  exerciseMenu.focus();
 }
 
-const mudarSeries = (passo) => {
-  definir(alvoMenu, Math.min(alvoMenu.series, Math.max(0, faltam(alvoMenu) - passo)));
-  desenharMenuExercicio();
+const changeSets = (step) => {
+  setRemaining(menuTarget, Math.min(menuTarget.sets, Math.max(0, setsLeft(menuTarget) - step)));
+  renderExerciseMenu();
 };
-document.getElementById("series-mais").onclick = () => mudarSeries(1);
-document.getElementById("series-menos").onclick = () => mudarSeries(-1);
+document.getElementById("sets-plus").onclick = () => changeSets(1);
+document.getElementById("sets-minus").onclick = () => changeSets(-1);
 
-const mudarCarga = (sentido) => {
-  const atual = cargaDe(alvoMenu) ?? 0;
-  const nova = Math.max(0, Math.round((atual + sentido * passoDaCarga(alvoMenu)) * 100) / 100);
-  gravarDigitado(alvoMenu, "carga", nova);
-  cartaoPorId.get(alvoMenu.id)?.atualizar();
-  aviso.textContent = `${alvoMenu.nome}: ${emMedida(nova, unidadeDe(alvoMenu))}.`;
-  desenharMenuExercicio();
+const changeLoad = (delta) => {
+  const current = loadOf(menuTarget) ?? 0;
+  const updated = Math.max(0, Math.round((current + delta * loadStep(menuTarget)) * 100) / 100);
+  saveTyped(menuTarget, "load", updated);
+  cardById.get(menuTarget.id)?.update();
+  notice.textContent = `${menuTarget.name}: ${asMeasure(updated, unitOf(menuTarget))}.`;
+  renderExerciseMenu();
 };
-document.getElementById("carga-mais").onclick = () => mudarCarga(1);
-document.getElementById("carga-menos").onclick = () => mudarCarga(-1);
+document.getElementById("load-plus").onclick = () => changeLoad(1);
+document.getElementById("load-minus").onclick = () => changeLoad(-1);
 
-document.getElementById("menu-exercicio-resetar").onclick = () => {
-  menuExercicio.close();
-  abrirResetExercicio(alvoMenu);
+document.getElementById("exercise-menu-reset").onclick = () => {
+  exerciseMenu.close();
+  openExerciseReset(menuTarget);
 };
-document.getElementById("menu-exercicio-fechar").onclick = () => menuExercicio.close();
+document.getElementById("exercise-menu-close").onclick = () => exerciseMenu.close();
 
-function abrirMenuTreino(letra) {
-  alvoTreino = letra;
-  document.getElementById("treino-titulo").textContent = `${tituloDoTreino(letra)}`;
-  dialogoTreino.returnValue = "";
-  dialogoTreino.showModal();
+function openWorkoutMenu(workoutId) {
+  workoutTarget = workoutId;
+  document.getElementById("workout-title").textContent = `${workoutTitle(workoutId)}`;
+  workoutDialog.returnValue = "";
+  workoutDialog.showModal();
 }
 
-dialogoTreino.addEventListener("close", async () => {
-  const letra = alvoTreino;
-  if (dialogoTreino.returnValue === "encerrar") {
-    await encerrar(letra);
-    aviso.textContent = `${tituloDoTreino(letra)} encerrado e gravado no histórico.`;
+workoutDialog.addEventListener("close", async () => {
+  const workoutId = workoutTarget;
+  if (workoutDialog.returnValue === "finish") {
+    await finish(workoutId);
+    notice.textContent = `${workoutTitle(workoutId)} encerrado e gravado no histórico.`;
   }
-  if (dialogoTreino.returnValue === "resetar") {
-    await resetarLetra(letra);
-    if (letra === letraAtiva) refrescar();
+  if (workoutDialog.returnValue === "reset") {
+    await resetWorkoutProgress(workoutId);
+    if (workoutId === activeWorkoutId) refresh();
     else {
-      atualizarAbas();
-      atualizarCiclo();
+      updateTabs();
+      updateCycle();
     }
-    aviso.textContent = `Progresso do treino ${letra} resetado.`;
+    notice.textContent = `Progresso do treino ${workoutId} resetado.`;
   }
 });
 
-// O quadro vazio também abre o visor, e não a câmera direto: o número do vídeo mora aqui, e ele
-// precisa estar ao alcance justamente onde ainda não há foto.
-function abrirVisor(exercicio) {
-  alvoVisor = exercicio;
-  visorTitulo.textContent = exercicio.nome;
-  montarMeta(exercicio);
-  observacao.value = exercicio.observacao ?? "";
-  // Aeróbico não tem repetição: o campo some em vez de ficar vazio esperando um número.
-  repeticoes.value = exercicio.reps ?? "";
-  repeticoes.hidden = ehAerobico(exercicio);
-  repeticoesRotulo.hidden = ehAerobico(exercicio);
-  desenharVisor();
-  visor.showModal();
-  // Sem isto o foco cai no campo de repetições, e o celular abre o teclado só de abrir o visor.
-  visor.focus();
+// The empty frame also opens the viewer, not the camera directly: the video number lives here, and
+// it has to be within reach precisely where there is no photo yet.
+function openViewer(exercise) {
+  viewerTarget = exercise;
+  viewerTitle.textContent = exercise.name;
+  buildMeta(exercise);
+  note.value = exercise.note ?? "";
+  // Cardio has no reps: the field disappears instead of sitting empty waiting for a number.
+  repsField.value = exercise.reps ?? "";
+  repsField.hidden = isCardio(exercise);
+  repsFieldLabel.hidden = isCardio(exercise);
+  renderViewer();
+  viewer.showModal();
+  // Without this the focus lands on the reps field, and the phone opens the keyboard just for opening the viewer.
+  viewer.focus();
 }
 
-// Repetições por série mudam de exercício para exercício, e a ficha da academia muda de vez em
-// quando. Grava só o campo, por cima do exercício, como a observação.
-repeticoes.addEventListener("change", () => {
-  const exercicio = alvoVisor;
-  const valor = Number.parseInt(repeticoes.value, 10);
-  if (!Number.isInteger(valor) || valor < 1 || valor > 99) {
-    repeticoes.value = exercicio.reps ?? "";
+// Reps per set vary by exercise, and the gym's plan changes now and then. Saves only the field,
+// over the exercise, like the note.
+repsField.addEventListener("change", () => {
+  const exercise = viewerTarget;
+  const value = Number.parseInt(repsField.value, 10);
+  if (!Number.isInteger(value) || value < 1 || value > 99) {
+    repsField.value = exercise.reps ?? "";
     return;
   }
-  exercicio.reps = valor;
-  Banco.salvarRepeticoes(perfilAtivo, exercicio.id, valor);
-  cartaoPorId.get(exercicio.id)?.atualizar();
-  aviso.textContent = `${exercicio.nome}: ${valor} repetições por série.`;
+  exercise.reps = value;
+  Store.saveReps(activeProfile, exercise.id, value);
+  cardById.get(exercise.id)?.update();
+  notice.textContent = `${exercise.name}: ${value} repetições por série.`;
 });
-repeticoes.addEventListener("keydown", (evento) => {
-  if (evento.key === "Enter") repeticoes.blur();
+repsField.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") repsField.blur();
 });
 
-// Informação de consulta, não de execução, e por isso mora no visor. Os valores viram chip, e o
-// rótulo fica apagado: quem abriu isto veio atrás do número, não da palavra.
-const valorEmChip = (texto) =>
-  Object.assign(document.createElement("b"), { className: "valor", textContent: texto });
+// Reference information, not execution, which is why it lives in the viewer. Values become chips
+// and the label is dimmed: whoever opened this came for the number, not the word.
+const valueChip = (text) =>
+  Object.assign(document.createElement("b"), { className: "value", textContent: text });
 
-// `16/25` na origem quer dizer dois aparelhos onde dá para fazer o mesmo exercício, então a tela
-// escreve "ou". Montado por nó, e não por innerHTML: na fase 4 esse texto vem do editor.
-function montarMeta(exercicio) {
-  const partes = [document.createTextNode("Aparelho ")];
-  exercicio.aparelho.split("/").forEach((valor, posicao) => {
-    if (posicao) partes.push(document.createTextNode(" ou "));
-    partes.push(valorEmChip(valor.trim()));
+// `16/25` at the source means two stations where the same exercise can be done, so the screen
+// writes "ou". Built by node, not innerHTML: this text comes from the editor.
+function buildMeta(exercise) {
+  const parts = [document.createTextNode("Aparelho ")];
+  exercise.station.split("/").forEach((value, position) => {
+    if (position) parts.push(document.createTextNode(" ou "));
+    parts.push(valueChip(value.trim()));
   });
-  partes.push(document.createTextNode(" · Vídeo "), valorEmChip(exercicio.cod));
-  if (exercicio.acessorio && ACESSORIOS[exercicio.acessorio]) {
-    const chip = valorEmChip(nomeDoAcessorio(exercicio.acessorio));
-    chip.classList.add("valor-acessorio");
-    chip.insertAdjacentHTML("afterbegin", svgDoAcessorio(exercicio.acessorio));
-    partes.push(document.createTextNode(" · "), chip);
+  parts.push(document.createTextNode(" · Vídeo "), valueChip(exercise.videoCode));
+  if (exercise.accessory && ACCESSORIES[exercise.accessory]) {
+    const chip = valueChip(accessoryName(exercise.accessory));
+    chip.classList.add("value-accessory");
+    chip.insertAdjacentHTML("afterbegin", accessorySvg(exercise.accessory));
+    parts.push(document.createTextNode(" · "), chip);
   }
-  visorMeta.replaceChildren(...partes);
+  viewerMeta.replaceChildren(...parts);
 }
 
-function desenharVisor() {
-  const exercicio = alvoVisor;
-  const atual = fotoDa(exercicio, VAGA_DA_MAQUINA);
+function renderViewer() {
+  const exercise = viewerTarget;
+  const current = photoOf(exercise, MACHINE_SLOT);
 
-  // A foto é o botão: tocar nela mostra as ações sobre a própria imagem, e o quadro vazio faz o
-  // mesmo. Botão de texto embaixo de tudo era o que enchia o visor.
-  visorQuadro.innerHTML = `<button type="button" class="quadro-toque" aria-expanded="false" aria-label="${atual ? "Ações da foto" : "Nenhuma foto ainda. Ações da foto"}">`
-    + (atual ? `<img src="${atual}" alt="">` : `${ICONE_CAMERA}<span>Nenhuma foto ainda</span>`)
+  // The photo is the button: tapping it shows the actions over the image itself, and the empty frame
+  // does the same. A text button under everything was what crowded the viewer.
+  viewerFrame.innerHTML = `<button type="button" class="touch-frame" aria-expanded="false" aria-label="${current ? "Ações da foto" : "Nenhuma foto ainda. Ações da foto"}">`
+    + (current ? `<img src="${current}" alt="">` : `${ICON_CAMERA}<span>Nenhuma foto ainda</span>`)
     + "</button>"
-    + `<div class="foto-acoes" hidden>`
-    + (atual ? `<button type="button" class="icone" data-acao="ampliar" aria-label="Ampliar a foto">${ICONE_AMPLIAR}</button>` : "")
-    + `<button type="button" class="icone" data-acao="camera" aria-label="Tirar foto">${ICONE_CAMERA}</button>`
-    + `<button type="button" class="icone" data-acao="galeria" aria-label="Escolher da galeria">${ICONE_GALERIA}</button>`
-    + (atual ? `<button type="button" class="icone" data-acao="apagar" aria-label="Apagar foto">${ICONE_LIXEIRA}</button>` : "")
+    + `<div class="photo-actions" hidden>`
+    + (current ? `<button type="button" class="icon" data-action="zoom" aria-label="Ampliar a foto">${ICON_ZOOM}</button>` : "")
+    + `<button type="button" class="icon" data-action="camera" aria-label="Tirar foto">${ICON_CAMERA}</button>`
+    + `<button type="button" class="icon" data-action="gallery" aria-label="Escolher da galeria">${ICON_GALLERY}</button>`
+    + (current ? `<button type="button" class="icon" data-action="delete" aria-label="Apagar foto">${ICON_TRASH}</button>` : "")
     + "</div>";
 
-  const toque = visorQuadro.querySelector(".quadro-toque");
-  const acoes = visorQuadro.querySelector(".foto-acoes");
-  toque.onclick = () => {
-    acoes.hidden = !acoes.hidden;
-    toque.setAttribute("aria-expanded", String(!acoes.hidden));
+  const tap = viewerFrame.querySelector(".touch-frame");
+  const actions = viewerFrame.querySelector(".photo-actions");
+  tap.onclick = () => {
+    actions.hidden = !actions.hidden;
+    tap.setAttribute("aria-expanded", String(!actions.hidden));
   };
-  const porAcao = {
-    ampliar: () => abrirTelaCheia(exercicio, VAGA_DA_MAQUINA),
-    camera: () => escolherFoto(exercicio, VAGA_DA_MAQUINA, seletorDaCamera),
-    galeria: () => escolherFoto(exercicio, VAGA_DA_MAQUINA, seletorDaGaleria),
-    apagar: () => pedirParaApagarFoto(exercicio)
+  const byAction = {
+    zoom: () => openFullscreen(exercise, MACHINE_SLOT),
+    camera: () => pickPhoto(exercise, MACHINE_SLOT, cameraPicker),
+    gallery: () => pickPhoto(exercise, MACHINE_SLOT, galleryPicker),
+    delete: () => askDeletePhoto(exercise)
   };
-  for (const botao of acoes.querySelectorAll(".icone")) botao.onclick = porAcao[botao.dataset.acao];
+  for (const button of actions.querySelectorAll(".icon")) button.onclick = byAction[button.dataset.action];
 
-  const juntos = compartilhados.get(exercicio.cod) ?? [];
-  visorCirculo.hidden = juntos.length === 0;
-  visorCirculo.textContent = juntos
-    .map((outro) => `${outro.nome} faz ${outro.tipo === "tempo" ? "por tempo" : `${outro.series} × ${outro.reps}`} no treino ${outro.treino}.`)
+  const together = shared.get(exercise.videoCode) ?? [];
+  viewerCircle.hidden = together.length === 0;
+  viewerCircle.textContent = together
+    .map((other) => `${other.name} faz ${other.kind === "time" ? "por tempo" : `${other.sets} × ${other.reps}`} no treino ${other.workout}.`)
     .join(" ");
 }
 
-const refrescarVisor = (exercicio) => {
-  if (visor.open && alvoVisor === exercicio) desenharVisor();
+const refreshViewer = (exercise) => {
+  if (viewer.open && viewerTarget === exercise) renderViewer();
 };
 
-function abrirTelaCheia(exercicio, vaga) {
-  telaCheiaTitulo.textContent = exercicio.nome;
-  zoomImg.src = fotoDa(exercicio, vaga);
-  reiniciarZoom();
-  telaCheia.showModal();
+function openFullscreen(exercise, slot) {
+  fullscreenTitle.textContent = exercise.name;
+  zoomImg.src = photoOf(exercise, slot);
+  resetZoom();
+  fullscreen.showModal();
 }
 
-document.getElementById("tela-cheia-fechar").onclick = () => telaCheia.close();
+document.getElementById("fullscreen-close").onclick = () => fullscreen.close();
 
-// Pinça, arrasto e toque duplo na mão, por pointer events. A pinça nativa não serve: ela amplia a
-// página inteira, diálogo junto. O ponto sob os dedos fica parado: a translação é recalculada a
-// partir de onde esse ponto estava na imagem quando o gesto começou.
-const ESCALA_MAXIMA = 5;
-const ESCALA_DO_TOQUE_DUPLO = 2.5;
-const INTERVALO_TOQUE_DUPLO = 300;
-let escala = 1;
-let deslocamento = { x: 0, y: 0 };
-const ponteiros = new Map();
-let gesto = null;
-let ultimoToque = { em: 0, x: 0, y: 0 };
+// Pinch, drag and double tap by hand, through pointer events. Native pinch will not do: it zooms
+// the whole page, dialog included. The point under the fingers stays put: the translation is
+// recomputed from where that point was on the image when the gesture started.
+const MAX_SCALE = 5;
+const DOUBLE_TAP_SCALE = 2.5;
+const DOUBLE_TAP_INTERVAL = 300;
+let scale = 1;
+let offset = { x: 0, y: 0 };
+const pointers = new Map();
+let gesture = null;
+let lastTap = { at: 0, x: 0, y: 0 };
 
-function reiniciarZoom() {
-  escala = 1;
-  deslocamento = { x: 0, y: 0 };
-  ponteiros.clear();
-  gesto = null;
-  aplicarZoom();
+function resetZoom() {
+  scale = 1;
+  offset = { x: 0, y: 0 };
+  pointers.clear();
+  gesture = null;
+  applyZoom();
 }
 
-function aplicarZoom() {
-  // Ampliada, a imagem não pode deixar borda vazia no meio da tela; em escala 1 fica centrada.
+function applyZoom() {
+  // Zoomed in, the image may not leave an empty edge mid-screen; at scale 1 it stays centered.
   const area = zoom.getBoundingClientRect();
-  const folgaX = Math.max(0, (zoomImg.offsetWidth * escala - area.width) / 2);
-  const folgaY = Math.max(0, (zoomImg.offsetHeight * escala - area.height) / 2);
-  deslocamento.x = Math.min(folgaX, Math.max(-folgaX, deslocamento.x));
-  deslocamento.y = Math.min(folgaY, Math.max(-folgaY, deslocamento.y));
-  zoomImg.style.transform = `translate(${deslocamento.x}px, ${deslocamento.y}px) scale(${escala})`;
+  const slackX = Math.max(0, (zoomImg.offsetWidth * scale - area.width) / 2);
+  const slackY = Math.max(0, (zoomImg.offsetHeight * scale - area.height) / 2);
+  offset.x = Math.min(slackX, Math.max(-slackX, offset.x));
+  offset.y = Math.min(slackY, Math.max(-slackY, offset.y));
+  zoomImg.style.transform = `translate(${offset.x}px, ${offset.y}px) scale(${scale})`;
 }
 
-const centroDaArea = () => {
+const areaCenter = () => {
   const area = zoom.getBoundingClientRect();
   return { x: area.left + area.width / 2, y: area.top + area.height / 2 };
 };
 
-// Ponto da tela para ponto da imagem, na escala e deslocamento de agora.
-function pontoNaImagem(ponto) {
-  const centro = centroDaArea();
-  return { x: (ponto.x - centro.x - deslocamento.x) / escala, y: (ponto.y - centro.y - deslocamento.y) / escala };
+// Screen point to image point, at the current scale and offset.
+function imagePoint(point) {
+  const center = areaCenter();
+  return { x: (point.x - center.x - offset.x) / scale, y: (point.y - center.y - offset.y) / scale };
 }
 
-// Escolhe a escala nova e desloca para que `fixo` da imagem continue sob `ponto` da tela.
-function ampliarEm(ponto, fixo, novaEscala) {
-  const centro = centroDaArea();
-  escala = Math.min(ESCALA_MAXIMA, Math.max(1, novaEscala));
-  deslocamento = { x: ponto.x - centro.x - fixo.x * escala, y: ponto.y - centro.y - fixo.y * escala };
-  aplicarZoom();
+// Picks the new scale and shifts so that `anchor` on the image stays under `point` on the screen.
+function zoomAt(point, anchor, nextScale) {
+  const center = areaCenter();
+  scale = Math.min(MAX_SCALE, Math.max(1, nextScale));
+  offset = { x: point.x - center.x - anchor.x * scale, y: point.y - center.y - anchor.y * scale };
+  applyZoom();
 }
 
-const meioDe = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-const distanciaDe = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const midpointOf = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+const distanceBetween = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
-function iniciarGesto() {
-  const dedos = [...ponteiros.values()];
-  if (dedos.length >= 2) {
-    const meio = meioDe(dedos[0], dedos[1]);
-    gesto = { distancia: distanciaDe(dedos[0], dedos[1]), escala, fixo: pontoNaImagem(meio) };
-  } else if (dedos.length === 1) {
-    gesto = { origem: dedos[0], deslocamento: { ...deslocamento } };
+function startGesture() {
+  const fingers = [...pointers.values()];
+  if (fingers.length >= 2) {
+    const middle = midpointOf(fingers[0], fingers[1]);
+    gesture = { distance: distanceBetween(fingers[0], fingers[1]), scale, anchor: imagePoint(middle) };
+  } else if (fingers.length === 1) {
+    gesture = { origin: fingers[0], offset: { ...offset } };
   } else {
-    gesto = null;
+    gesture = null;
   }
 }
 
-zoom.addEventListener("pointerdown", (evento) => {
-  zoom.setPointerCapture(evento.pointerId);
-  ponteiros.set(evento.pointerId, { x: evento.clientX, y: evento.clientY });
-  iniciarGesto();
+zoom.addEventListener("pointerdown", (event) => {
+  zoom.setPointerCapture(event.pointerId);
+  pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  startGesture();
 });
 
-zoom.addEventListener("pointermove", (evento) => {
-  if (!ponteiros.has(evento.pointerId)) return;
-  ponteiros.set(evento.pointerId, { x: evento.clientX, y: evento.clientY });
-  const dedos = [...ponteiros.values()];
-  if (dedos.length >= 2 && gesto?.distancia) {
-    const meio = meioDe(dedos[0], dedos[1]);
-    ampliarEm(meio, gesto.fixo, gesto.escala * (distanciaDe(dedos[0], dedos[1]) / gesto.distancia));
-  } else if (dedos.length === 1 && gesto?.origem && escala > 1) {
-    deslocamento = {
-      x: gesto.deslocamento.x + dedos[0].x - gesto.origem.x,
-      y: gesto.deslocamento.y + dedos[0].y - gesto.origem.y
+zoom.addEventListener("pointermove", (event) => {
+  if (!pointers.has(event.pointerId)) return;
+  pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  const fingers = [...pointers.values()];
+  if (fingers.length >= 2 && gesture?.distance) {
+    const middle = midpointOf(fingers[0], fingers[1]);
+    zoomAt(middle, gesture.anchor, gesture.scale * (distanceBetween(fingers[0], fingers[1]) / gesture.distance));
+  } else if (fingers.length === 1 && gesture?.origin && scale > 1) {
+    offset = {
+      x: gesture.offset.x + fingers[0].x - gesture.origin.x,
+      y: gesture.offset.y + fingers[0].y - gesture.origin.y
     };
-    aplicarZoom();
+    applyZoom();
   }
 });
 
-function soltar(evento) {
-  const dedo = ponteiros.get(evento.pointerId);
-  ponteiros.delete(evento.pointerId);
+function release(event) {
+  const finger = pointers.get(event.pointerId);
+  pointers.delete(event.pointerId);
 
-  // Toque é dedo que desceu e subiu quase no mesmo lugar; arrasto não conta.
-  const agora = Date.now();
-  const foiToque = evento.type === "pointerup" && dedo && ponteiros.size === 0 && gesto?.origem
-    && distanciaDe(dedo, gesto.origem) < 10;
-  if (foiToque && agora - ultimoToque.em < INTERVALO_TOQUE_DUPLO && distanciaDe(dedo, ultimoToque) < 30) {
-    ampliarEm(dedo, pontoNaImagem(dedo), escala > 1 ? 1 : ESCALA_DO_TOQUE_DUPLO);
-    ultimoToque = { em: 0, x: 0, y: 0 };
-  } else if (foiToque) {
-    ultimoToque = { em: agora, ...dedo };
+  // A tap is a finger that went down and up almost in the same place; a drag does not count.
+  const now = Date.now();
+  const wasTap = event.type === "pointerup" && finger && pointers.size === 0 && gesture?.origin
+    && distanceBetween(finger, gesture.origin) < 10;
+  if (wasTap && now - lastTap.at < DOUBLE_TAP_INTERVAL && distanceBetween(finger, lastTap) < 30) {
+    zoomAt(finger, imagePoint(finger), scale > 1 ? 1 : DOUBLE_TAP_SCALE);
+    lastTap = { at: 0, x: 0, y: 0 };
+  } else if (wasTap) {
+    lastTap = { at: now, ...finger };
   }
 
-  // Sem pinça sobrando e quase no tamanho natural: encaixa em 1, senão fica um resto de zoom que
-  // não se vê e só atrapalha o arrasto.
-  if (ponteiros.size === 0 && escala < 1.05) {
-    escala = 1;
-    deslocamento = { x: 0, y: 0 };
-    aplicarZoom();
+  // No pinch left and almost at natural size: snaps to 1, otherwise a leftover zoom that cannot be
+  // seen only gets in the way of dragging.
+  if (pointers.size === 0 && scale < 1.05) {
+    scale = 1;
+    offset = { x: 0, y: 0 };
+    applyZoom();
   }
-  iniciarGesto();
+  startGesture();
 }
-zoom.addEventListener("pointerup", soltar);
-zoom.addEventListener("pointercancel", soltar);
+zoom.addEventListener("pointerup", release);
+zoom.addEventListener("pointercancel", release);
 
-zoom.addEventListener("wheel", (evento) => {
-  evento.preventDefault();
-  const ponto = { x: evento.clientX, y: evento.clientY };
-  ampliarEm(ponto, pontoNaImagem(ponto), escala * Math.exp(-evento.deltaY * 0.002));
+zoom.addEventListener("wheel", (event) => {
+  event.preventDefault();
+  const point = { x: event.clientX, y: event.clientY };
+  zoomAt(point, imagePoint(point), scale * Math.exp(-event.deltaY * 0.002));
 }, { passive: false });
 
-document.getElementById("visor-fechar").onclick = () => visor.close();
+document.getElementById("viewer-close").onclick = () => viewer.close();
 
-function pedirParaApagarFoto(exercicio) {
-  document.getElementById("apagar-corpo").textContent = `A foto de ${exercicio.nome} sai deste aparelho.`;
-  dialogoApagar.returnValue = "";
-  dialogoApagar.showModal();
+function askDeletePhoto(exercise) {
+  document.getElementById("delete-body").textContent = `A foto de ${exercise.name} sai deste aparelho.`;
+  deleteDialog.returnValue = "";
+  deleteDialog.showModal();
 }
 
-dialogoApagar.addEventListener("close", () => {
-  if (dialogoApagar.returnValue !== "apagar") return;
-  const exercicio = alvoVisor;
-  const vaga = VAGA_DA_MAQUINA;
-  Banco.apagarFoto(Banco.chaveDaFoto(exercicio), vaga);
-  const porVaga = fotos.get(Banco.chaveDaFoto(exercicio)) ?? [];
-  URL.revokeObjectURL(porVaga[vaga]);
-  delete porVaga[vaga];
-  cartaoPorId.get(exercicio.id)?.atualizar();
-  refrescarVisor(exercicio);
-  aviso.textContent = `Foto de ${exercicio.nome} apagada.`;
+deleteDialog.addEventListener("close", () => {
+  if (deleteDialog.returnValue !== "delete") return;
+  const exercise = viewerTarget;
+  const slot = MACHINE_SLOT;
+  Store.deletePhoto(Store.photoKey(exercise), slot);
+  const bySlot = photos.get(Store.photoKey(exercise)) ?? [];
+  URL.revokeObjectURL(bySlot[slot]);
+  delete bySlot[slot];
+  cardById.get(exercise.id)?.update();
+  refreshViewer(exercise);
+  notice.textContent = `Foto de ${exercise.name} apagada.`;
 });
 
-// Salva ao sair do campo. Enter conclui em vez de quebrar linha: observação é "banco 4, pino 7",
-// não texto corrido, e no celular é o que fecha o teclado.
-observacao.addEventListener("change", () => {
-  const exercicio = alvoVisor;
-  const texto = observacao.value.trim();
-  exercicio.observacao = texto;
-  Banco.salvarObservacao(perfilAtivo, exercicio.id, texto);
-  aviso.textContent = texto
-    ? `Observação de ${exercicio.nome} salva.`
-    : `Observação de ${exercicio.nome} apagada.`;
+// Saves on leaving the field. Enter finishes instead of breaking the line: a note is "banco 4,
+// pino 7", not running text, and on the phone it is what closes the keyboard.
+note.addEventListener("change", () => {
+  const exercise = viewerTarget;
+  const text = note.value.trim();
+  exercise.note = text;
+  Store.saveNote(activeProfile, exercise.id, text);
+  notice.textContent = text
+    ? `Observação de ${exercise.name} salva.`
+    : `Observação de ${exercise.name} apagada.`;
 });
-observacao.addEventListener("keydown", (evento) => {
-  if (evento.key !== "Enter" || evento.shiftKey) return;
-  evento.preventDefault();
-  observacao.blur();
+note.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey) return;
+  event.preventDefault();
+  note.blur();
 });
 
-function escolherFoto(exercicio, vaga, seletor) {
-  seletor.value = "";
-  seletor.onchange = async () => {
-    const arquivo = seletor.files[0];
-    if (!arquivo) return;
-    const reduzida = await reduzir(arquivo);
-    Banco.salvarFoto(Banco.chaveDaFoto(exercicio), vaga, reduzida);
-    const porVaga = fotos.get(Banco.chaveDaFoto(exercicio)) ?? [];
-    if (porVaga[vaga]) URL.revokeObjectURL(porVaga[vaga]);
-    porVaga[vaga] = URL.createObjectURL(reduzida);
-    fotos.set(Banco.chaveDaFoto(exercicio), porVaga);
-    cartaoPorId.get(exercicio.id)?.atualizar();
-    refrescarVisor(exercicio);
-    aviso.textContent = `Foto de ${exercicio.nome} salva.`;
+function pickPhoto(exercise, slot, picker) {
+  picker.value = "";
+  picker.onchange = async () => {
+    const file = picker.files[0];
+    if (!file) return;
+    const shrunk = await shrink(file);
+    Store.savePhoto(Store.photoKey(exercise), slot, shrunk);
+    const bySlot = photos.get(Store.photoKey(exercise)) ?? [];
+    if (bySlot[slot]) URL.revokeObjectURL(bySlot[slot]);
+    bySlot[slot] = URL.createObjectURL(shrunk);
+    photos.set(Store.photoKey(exercise), bySlot);
+    cardById.get(exercise.id)?.update();
+    refreshViewer(exercise);
+    notice.textContent = `Foto de ${exercise.name} salva.`;
   };
-  seletor.click();
+  picker.click();
 }
 
-// Foto crua de celular passa de vários MB e estoura a cota do IndexedDB em poucas máquinas.
-async function reduzir(arquivo, lado = 800) {
-  const imagem = await createImageBitmap(arquivo, { imageOrientation: "from-image" });
-  const escala = Math.min(1, lado / Math.max(imagem.width, imagem.height));
-  const tela = document.createElement("canvas");
-  tela.width = Math.round(imagem.width * escala);
-  tela.height = Math.round(imagem.height * escala);
-  tela.getContext("2d").drawImage(imagem, 0, 0, tela.width, tela.height);
-  imagem.close();
-  return new Promise((resolver) => tela.toBlob(resolver, "image/jpeg", 0.8));
+// A raw phone photo runs past several MB and blows the IndexedDB quota in a few machines.
+async function shrink(file, side = 800) {
+  const image = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const scale = Math.min(1, side / Math.max(image.width, image.height));
+  const screen = document.createElement("canvas");
+  screen.width = Math.round(image.width * scale);
+  screen.height = Math.round(image.height * scale);
+  screen.getContext("2d").drawImage(image, 0, 0, screen.width, screen.height);
+  image.close();
+  return new Promise((resolve) => screen.toBlob(resolve, "image/jpeg", 0.8));
 }
 
-document.getElementById("abrir-recomecar").onclick = () => {
-  dialogoRecomecar.returnValue = "";
-  dialogoRecomecar.showModal();
+document.getElementById("open-restart").onclick = () => {
+  restartDialog.returnValue = "";
+  restartDialog.showModal();
 };
 
-dialogoRecomecar.addEventListener("close", async () => {
-  if (dialogoRecomecar.returnValue !== "recomecar") return;
+restartDialog.addEventListener("close", async () => {
+  if (restartDialog.returnValue !== "restart") return;
 
-  // O cursor do ciclo primeiro. Resetar depois é o que põe as sessões de hoje dentro do ciclo
-  // novo, porque o reset devolve o iniciadoEm delas para agora.
-  Banco.iniciarCiclo(perfilAtivo);
-  for (const letra of LETRAS) await resetarLetra(letra);
-  await carregarTreinos();
-  irPara(LETRAS[0], false);
-  aviso.textContent = `Ciclo de ${PERFIS[perfilAtivo]} recomeçado. Treino A liberado.`;
+  // The cycle cursor first. Resetting afterwards is what puts today's sessions inside the new cycle,
+  // because the reset moves their startedAt to now.
+  Store.startCycle(activeProfile);
+  for (const workoutId of WORKOUT_IDS) await resetWorkoutProgress(workoutId);
+  await loadWorkouts();
+  goTo(WORKOUT_IDS[0], false);
+  notice.textContent = `Ciclo de ${PROFILES[activeProfile]} recomeçado. Treino A liberado.`;
 });
 
-// A aba Histórico. Abre por exercício, e não por dia: a pergunta que se faz de pé na máquina é
-// "quanto eu puxei da última vez", e é essa que a primeira tela responde. O dia continua no dado,
-// dentro da progressão de cada exercício.
+// The History view. Opens by exercise, not by day: the question asked standing at the machine is
+// "how much did I pull last time", and that is what the first screen answers. The day stays in the
+// data, inside each exercise's progression.
 //
-// Mostra o treino inteiro, agrupado como ele é, inclusive o exercício que nunca teve carga. Achar
-// o próprio treino não pode depender de digitar o nome dele: a busca é atalho, não pedágio.
-const painelDoHistorico = document.getElementById("historico");
-const buscaDoHistorico = document.getElementById("historico-busca");
-const listaDoHistorico = document.getElementById("historico-lista");
-const vazioDoHistorico = document.getElementById("historico-vazio");
+// Shows the whole workout, grouped as it is, including the exercise that never had a load. Finding
+// your own workout cannot depend on typing its name: search is a shortcut, not a toll.
+const historyPanel = document.getElementById("history");
+const historySearch = document.getElementById("history-search");
+const historyList = document.getElementById("history-list");
+const historyEmpty = document.getElementById("history-empty");
 
-let linhasDoHistorico = [];
+let historyRows = [];
 
-// Busca que ignora acento: quem digita "biceps" no celular quer achar "Bíceps", e ninguém para o
-// treino para alcançar o til.
-const semAcento = (texto) => texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+// Accent-insensitive search: whoever types "biceps" on the phone wants "Bíceps", and nobody stops
+// the workout to reach the tilde.
+const withoutAccents = (text) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-async function abrirHistorico() {
-  linhasDoHistorico = await Banco.historico(perfilAtivo);
-  buscaDoHistorico.value = "";
-  document.querySelector('input[name="historico-vista"][value="treino"]').checked = true;
-  desenharHistorico();
-  painelDoHistorico.showModal();
-  // Como no visor: o foco fica na folha, e não no primeiro botão, que ganharia um anel sem pedir.
-  painelDoHistorico.focus();
+async function openHistory() {
+  historyRows = await Store.history(activeProfile);
+  historySearch.value = "";
+  document.querySelector('input[name="history-view"][value="workout"]').checked = true;
+  renderHistory();
+  historyPanel.showModal();
+  // As in the viewer: focus stays on the sheet, not on the first button, which would get an unasked ring.
+  historyPanel.focus();
 }
 
-function filtrarHistorico() {
-  const procurado = semAcento(buscaDoHistorico.value.trim());
-  if (!procurado) return linhasDoHistorico;
-  return linhasDoHistorico.filter(({ exercicio }) =>
-    semAcento(exercicio.nome).includes(procurado) || semAcento(etiquetasDe(exercicio)).includes(procurado));
+function filterHistory() {
+  const query = withoutAccents(historySearch.value.trim());
+  if (!query) return historyRows;
+  return historyRows.filter(({ exercise: exercise }) =>
+    withoutAccents(exercise.name).includes(query) || withoutAccents(labelsOf(exercise)).includes(query));
 }
 
-// Duas vistas, uma de cada vez: o que está no treino, agrupado por treino, e o que saiu dele.
-// Exercício que saiu continua contando, porque o peso foi levantado e apagar isso da tela seria o
-// histórico mentir. Ele só deixou de dividir a mesma lista com o de hoje, em 2026-09-13.
-const vistaDoHistorico = () => document.querySelector('input[name="historico-vista"]:checked').value;
+// Two views, one at a time: what is in the workout, grouped by workout, and what left it. An
+// exercise that left still counts, because the weight was lifted and erasing that from the screen
+// would make the history lie. It just stopped sharing the list with today's, on 2026-09-13.
+const historyView = () => document.querySelector('input[name="history-view"]:checked').value;
 
-function desenharHistorico() {
-  const linhas = filtrarHistorico();
-  const blocos = [];
-  const fora = vistaDoHistorico() === "fora";
+function renderHistory() {
+  const rows = filterHistory();
+  const blocks = [];
+  const outside = historyView() === "out";
 
-  const titulo = (palavra) => Object.assign(document.createElement("h3"), {
-    className: "historico-treino",
-    textContent: palavra
+  const title = (word) => Object.assign(document.createElement("h3"), {
+    className: "history-workout",
+    textContent: word
   });
 
-  const visiveis = linhas.filter(({ exercicio }) => estaForaDoTreino(exercicio) === fora);
-  if (fora) {
-    blocos.push(...visiveis.map(linhaDoHistorico));
+  const visible = rows.filter(({ exercise: exercise }) => isOutOfWorkout(exercise) === outside);
+  if (outside) {
+    blocks.push(...visible.map(historyRow));
   } else {
-    // Um título por treino, na ordem em que os treinos existem. Sem o título, vinte e um exercícios
-    // seguidos viram uma parede, e achar o de hoje passa a exigir a busca de novo.
-    for (const letra of LETRAS) {
-      const doTreino = visiveis.filter(({ exercicio }) => exercicio.letra === letra);
-      if (doTreino.length === 0) continue;
-      blocos.push(titulo(`${tituloDoTreino(letra)}`), ...doTreino.map(linhaDoHistorico));
+    // One heading per workout, in the order the workouts exist. Without it a long run of exercises
+    // becomes a wall, and finding today's needs the search again.
+    for (const workoutId of WORKOUT_IDS) {
+      const inWorkout = visible.filter(({ exercise: exercise }) => exercise.workout === workoutId);
+      if (inWorkout.length === 0) continue;
+      blocks.push(title(`${workoutTitle(workoutId)}`), ...inWorkout.map(historyRow));
     }
   }
 
-  listaDoHistorico.replaceChildren(...blocos);
-  const procurado = buscaDoHistorico.value.trim();
-  vazioDoHistorico.hidden = visiveis.length > 0;
-  vazioDoHistorico.textContent = visiveis.length > 0 ? ""
-    : procurado ? `Nada encontrado para "${procurado}".`
-      : fora ? "Nada saiu do treino até agora." : "Nada no treino ainda.";
+  historyList.replaceChildren(...blocks);
+  const query = historySearch.value.trim();
+  historyEmpty.hidden = visible.length > 0;
+  historyEmpty.textContent = visible.length > 0 ? ""
+    : query ? `Nada encontrado para "${query}".`
+      : outside ? "Nada saiu do treino até agora." : "Nada no treino ainda.";
 }
 
-document.getElementById("historico-vista").addEventListener("change", desenharHistorico);
+document.getElementById("history-view").addEventListener("change", renderHistory);
 
-// Arquivado é o que a fase 4 faz no lugar de apagar. A letra fora da fileira cobre o outro
-// caminho: treino que deixou de existir leva os exercícios dele junto.
-const estaForaDoTreino = (exercicio) => Boolean(exercicio.arquivado) || !LETRAS.includes(exercicio.letra);
+// Archived is what the editor does instead of deleting. A workout id outside the row covers the
+// other path: a workout that stopped existing took its exercises along.
+const isOutOfWorkout = (exercise) => Boolean(exercise.archived) || !WORKOUT_IDS.includes(exercise.workout);
 
-// Sem carga nenhuma o exercício não vira <details>: não há progressão para abrir, e um triângulo
-// que abre no vazio promete o que não existe.
-function linhaDoHistorico({ exercicio, cargas }) {
-  // O que o histórico acompanha muda com o exercício: peso na máquina, e minutos no aeróbico, que
-  // é onde está a progressão de quem corre.
-  const campo = ehAerobico(exercicio) ? "minutos" : "carga";
-  const unidade = ehAerobico(exercicio) ? "min" : unidadeDe(exercicio);
-  const serie = cargas
-    .filter((entrada) => entrada[campo] != null)
-    .map((entrada) => ({ data: entrada.data, valor: entrada[campo] }));
+// With no load at all the exercise does not become a <details>: there is no progression to open,
+// and a triangle that opens onto nothing promises what does not exist.
+function historyRow({ exercise: exercise, loads: loads }) {
+  // What the history tracks changes with the exercise: machine weight, and minutes for cardio, which
+  // is where a runner's progression is.
+  const field = isCardio(exercise) ? "minutes" : "load";
+  const unit = isCardio(exercise) ? "min" : unitOf(exercise);
+  const series = loads
+    .filter((entry) => entry[field] != null)
+    .map((entry) => ({ date: entry.date, value: entry[field] }));
 
-  const bloco = document.createElement(serie.length > 0 ? "details" : "div");
-  bloco.className = "historico-linha";
+  const block = document.createElement(series.length > 0 ? "details" : "div");
+  block.className = "history-row";
 
-  const resumo = document.createElement(serie.length > 0 ? "summary" : "div");
-  resumo.className = "historico-resumo";
-  const nome = Object.assign(document.createElement("span"), { className: "historico-nome", textContent: exercicio.nome });
-  const grupos = Object.assign(document.createElement("span"), { className: "historico-grupos", textContent: etiquetasDe(exercicio) });
-  const agora = document.createElement("span");
-  agora.className = serie.length > 0 ? "historico-agora" : "historico-agora historico-sem";
-  if (serie.length > 0) agora.append(comUnidade(serie[0].valor, unidade));
-  // Flexão nunca teve carga, e dizer "sem carga" nela soa como falta. O que falta e o que não se
-  // aplica são coisas diferentes, e o histórico não pode confundir as duas.
-  else if (semCarga(exercicio)) agora.textContent = "peso do corpo";
-  else agora.textContent = ehAerobico(exercicio) ? "sem tempo" : "sem carga";
+  const summary = document.createElement(series.length > 0 ? "summary" : "div");
+  summary.className = "history-summary";
+  const name = Object.assign(document.createElement("span"), { className: "history-name", textContent: exercise.name });
+  const muscles = Object.assign(document.createElement("span"), { className: "history-muscles", textContent: labelsOf(exercise) });
+  const now = document.createElement("span");
+  now.className = series.length > 0 ? "history-now" : "history-now history-none";
+  if (series.length > 0) now.append(withUnit(series[0].value, unit));
+  // Push-ups never had a load, and saying "sem carga" on them sounds like something is missing. What
+  // is missing and what does not apply are different things, and the history may not confuse them.
+  else if (isBodyweight(exercise)) now.textContent = "peso do corpo";
+  else now.textContent = isCardio(exercise) ? "sem tempo" : "sem carga";
 
-  resumo.append(nome, grupos, agora);
-  if (serie.length > 0) {
-    resumo.append(tendenciaDe(serie, unidade));
-    bloco.append(resumo, progressaoDe(serie, unidade));
+  summary.append(name, muscles, now);
+  if (series.length > 0) {
+    summary.append(trendOf(series, unit));
+    block.append(summary, progressionOf(series, unit));
   } else {
-    bloco.append(resumo);
+    block.append(summary);
   }
 
-  // Fora do treino, a linha ganha o caminho de volta. Dentro dele não: tirar do treino é do modo
-  // de edição, e um botão de remover escondido no histórico seria a pior porta possível para isso.
-  if (estaForaDoTreino(exercicio)) {
-    bloco.classList.add("historico-fora");
-    bloco.append(voltarParaOTreino(exercicio, serie));
+  // Out of the workout, the row gets the way back. Inside it does not: removing belongs to edit mode,
+  // and a remove button hidden in the history would be the worst possible door for that.
+  if (isOutOfWorkout(exercise)) {
+    block.classList.add("history-out");
+    block.append(backToWorkout(exercise, series));
   }
-  return bloco;
+  return block;
 }
 
-function voltarParaOTreino(exercicio, serie) {
-  const linha = document.createElement("div");
-  linha.className = "historico-acoes";
+function backToWorkout(exercise, series) {
+  const row = document.createElement("div");
+  row.className = "history-actions";
 
-  // Quando saiu, e não há sempre resposta: treino que deixou de existir levou os exercícios junto
-  // sem ninguém arquivar nada. Aí o último dia em que ele foi feito é o mais perto da verdade.
-  const saiu = exercicio.arquivadoEm
-    ? `Saiu do treino em ${emDia(emData(exercicio.arquivadoEm))}`
-    : serie[0] ? `Sem treino desde ${emDia(serie[0].data)}` : "Fora de todos os treinos";
-  linha.append(Object.assign(document.createElement("span"), { className: "historico-saiu", textContent: saiu }));
+  // When it left, and there is not always an answer: a workout that stopped existing took its
+  // exercises along without anyone archiving. Then the last day it was done is closest to the truth.
+  const leftOn = exercise.archivedAt
+    ? `Saiu do treino em ${asDayMonth(asDate(exercise.archivedAt))}`
+    : series[0] ? `Sem treino desde ${asDayMonth(series[0].date)}` : "Fora de todos os treinos";
+  row.append(Object.assign(document.createElement("span"), { className: "history-left", textContent: leftOn }));
 
-  const botao = document.createElement("button");
-  botao.type = "button";
-  botao.className = "secundario";
-  botao.textContent = "Voltar ao treino";
-  botao.onclick = () => abrirEscolhaDeTreino(exercicio, "reativar");
-  linha.append(botao);
-  return linha;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "secondary";
+  button.textContent = "Voltar ao treino";
+  button.onclick = () => openWorkoutChoice(exercise, "restore");
+  row.append(button);
+  return row;
 }
 
-// Instante do relógio para o dia local, no mesmo formato das datas que o banco guarda.
-function emData(quando) {
-  const dia = new Date(quando);
-  return `${dia.getFullYear()}-${String(dia.getMonth() + 1).padStart(2, "0")}-${String(dia.getDate()).padStart(2, "0")}`;
+// Clock instant to local day, in the same format as the dates the store keeps.
+function asDate(when) {
+  const day = new Date(when);
+  return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
 }
 
-let alvoReativar = null;
-let letraEscolhida = LETRAS[0];
+let restoreTarget = null;
+let chosenWorkoutId = WORKOUT_IDS[0];
 
-// O mesmo diálogo escolhe o treino para dois destinos: voltar do histórico e mudar de treino no
-// editor. O que muda é o título e o que acontece ao confirmar.
-let modoDaEscolha = "reativar";
+// The same dialog picks the workout for two destinations: returning from the history and changing
+// workout in the editor. What changes is the title and what happens on confirm.
+let choiceMode = "restore";
 
-function abrirEscolhaDeTreino(exercicio, modo) {
-  modoDaEscolha = modo;
-  document.getElementById("reativar-titulo").textContent = modo === "mover" ? "Mudar de treino" : "Voltar para o treino";
-  document.getElementById("reativar-confirmar").textContent = modo === "mover" ? "Mover" : "Voltar para o treino";
-  abrirReativar(exercicio, modo === "mover"
-    ? `${exercicio.nome} sai deste treino e entra no fim do escolhido, com o histórico que já tem.`
-    : `${exercicio.nome} volta para a lista do dia, com o histórico que já tem.`);
+function openWorkoutChoice(exercise, mode) {
+  choiceMode = mode;
+  document.getElementById("restore-title").textContent = mode === "move" ? "Mudar de treino" : "Voltar para o treino";
+  document.getElementById("restore-confirm").textContent = mode === "move" ? "Mover" : "Voltar para o treino";
+  openRestore(exercise, mode === "move"
+    ? `${exercise.name} sai deste treino e entra no fim do escolhido, com o histórico que já tem.`
+    : `${exercise.name} volta para a lista do dia, com o histórico que já tem.`);
 }
 
-function abrirReativar(exercicio, corpo) {
-  alvoReativar = exercicio;
-  letraEscolhida = LETRAS.includes(exercicio.letra) ? exercicio.letra : LETRAS[0];
-  document.getElementById("reativar-corpo").textContent = corpo;
-  desenharEscolhaDoTreino();
-  const dialogo = document.getElementById("dialogo-reativar");
-  dialogo.returnValue = "";
-  dialogo.showModal();
+function openRestore(exercise, body) {
+  restoreTarget = exercise;
+  chosenWorkoutId = WORKOUT_IDS.includes(exercise.workout) ? exercise.workout: WORKOUT_IDS[0];
+  document.getElementById("restore-body").textContent = body;
+  renderWorkoutChoice();
+  const dialog = document.getElementById("restore-dialog");
+  dialog.returnValue = "";
+  dialog.showModal();
 }
 
-// Fileira de rádios de verdade, e não botões: escolher um treino entre três é exatamente o que
-// um grupo de rádio é, e daí vêm de graça as setas do teclado e o anúncio de "1 de 3".
-function desenharEscolhaDoTreino() {
-  document.getElementById("reativar-treinos").replaceChildren(...LETRAS.map((letra) => {
-    const rotuloDaLetra = document.createElement("label");
+// A row of real radios, not buttons: picking one workout out of three is exactly what a radio group
+// is, and keyboard arrows plus the "1 of 3" announcement come for free.
+function renderWorkoutChoice() {
+  document.getElementById("restore-workouts").replaceChildren(...WORKOUT_IDS.map((workoutId) => {
+    const workoutIdLabel = document.createElement("label");
     const radio = document.createElement("input");
     radio.type = "radio";
-    radio.name = "reativar-treino";
-    radio.value = letra;
-    radio.className = "oculto-visual";
-    radio.checked = letra === letraEscolhida;
-    radio.onchange = () => { letraEscolhida = letra; };
-    rotuloDaLetra.append(radio, `${tituloDoTreino(letra)}`);
-    return rotuloDaLetra;
+    radio.name = "restore-workout";
+    radio.value = workoutId;
+    radio.className = "visually-hidden";
+    radio.checked = workoutId === chosenWorkoutId;
+    radio.onchange = () => { chosenWorkoutId = workoutId; };
+    workoutIdLabel.append(radio, `${workoutTitle(workoutId)}`);
+    return workoutIdLabel;
   }));
 }
 
-document.getElementById("dialogo-reativar").addEventListener("close", async (evento) => {
-  if (evento.target.returnValue !== "reativar") return;
-  const exercicio = alvoReativar;
-  if (modoDaEscolha === "mover") {
-    await Banco.moverExercicio(exercicio.id, letraEscolhida, perfilAtivo);
-    await carregarTreinos();
-    aviso.textContent = `${exercicio.nome} agora está no ${tituloDoTreino(letraEscolhida)}.`;
+document.getElementById("restore-dialog").addEventListener("close", async (event) => {
+  if (event.target.returnValue !== "restore") return;
+  const exercise = restoreTarget;
+  if (choiceMode === "move") {
+    await Store.moveExercise(exercise.id, chosenWorkoutId, activeProfile);
+    await loadWorkouts();
+    notice.textContent = `${exercise.name} agora está no ${workoutTitle(chosenWorkoutId)}.`;
     return;
   }
-  await Banco.reativarExercicio(exercicio.id, letraEscolhida, perfilAtivo);
-  linhasDoHistorico = await Banco.historico(perfilAtivo);
-  desenharHistorico();
-  await carregarTreinos();
-  aviso.textContent = `${exercicio.nome} voltou para o ${tituloDoTreino(letraEscolhida)}.`;
+  await Store.restoreExercise(exercise.id, chosenWorkoutId, activeProfile);
+  historyRows = await Store.history(activeProfile);
+  renderHistory();
+  await loadWorkouts();
+  notice.textContent = `${exercise.name} voltou para o ${workoutTitle(chosenWorkoutId)}.`;
 });
 
-// O modo de edição. Liga pelo menu da marca, desliga em "Concluir". Enquanto dura, o rodapé
-// troca o seletor de perfis pela barra de edição, a aba ativa abre as opções do treino, e cada
-// cartão mostra a fileira de subir, descer, mover e tirar. Toda mudança grava na hora e remonta
-// a tela: não existe "salvar" no fim, como no resto do app.
-let editando = false;
-const barraDeEdicao = document.getElementById("edicao");
-const dialogoNomeTreino = document.getElementById("dialogo-nome-treino");
-const campoNomeTreino = document.getElementById("nome-treino");
-const dialogoEditarTreino = document.getElementById("dialogo-editar-treino");
-const dialogoNovoExercicio = document.getElementById("dialogo-novo-exercicio");
-let treinoEmEdicao = null;
+// Edit mode. Turned on from the logo menu, off with "Concluir". While it lasts, the footer swaps the
+// profile picker for the edit bar, the active tab opens the workout options, and every card shows
+// the up, down, move and remove toolbar. Every change saves at once and remounts the screen: there
+// is no "save" at the end, as in the rest of the app.
+let editing = false;
+const editBar = document.getElementById("editing");
+const workoutNameDialog = document.getElementById("workout-name-dialog");
+const workoutNameField = document.getElementById("workout-name");
+const editWorkoutDialog = document.getElementById("edit-workout-dialog");
+const newExerciseDialog = document.getElementById("new-exercise-dialog");
+let workoutBeingEdited = null;
 
-function alternarEdicao(ligar) {
-  editando = ligar;
-  document.body.classList.toggle("editando", ligar);
-  barraDeEdicao.hidden = !ligar;
-  perfis.hidden = ligar || usuario !== "admin";
-  aviso.textContent = ligar ? "Modo de edição. Toque na aba ativa para mexer no treino." : "Edição concluída.";
+function toggleEditing(on) {
+  editing = on;
+  document.body.classList.toggle("editing", on);
+  editBar.hidden = !on;
+  profiles.hidden = on || username !== "admin";
+  notice.textContent = on ? "Modo de edição. Toque na aba ativa para mexer no treino." : "Edição concluída.";
 }
 
-document.getElementById("menu-editar").onclick = () => {
+document.getElementById("menu-edit").onclick = () => {
   menu.close();
-  alternarEdicao(true);
+  toggleEditing(true);
 };
-document.getElementById("edicao-concluir").onclick = () => alternarEdicao(false);
+document.getElementById("editing-done").onclick = () => toggleEditing(false);
 
-// Um diálogo só para nome novo e para renomear: o que muda é o título e o que fazer ao salvar.
-let aoSalvarNome = null;
-function pedirNome(titulo, atual, salvar) {
-  document.getElementById("nome-treino-titulo").textContent = titulo;
-  campoNomeTreino.value = atual;
-  aoSalvarNome = salvar;
-  dialogoNomeTreino.returnValue = "";
-  dialogoNomeTreino.showModal();
-  campoNomeTreino.select();
+// One dialog for both a new name and a rename: what changes is the title and what to do on save.
+let onSaveName = null;
+function askName(title, current, save) {
+  document.getElementById("workout-name-title").textContent = title;
+  workoutNameField.value = current;
+  onSaveName = save;
+  workoutNameDialog.returnValue = "";
+  workoutNameDialog.showModal();
+  workoutNameField.select();
 }
-dialogoNomeTreino.addEventListener("close", async () => {
-  if (dialogoNomeTreino.returnValue !== "salvar") return;
-  const nome = campoNomeTreino.value.trim();
-  if (!nome) return;
-  await aoSalvarNome(nome);
+workoutNameDialog.addEventListener("close", async () => {
+  if (workoutNameDialog.returnValue !== "save") return;
+  const name = workoutNameField.value.trim();
+  if (!name) return;
+  await onSaveName(name);
 });
 
-document.getElementById("edicao-treino").onclick = () => pedirNome("Novo treino", "", async (nome) => {
-  const treino = await Banco.criarTreino(perfilAtivo, nome);
-  await carregarTreinos();
-  irPara(treino.id, false);
-  aviso.textContent = `${tituloDoTreino(treino.id)} criado.`;
+document.getElementById("editing-workout").onclick = () => askName("Novo treino", "", async (name) => {
+  const workout = await Store.createWorkout(activeProfile, name);
+  await loadWorkouts();
+  goTo(workout.id, false);
+  notice.textContent = `${workoutTitle(workout.id)} criado.`;
 });
 
-function abrirEditarTreino(letra) {
-  treinoEmEdicao = letra;
-  document.getElementById("editar-treino-titulo").textContent = tituloDoTreino(letra);
-  const posicao = LETRAS.indexOf(letra);
-  dialogoEditarTreino.querySelector('[value="antes"]').disabled = posicao === 0;
-  dialogoEditarTreino.querySelector('[value="depois"]').disabled = posicao === LETRAS.length - 1;
-  // O último treino não sai: sem nenhum, a tela não tem onde ficar.
-  dialogoEditarTreino.querySelector('[value="tirar"]').disabled = LETRAS.length === 1;
-  dialogoEditarTreino.returnValue = "";
-  dialogoEditarTreino.showModal();
+function openEditWorkout(workoutId) {
+  workoutBeingEdited = workoutId;
+  document.getElementById("edit-workout-title").textContent = workoutTitle(workoutId);
+  const position = WORKOUT_IDS.indexOf(workoutId);
+  editWorkoutDialog.querySelector('[value="before"]').disabled = position === 0;
+  editWorkoutDialog.querySelector('[value="after"]').disabled = position === WORKOUT_IDS.length - 1;
+  // The last workout does not go: with none, the screen has nowhere to be.
+  editWorkoutDialog.querySelector('[value="remove"]').disabled = WORKOUT_IDS.length === 1;
+  editWorkoutDialog.returnValue = "";
+  editWorkoutDialog.showModal();
 }
 
-dialogoEditarTreino.addEventListener("close", async () => {
-  const letra = treinoEmEdicao;
-  const acao = dialogoEditarTreino.returnValue;
-  if (acao === "renomear") {
-    return pedirNome("Renomear treino", nomeDoTreino(letra), async (nome) => {
-      await Banco.renomearTreino(perfilAtivo, letra, nome);
-      await carregarTreinos();
-      aviso.textContent = `Treino renomeado para ${nome}.`;
+editWorkoutDialog.addEventListener("close", async () => {
+  const workoutId = workoutBeingEdited;
+  const action = editWorkoutDialog.returnValue;
+  if (action === "rename") {
+    return askName("Renomear treino", workoutName(workoutId), async (name) => {
+      await Store.renameWorkout(activeProfile, workoutId, name);
+      await loadWorkouts();
+      notice.textContent = `Treino renomeado para ${name}.`;
     });
   }
-  if (acao === "antes" || acao === "depois") {
-    const ordem = [...LETRAS];
-    const de = ordem.indexOf(letra);
-    const para = acao === "antes" ? de - 1 : de + 1;
-    [ordem[de], ordem[para]] = [ordem[para], ordem[de]];
-    await Banco.reordenarTreinos(perfilAtivo, ordem);
-    await carregarTreinos();
-    irPara(letra, false);
-    aviso.textContent = `${tituloDoTreino(letra)} agora é o ${para + 1}º.`;
+  if (action === "before" || action === "after") {
+    const order = [...WORKOUT_IDS];
+    const from = order.indexOf(workoutId);
+    const to = action === "before" ? from - 1 : from + 1;
+    [order[from], order[to]] = [order[to], order[from]];
+    await Store.reorderWorkouts(activeProfile, order);
+    await loadWorkouts();
+    goTo(workoutId, false);
+    notice.textContent = `${workoutTitle(workoutId)} agora é o ${to + 1}º.`;
   }
-  if (acao === "tirar") {
-    await Banco.arquivarTreino(perfilAtivo, letra);
-    await carregarTreinos();
-    irPara(LETRAS[0], false);
-    aviso.textContent = `${tituloDoTreino(letra)} saiu da fileira. Os dias dele continuam no histórico.`;
+  if (action === "remove") {
+    await Store.archiveWorkout(activeProfile, workoutId);
+    await loadWorkouts();
+    goTo(WORKOUT_IDS[0], false);
+    notice.textContent = `${workoutTitle(workoutId)} saiu da fileira. Os dias dele continuam no histórico.`;
   }
 });
 
-async function deslocarExercicio(exercicio, passo) {
-  const ids = (exerciciosPorLetra.get(exercicio.letra) ?? []).map((outro) => outro.id);
-  const de = ids.indexOf(exercicio.id);
-  const para = de + passo;
-  if (para < 0 || para >= ids.length) return;
-  [ids[de], ids[para]] = [ids[para], ids[de]];
-  await Banco.reordenarExercicios(perfilAtivo, ids);
-  await carregarTreinos();
-  aviso.textContent = `${exercicio.nome} agora é o ${para + 1}º do treino.`;
+async function shiftExercise(exercise, step) {
+  const ids = (exercisesByWorkoutId.get(exercise.workout) ?? []).map((other) => other.id);
+  const from = ids.indexOf(exercise.id);
+  const to = from + step;
+  if (to < 0 || to >= ids.length) return;
+  [ids[from], ids[to]] = [ids[to], ids[from]];
+  await Store.reorderExercises(activeProfile, ids);
+  await loadWorkouts();
+  notice.textContent = `${exercise.name} agora é o ${to + 1}º do treino.`;
 }
 
-// Tirar pede confirmação, como apagar foto: é reversível pelo histórico, mas um toque no ícone
-// errado no meio da edição sumia com o exercício da lista sem aviso.
-const dialogoTirar = document.getElementById("dialogo-tirar");
-let alvoDoTirar = null;
+// Removing asks for confirmation, like deleting a photo: it is reversible through the history, but
+// a tap on the wrong icon mid-edit made the exercise vanish from the list without warning.
+const removeDialog = document.getElementById("remove-dialog");
+let removeTarget = null;
 
-function tirarExercicio(exercicio) {
-  alvoDoTirar = exercicio;
-  document.getElementById("tirar-corpo").textContent =
-    `${exercicio.nome} sai da lista de hoje. Continua no histórico, e volta por lá.`;
-  dialogoTirar.returnValue = "";
-  dialogoTirar.showModal();
+function removeExercise(exercise) {
+  removeTarget = exercise;
+  document.getElementById("remove-body").textContent =
+    `${exercise.name} sai da lista de hoje. Continua no histórico, e volta por lá.`;
+  removeDialog.returnValue = "";
+  removeDialog.showModal();
 }
 
-dialogoTirar.addEventListener("close", async () => {
-  if (dialogoTirar.returnValue !== "tirar") return;
-  await Banco.arquivarExercicio(perfilAtivo, alvoDoTirar.id);
-  await carregarTreinos();
-  aviso.textContent = `${alvoDoTirar.nome} saiu do treino. Continua no histórico, e volta por lá.`;
+removeDialog.addEventListener("close", async () => {
+  if (removeDialog.returnValue !== "remove") return;
+  await Store.archiveExercise(activeProfile, removeTarget.id);
+  await loadWorkouts();
+  notice.textContent = `${removeTarget.name} saiu do treino. Continua no histórico, e volta por lá.`;
 });
 
-// O formulário do exercício novo. Os músculos vêm do mesmo mapa que a tela usa para escrever.
-const gruposDoNovo = document.getElementById("novo-grupos");
-gruposDoNovo.append(...Object.entries(NOME_DO_GRUPO).map(([valor, nome]) => {
-  const rotuloDoGrupo = document.createElement("label");
-  const caixa = document.createElement("input");
-  caixa.type = "checkbox";
-  caixa.name = "novo-grupo";
-  caixa.value = valor;
-  caixa.className = "oculto-visual";
-  rotuloDoGrupo.append(caixa, nome);
-  return rotuloDoGrupo;
+// The new exercise form. Muscles come from the same map the screen uses to write them.
+const newMuscles = document.getElementById("new-muscles");
+newMuscles.append(...Object.entries(MUSCLE_NAME).map(([value, name]) => {
+  const muscleLabel = document.createElement("label");
+  const box = document.createElement("input");
+  box.type = "checkbox";
+  box.name = "new-muscle";
+  box.value = value;
+  box.className = "visually-hidden";
+  muscleLabel.append(box, name);
+  return muscleLabel;
 }));
-// O acessório: "Nenhum" primeiro e marcado, depois os de polia e os livres, cada um com o ícone e
-// o nome. Rádio, porque um exercício usa um acessório só.
-const acessorioDoNovo = document.getElementById("novo-acessorio");
-acessorioDoNovo.append(...[["", { nome: "Nenhum" }], ...Object.entries(ACESSORIOS)].map(([chave, acessorio]) => {
-  const rotuloDoAcessorio = document.createElement("label");
+// The attachment: "Nenhum" first and checked, then pulley ones and free ones, each with icon and
+// name. Radio, because an exercise uses one attachment only.
+const newAccessory = document.getElementById("new-accessory");
+newAccessory.append(...[["", { name: "Nenhum" }], ...Object.entries(ACCESSORIES)].map(([key, accessory]) => {
+  const accessoryLabel = document.createElement("label");
   const radio = document.createElement("input");
   radio.type = "radio";
-  radio.name = "novo-acessorio";
-  radio.value = chave;
-  radio.className = "oculto-visual";
-  radio.defaultChecked = chave === "";
-  rotuloDoAcessorio.innerHTML = svgDoAcessorio(chave);
-  rotuloDoAcessorio.prepend(radio);
-  rotuloDoAcessorio.append(acessorio.nome);
-  return rotuloDoAcessorio;
+  radio.name = "new-accessory";
+  radio.value = key;
+  radio.className = "visually-hidden";
+  radio.defaultChecked = key === "";
+  accessoryLabel.innerHTML = accessorySvg(key);
+  accessoryLabel.prepend(radio);
+  accessoryLabel.append(accessory.name);
+  return accessoryLabel;
 }));
-const acessorioEscolhido = () => dialogoNovoExercicio.querySelector('input[name="novo-acessorio"]:checked')?.value ?? "";
-const tipoDoNovo = () => dialogoNovoExercicio.querySelector('input[name="novo-tipo"]:checked').value;
-for (const radio of dialogoNovoExercicio.querySelectorAll('input[name="novo-tipo"]')) {
+const chosenAccessory = () => newExerciseDialog.querySelector('input[name="new-accessory"]:checked')?.value ?? "";
+const newKind = () => newExerciseDialog.querySelector('input[name="new-kind"]:checked').value;
+for (const radio of newExerciseDialog.querySelectorAll('input[name="new-kind"]')) {
   radio.onchange = () => {
-    const aerobico = tipoDoNovo() === "tempo";
-    document.getElementById("novo-unidade").hidden = !aerobico;
-    document.getElementById("novo-unidade-rotulo").hidden = !aerobico;
+    const cardio = newKind() === "time";
+    document.getElementById("new-unit").hidden = !cardio;
+    document.getElementById("new-unit-label").hidden = !cardio;
   };
 }
 
-// Enquanto o nome é digitado, o que já existe com nome parecido aparece embaixo, e um toque
-// preenche o formulário com ele: mesma máquina, mesmo vídeo, e por isso a mesma foto. Sem isso
-// nasce um "Adbução na máquina" ao lado do "Abdução" que já tinha tudo.
-const parecidosDoNovo = document.getElementById("novo-parecidos");
-const campoNovoNome = document.getElementById("novo-nome");
+// While the name is typed, whatever already exists with a similar name shows below, and a tap
+// fills the form with it: same machine, same video, and therefore the same photo. Without this an
+// "Adbução na máquina" is born next to the "Abdução" that already had everything.
+const newSimilarList = document.getElementById("new-similar");
+const newNameField = document.getElementById("new-name");
 
-const palavrasDe = (texto) => semAcento(texto).split(/[^a-z0-9]+/).filter((palavra) => palavra.length >= 3);
+const wordsOf = (text) => withoutAccents(text).split(/[^a-z0-9]+/).filter((word) => word.length >= 3);
 
-// Distância de edição, para "adbucao" achar "abducao": duas letras trocadas é uma pessoa
-// digitando, não outro exercício.
-function distancia(a, b) {
-  let anterior = Array.from({ length: b.length + 1 }, (_, i) => i);
+// Edit distance, so "adbucao" finds "abducao": two swapped letters is a person typing, not another exercise.
+function distance(a, b) {
+  let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
   for (let i = 1; i <= a.length; i++) {
-    const atual = [i];
+    const current = [i];
     for (let j = 1; j <= b.length; j++) {
-      atual[j] = Math.min(anterior[j] + 1, atual[j - 1] + 1, anterior[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
     }
-    anterior = atual;
+    previous = current;
   }
-  return anterior[b.length];
+  return previous[b.length];
 }
 
-const palavrasParecem = (a, b) =>
+const wordsAlike = (a, b) =>
   a === b || (a.length >= 4 && b.length >= 4 && (a.includes(b) || b.includes(a)))
-  || (a.length >= 5 && b.length >= 5 && distancia(a, b) <= 2);
+  || (a.length >= 5 && b.length >= 5 && distance(a, b) <= 2);
 
-// Tudo que se conhece: as fichas de todos os perfis mais o catálogo de quem está na tela, um por
-// código de vídeo, porque é o código que amarra máquina e foto.
-function exerciciosConhecidos() {
-  const todos = [...Object.values(FICHA_DE).flatMap((ficha) => Object.values(ficha).flat()), ...[...exerciciosPorLetra.values()].flat()];
-  const porChave = new Map();
-  for (const exercicio of todos) if (!porChave.has(Banco.chaveDaFoto(exercicio))) porChave.set(Banco.chaveDaFoto(exercicio), exercicio);
-  return [...porChave.values()];
+// Everything known: every profile's plan plus the catalog of whoever is on screen, one per video
+// code, because the code is what ties machine and photo.
+function knownExercises() {
+  const all = [...Object.values(PLAN_OF).flatMap((plan) => Object.values(plan).flat()), ...[...exercisesByWorkoutId.values()].flat()];
+  const byKey = new Map();
+  for (const exercise of all) if (!byKey.has(Store.photoKey(exercise))) byKey.set(Store.photoKey(exercise), exercise);
+  return [...byKey.values()];
 }
 
-function parecidosCom(nome) {
-  const digitadas = palavrasDe(nome);
-  if (digitadas.length === 0) return [];
-  return exerciciosConhecidos()
-    .map((exercicio) => ({ exercicio, pontos: palavrasDe(exercicio.nome).filter((palavra) => digitadas.some((outra) => palavrasParecem(palavra, outra))).length }))
-    .filter(({ pontos }) => pontos > 0)
-    .sort((a, b) => b.pontos - a.pontos)
+function similarTo(name) {
+  const typedWords = wordsOf(name);
+  if (typedWords.length === 0) return [];
+  return knownExercises()
+    .map((exercise) => ({ exercise: exercise, score: wordsOf(exercise.name).filter((word) => typedWords.some((another) => wordsAlike(word, another))).length }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
     .slice(0, 4)
-    .map(({ exercicio }) => exercicio);
+    .map(({ exercise: exercise }) => exercise);
 }
 
-function preencherNovoCom(exercicio) {
-  campoNovoNome.value = exercicio.nome;
-  document.getElementById("novo-aparelho").value = exercicio.aparelho ?? "";
-  document.getElementById("novo-cod").value = exercicio.cod || "";
-  document.getElementById("novo-series").value = exercicio.series ?? 3;
-  document.getElementById("novo-reps").value = exercicio.reps ?? "";
-  const tipo = dialogoNovoExercicio.querySelector(`input[name="novo-tipo"][value="${exercicio.tipo ?? ""}"]`);
-  tipo.checked = true;
-  tipo.dispatchEvent(new Event("change"));
-  document.getElementById("novo-unidade").value = exercicio.unidade ?? "";
-  for (const caixa of gruposDoNovo.querySelectorAll("input")) caixa.checked = (exercicio.grupos ?? []).includes(caixa.value);
-  const acessorio = acessorioDoNovo.querySelector(`input[value="${exercicio.acessorio ?? ""}"]`) ?? acessorioDoNovo.querySelector('input[value=""]');
-  acessorio.checked = true;
-  parecidosDoNovo.hidden = true;
+function fillNewWith(exercise) {
+  newNameField.value = exercise.name;
+  document.getElementById("new-station").value = exercise.station ?? "";
+  document.getElementById("new-video-code").value = exercise.videoCode || "";
+  document.getElementById("new-sets").value = exercise.sets ?? 3;
+  document.getElementById("new-reps").value = exercise.reps ?? "";
+  const kind = newExerciseDialog.querySelector(`input[name="new-kind"][value="${exercise.kind ?? ""}"]`);
+  kind.checked = true;
+  kind.dispatchEvent(new Event("change"));
+  document.getElementById("new-unit").value = exercise.unit ?? "";
+  for (const box of newMuscles.querySelectorAll("input")) box.checked = (exercise.muscles ?? []).includes(box.value);
+  const accessory = newAccessory.querySelector(`input[value="${exercise.accessory ?? ""}"]`) ?? newAccessory.querySelector('input[value=""]');
+  accessory.checked = true;
+  newSimilarList.hidden = true;
 }
 
-campoNovoNome.addEventListener("input", () => {
-  const parecidos = parecidosCom(campoNovoNome.value);
-  parecidosDoNovo.replaceChildren(...parecidos.map((exercicio) => {
-    const botao = document.createElement("button");
-    botao.type = "button";
-    const detalhe = document.createElement("span");
-    detalhe.textContent = [exercicio.aparelho ? `Aparelho ${exercicio.aparelho}` : "", exercicio.cod ? `Vídeo ${exercicio.cod}` : "", capaDe(exercicio) ? "Com foto" : ""].filter(Boolean).join(" · ");
-    botao.append(exercicio.nome, detalhe);
-    botao.setAttribute("aria-label", `Usar ${exercicio.nome}, que já existe`);
-    botao.onclick = () => preencherNovoCom(exercicio);
-    return botao;
+newNameField.addEventListener("input", () => {
+  const similar = similarTo(newNameField.value);
+  newSimilarList.replaceChildren(...similar.map((exercise) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    const detail = document.createElement("span");
+    detail.textContent = [exercise.station ? `Aparelho ${exercise.station}` : "", exercise.videoCode ? `Vídeo ${exercise.videoCode}` : "", coverOf(exercise) ? "Com foto" : ""].filter(Boolean).join(" · ");
+    button.append(exercise.name, detail);
+    button.setAttribute("aria-label", `Usar ${exercise.name}, que já existe`);
+    button.onclick = () => fillNewWith(exercise);
+    return button;
   }));
-  parecidosDoNovo.hidden = parecidos.length === 0;
+  newSimilarList.hidden = similar.length === 0;
 });
 
-// O mesmo formulário cria e edita: com alvo, ele abre preenchido e salva por cima. Nome, aparelho
-// e vídeo de exercício existente eram o que faltava no editor.
-let alvoDaEdicao = null;
-const tituloDoNovo = document.getElementById("novo-exercicio-titulo");
-const confirmarNovo = dialogoNovoExercicio.querySelector('[value="criar"]');
+// The same form creates and edits: with a target it opens filled and saves over. Name, station and
+// video of an existing exercise were what the editor lacked.
+let editTarget = null;
+const newTitle = document.getElementById("new-exercise-title");
+const confirmNew = newExerciseDialog.querySelector('[value="create"]');
 
-document.getElementById("edicao-exercicio").onclick = () => {
-  alvoDaEdicao = null;
-  dialogoNovoExercicio.querySelector("form").reset();
-  document.getElementById("novo-unidade").hidden = true;
-  document.getElementById("novo-unidade-rotulo").hidden = true;
-  parecidosDoNovo.hidden = true;
-  tituloDoNovo.textContent = "Novo exercício";
-  confirmarNovo.textContent = "Adicionar";
-  dialogoNovoExercicio.returnValue = "";
-  dialogoNovoExercicio.showModal();
+document.getElementById("editing-exercise").onclick = () => {
+  editTarget = null;
+  newExerciseDialog.querySelector("form").reset();
+  document.getElementById("new-unit").hidden = true;
+  document.getElementById("new-unit-label").hidden = true;
+  newSimilarList.hidden = true;
+  newTitle.textContent = "Novo exercício";
+  confirmNew.textContent = "Adicionar";
+  newExerciseDialog.returnValue = "";
+  newExerciseDialog.showModal();
 };
 
-function abrirEdicaoDeExercicio(exercicio) {
-  alvoDaEdicao = exercicio;
-  dialogoNovoExercicio.querySelector("form").reset();
-  preencherNovoCom(exercicio);
-  tituloDoNovo.textContent = "Editar exercício";
-  confirmarNovo.textContent = "Salvar";
-  dialogoNovoExercicio.returnValue = "";
-  dialogoNovoExercicio.showModal();
+function openExerciseEdit(exercise) {
+  editTarget = exercise;
+  newExerciseDialog.querySelector("form").reset();
+  fillNewWith(exercise);
+  newTitle.textContent = "Editar exercício";
+  confirmNew.textContent = "Salvar";
+  newExerciseDialog.returnValue = "";
+  newExerciseDialog.showModal();
 }
 
-dialogoNovoExercicio.addEventListener("close", async () => {
-  if (dialogoNovoExercicio.returnValue !== "criar") return;
-  const valor = (id) => document.getElementById(id).value.trim();
-  const numero = (id, padrao) => {
-    const lido = Number.parseInt(valor(id), 10);
-    return Number.isInteger(lido) && lido > 0 ? lido : padrao;
+newExerciseDialog.addEventListener("close", async () => {
+  if (newExerciseDialog.returnValue !== "create") return;
+  const value = (id) => document.getElementById(id).value.trim();
+  const number = (id, fallback) => {
+    const parsed = Number.parseInt(value(id), 10);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
   };
-  const tipo = tipoDoNovo();
-  const dados = {
-    nome: valor("novo-nome"),
-    aparelho: valor("novo-aparelho") || "livre",
-    equipamento: "maquina",
-    series: tipo === "tempo" ? 1 : numero("novo-series", 3),
-    reps: tipo === "tempo" ? null : numero("novo-reps", 12),
-    cod: numero("novo-cod", 0),
-    grupos: [...gruposDoNovo.querySelectorAll("input:checked")].map((caixa) => caixa.value),
-    acessorio: acessorioEscolhido() || null
+  const kind = newKind();
+  const data = {
+    name: value("new-name"),
+    station: value("new-station") || "livre",
+    equipment: "machine",
+    sets: kind === "time" ? 1 : number("new-sets", 3),
+    reps: kind === "time" ? null : number("new-reps", 12),
+    videoCode: number("new-video-code", 0),
+    muscles: [...newMuscles.querySelectorAll("input:checked")].map((box) => box.value),
+    accessory: chosenAccessory() || null
   };
-  if (tipo) dados.tipo = tipo;
-  if (tipo === "tempo") dados.unidade = valor("novo-unidade") || "km/h";
-  if (!dados.nome) return;
-  if (alvoDaEdicao) {
-    // Tipo que saiu (peso do corpo virou peso) precisa sumir do documento, e não só deixar de vir.
-    if (!tipo) dados.tipo = null;
-    if (tipo !== "tempo") dados.unidade = null;
-    // O formulário não tem equipamento; o que a ficha diz (halteres, cabo) fica como está.
-    delete dados.equipamento;
-    await Banco.editarExercicio(perfilAtivo, alvoDaEdicao.id, dados);
-    await carregarTreinos();
-    aviso.textContent = `${dados.nome} salvo.`;
+  if (kind) data.kind = kind;
+  if (kind === "time") data.unit = value("new-unit") || "km/h";
+  if (!data.name) return;
+  if (editTarget) {
+    // A kind that left (bodyweight became weight) has to vanish from the document, not just stop coming.
+    if (!kind) data.kind = null;
+    if (kind !== "time") data.unit = null;
+    // The form has no equipment; what the plan says (dumbbells, cable) stays as is.
+    delete data.equipment;
+    await Store.editExercise(activeProfile, editTarget.id, data);
+    await loadWorkouts();
+    notice.textContent = `${data.name} salvo.`;
     return;
   }
-  const exercicio = await Banco.criarExercicio(perfilAtivo, letraAtiva, dados);
-  await carregarTreinos();
-  cartaoPorId.get(exercicio.id)?.item.scrollIntoView({ block: "nearest" });
-  aviso.textContent = `${exercicio.nome} entrou no ${tituloDoTreino(letraAtiva)}.`;
+  const exercise = await Store.createExercise(activeProfile, activeWorkoutId, data);
+  await loadWorkouts();
+  cardById.get(exercise.id)?.item.scrollIntoView({ block: "nearest" });
+  notice.textContent = `${exercise.name} entrou no ${workoutTitle(activeWorkoutId)}.`;
 });
 
-function tendenciaDe(serie, unidade) {
-  const faixa = document.createElement("span");
-  faixa.className = "historico-tendencia";
-  faixa.append(
-    Object.assign(document.createElement("span"), { className: "tendencia-dia", textContent: emDia(serie[0].data) }),
-    serie[1] ? selo(diferencaEntre(serie[0].valor, serie[1].valor), unidade) : seloNeutro("primeira")
+function trendOf(series, unit) {
+  const range = document.createElement("span");
+  range.className = "history-trend";
+  range.append(
+    Object.assign(document.createElement("span"), { className: "trend-day", textContent: asDayMonth(series[0].date) }),
+    series[1] ? badge(differenceBetween(series[0].value, series[1].value), unit) : neutralBadge("primeira")
   );
-  return faixa;
+  return range;
 }
 
-const comSinal = (valor) => `${valor > 0 ? "+" : ""}${String(valor).replace(".", ",")}`;
-const diferencaEntre = (novo, velho) => Math.round((novo - velho) * 100) / 100;
+const withSign = (value) => `${value > 0 ? "+" : ""}${String(value).replace(".", ",")}`;
+const differenceBetween = (fresh, old) => Math.round((fresh - old) * 100) / 100;
 
-// A barra é proporcional à faixa do exercício, e não a zero: entre 40 e 45 a diferença some se a
-// barra começar do chão, e é justo essa diferença que interessa.
-function progressaoDe(serie, unidade) {
-  const maior = Math.max(...serie.map(({ valor }) => valor));
-  const menor = Math.min(...serie.map(({ valor }) => valor));
-  const faixa = maior - menor;
-  const primeira = serie[serie.length - 1];
-  const desdeOComeco = diferencaEntre(serie[0].valor, primeira.valor);
+// The bar is proportional to the exercise's range, not to zero: between 40 and 45 the difference
+// vanishes if the bar starts from the floor, and that difference is exactly what matters.
+function progressionOf(series, unit) {
+  const highest = Math.max(...series.map(({ value }) => value));
+  const lowest = Math.min(...series.map(({ value }) => value));
+  const range = highest - lowest;
+  const first = series[series.length - 1];
+  const sinceStart = differenceBetween(series[0].value, first.value);
 
-  const bloco = document.createElement("div");
-  bloco.className = "progressao-bloco";
+  const block = document.createElement("div");
+  block.className = "progression-block";
 
-  // Responde de uma vez as duas perguntas que a linha sozinha não responde: desde quando você faz
-  // este exercício, e quanto ele andou nesse tempo.
-  const resumo = Object.assign(document.createElement("p"), { className: "progressao-resumo" });
-  resumo.textContent = serie.length === 1
-    ? `Primeira vez em ${emDia(primeira.data)}, com ${emMedida(primeira.valor, unidade)}.`
-    : `Desde ${emDia(primeira.data)}, ${desdeOComeco === 0 ? "sem mudança" : `${comSinal(desdeOComeco)} ${unidade}`} em ${serie.length} treinos.`;
+  // Answers at once the two questions the row alone does not: since when you do this exercise, and
+  // how much it moved in that time.
+  const summary = Object.assign(document.createElement("p"), { className: "progression-summary" });
+  summary.textContent = series.length === 1
+    ? `Primeira vez em ${asDayMonth(first.date)}, com ${asMeasure(first.value, unit)}.`
+    : `Desde ${asDayMonth(first.date)}, ${sinceStart === 0 ? "sem mudança" : `${withSign(sinceStart)} ${unit}`} em ${series.length} treinos.`;
 
-  const lista = document.createElement("ol");
-  lista.className = "progressao";
-  lista.append(...serie.map(({ data, valor }, posicao) => {
+  const list = document.createElement("ol");
+  list.className = "progression";
+  list.append(...series.map(({ date: date, value }, position) => {
     const item = document.createElement("li");
-    const dia = Object.assign(document.createElement("span"), { className: "progressao-dia", textContent: emDia(data) });
-    const barra = document.createElement("span");
-    barra.className = "progressao-barra";
-    barra.setAttribute("aria-hidden", "true");
-    barra.style.setProperty("--parte", `${faixa === 0 ? 100 : 25 + ((valor - menor) / faixa) * 75}%`);
-    const mostrador = Object.assign(document.createElement("span"), { className: "progressao-carga" });
-    mostrador.append(comUnidade(valor, unidade));
+    const day = Object.assign(document.createElement("span"), { className: "progression-day", textContent: asDayMonth(date) });
+    const bar = document.createElement("span");
+    bar.className = "progression-bar";
+    bar.setAttribute("aria-hidden", "true");
+    bar.style.setProperty("--part", `${range === 0 ? 100 : 25 + ((value - lowest) / range) * 75}%`);
+    const readout = Object.assign(document.createElement("span"), { className: "progression-load" });
+    readout.append(withUnit(value, unit));
 
-    // O passo daquele dia, contra o treino anterior. O mais antigo não tem contra o que comparar.
-    // Aqui o selo vira texto com ícone, sem pílula: dez pílulas empilhadas viram confete.
-    const anterior = serie[posicao + 1];
-    const passo = Object.assign(document.createElement("span"), { className: "progressao-passo" });
-    const diferenca = anterior ? diferencaEntre(valor, anterior.valor) : null;
+    // That day's step, against the previous workout. The oldest has nothing to compare to.
+    // Here the badge becomes text with icon, no pill: ten stacked pills turn into confetti.
+    const previous = series[position + 1];
+    const step = Object.assign(document.createElement("span"), { className: "progression-step" });
+    const difference = previous ? differenceBetween(value, previous.value) : null;
 
-    if (diferenca === null) passo.textContent = "primeira";
-    else if (diferenca === 0) {
-      passo.innerHTML = ICONE_MANTEVE;
-      passo.append(oculto("sem mudança"));
+    if (difference === null) step.textContent = "primeira";
+    else if (difference === 0) {
+      step.innerHTML = ICON_FLAT;
+      step.append(visuallyHidden("sem mudança"));
     } else {
-      passo.classList.add(diferenca > 0 ? "passo-ganho" : "passo-queda");
-      passo.innerHTML = diferenca > 0 ? ICONE_SUBIU : ICONE_DESCEU;
-      passo.append(texto(comSinal(diferenca)));
+      step.classList.add(difference > 0 ? "step-gain" : "step-drop");
+      step.innerHTML = difference > 0 ? ICON_UP : ICON_DOWN;
+      step.append(text(withSign(difference)));
     }
 
-    item.append(dia, barra, mostrador, passo);
+    item.append(day, bar, readout, step);
     return item;
   }));
 
-  bloco.append(resumo, lista);
-  return bloco;
+  block.append(summary, list);
+  return block;
 }
 
 const menu = document.getElementById("menu");
-const quemEntrou = document.getElementById("menu-quem");
-const botaoEntrar = document.getElementById("menu-entrar");
-const botaoSair = document.getElementById("menu-sair");
+const signedInAs = document.getElementById("menu-who");
+const signInButton = document.getElementById("menu-sign-in");
+const signOutButton = document.getElementById("menu-sign-out");
 const login = document.getElementById("login");
-const loginUsuario = document.getElementById("login-usuario");
-const loginSenha = document.getElementById("login-senha");
-const loginErro = document.getElementById("login-erro");
-const loginConfirmar = document.getElementById("login-confirmar");
+const loginUsername = document.getElementById("login-username");
+const loginPassword = document.getElementById("login-password");
+const loginError = document.getElementById("login-error");
+const loginConfirm = document.getElementById("login-confirm");
 
-const nomeDoUsuario = () => PERFIS[usuario] ?? "Admin";
-const ENFEITE = { shine: " ♥", sun: " ☀" };
+const userDisplayName = () => PROFILES[username] ?? "Admin";
+const ORNAMENT = { shine: " ♥", sun: " ☀" };
 
-function atualizarMenu() {
-  quemEntrou.textContent = usuario
-    ? `Você entrou como ${nomeDoUsuario()}${ENFEITE[usuario] ?? ""}.`
+function updateMenu() {
+  signedInAs.textContent = username
+    ? `Você entrou como ${userDisplayName()}${ORNAMENT[username] ?? ""}.`
     : "Sem login. Este é o perfil de exemplo, salvo só neste aparelho.";
-  botaoEntrar.hidden = Boolean(usuario);
-  botaoSair.hidden = !usuario;
-  document.getElementById("menu-circulo").hidden = !temCirculo();
+  signInButton.hidden = Boolean(username);
+  signOutButton.hidden = !username;
+  document.getElementById("menu-circle").hidden = !hasCircle();
 }
 
-document.getElementById("abrir-menu").onclick = () => {
-  atualizarMenu();
+document.getElementById("open-menu").onclick = () => {
+  updateMenu();
   menu.showModal();
 };
-document.getElementById("menu-historico").onclick = () => {
+document.getElementById("menu-history").onclick = () => {
   menu.close();
-  abrirHistorico();
+  openHistory();
 };
 
-// Puxar o rodapé para cima também abre o histórico, como uma gaveta: a alça acima das abas é o
-// aviso. Dedo que anda menos que isso é toque na aba, e dedo que desce não é nada.
-const PUXADA_DA_GAVETA = 40;
-const rodape = document.querySelector("footer");
-let puxada = null;
-rodape.addEventListener("pointerdown", (evento) => { puxada = { y: evento.clientY, abriu: false }; });
-rodape.addEventListener("pointermove", (evento) => {
-  if (!puxada || puxada.abriu || puxada.y - evento.clientY < PUXADA_DA_GAVETA) return;
-  puxada.abriu = true;
-  abrirHistorico();
+// Pulling the footer up also opens the history, like a drawer: the handle above the tabs is the
+// hint. A finger moving less than this is a tab tap, and a finger going down is nothing.
+const DRAWER_PULL = 40;
+const footer = document.querySelector("footer");
+let pull = null;
+footer.addEventListener("pointerdown", (event) => { pull = { y: event.clientY, opened: false }; });
+footer.addEventListener("pointermove", (event) => {
+  if (!pull || pull.opened || pull.y - event.clientY < DRAWER_PULL) return;
+  pull.opened = true;
+  openHistory();
 });
-// O dedo que puxou solta em cima de uma aba, e o clique que nasce daí não pode trocar de treino.
-rodape.addEventListener("click", (evento) => {
-  if (!puxada?.abriu) return;
-  evento.stopPropagation();
-  evento.preventDefault();
-  puxada = null;
+// The finger that pulled releases over a tab, and the click born from that may not switch workout.
+footer.addEventListener("click", (event) => {
+  if (!pull?.opened) return;
+  event.stopPropagation();
+  event.preventDefault();
+  pull = null;
 }, { capture: true });
-for (const nome of ["pointerup", "pointercancel"]) {
-  rodape.addEventListener(nome, () => { if (!puxada?.abriu) puxada = null; });
+for (const name of ["pointerup", "pointercancel"]) {
+  footer.addEventListener(name, () => { if (!pull?.opened) pull = null; });
 }
 
-// Círculo: quem divide o código vê a ficha do outro, só leitura. Só para quem tem branch próprio:
-// o visitante não tem com quem dividir, e o admin não é membro de nada, ele já vê todos.
-const circulo = document.getElementById("circulo");
-const circuloCorpo = document.getElementById("circulo-corpo");
-const circuloEntrar = document.getElementById("circulo-entrar");
-const circuloCodigo = document.getElementById("circulo-codigo");
-const circuloErro = document.getElementById("circulo-erro");
-const circuloMembros = document.getElementById("circulo-membros");
-const circuloSair = document.getElementById("circulo-sair");
-const ficha = document.getElementById("ficha");
-const fichaTitulo = document.getElementById("ficha-titulo");
-const fichaLista = document.getElementById("ficha-lista");
-const fichaVazio = document.getElementById("ficha-vazio");
+// Circle: whoever shares the code sees the other's plan, read only. Only for those with their own
+// branch: the visitor has nobody to share with, and the admin is a member of nothing, they already see all.
+const circle = document.getElementById("circle");
+const circleBody = document.getElementById("circle-body");
+const circleJoin = document.getElementById("circle-join");
+const circleCode = document.getElementById("circle-code");
+const circleError = document.getElementById("circle-error");
+const circleMembers = document.getElementById("circle-members");
+const circleLeave = document.getElementById("circle-leave");
+const plan = document.getElementById("plan");
+const planTitle = document.getElementById("plan-title");
+const planList = document.getElementById("plan-list");
+const planEmpty = document.getElementById("plan-empty");
 
-const temCirculo = () => Boolean(usuario) && usuario !== "admin";
-const perfilDoMembro = (uid) => `membro:${uid}`;
+const hasCircle = () => Boolean(username) && username !== "admin";
+const memberProfile = (uid) => `membro:${uid}`;
 
-// Código do vídeo -> quem do círculo faz o exercício, e como. O código é o que casa o mesmo
-// aparelho entre fichas diferentes, como já casa as fotos.
-const compartilhados = new Map();
+// Video code to who in the circle does the exercise, and how. The code is what matches the same
+// machine across plans, as it already matches the photos.
+const shared = new Map();
 
-async function carregarCirculo() {
-  compartilhados.clear();
-  if (!temCirculo()) return;
-  const codigo = await Banco.lerCirculo(perfilAtivo);
-  if (codigo === null) return;
-  const outros = (await Banco.lerMembros(codigo)).filter((membro) => membro.uid !== CONTAS[usuario]);
-  for (const membro of outros) {
-    const perfil = perfilDoMembro(membro.uid);
-    await Banco.ligarNuvem(perfil, membro.uid);
-    for (const treino of await Banco.listarTreinos(perfil)) {
-      for (const exercicio of await Banco.listarExercicios(treino.id, perfil)) {
-        if (!(exercicio.cod > 0)) continue;
-        const lista = compartilhados.get(exercicio.cod) ?? [];
-        lista.push({ nome: membro.nome, treino: treino.nome, series: exercicio.series, reps: exercicio.reps, tipo: exercicio.tipo });
-        compartilhados.set(exercicio.cod, lista);
+async function loadCircle() {
+  shared.clear();
+  if (!hasCircle()) return;
+  const code = await Store.readCircle(activeProfile);
+  if (code === null) return;
+  const others = (await Store.readMembers(code)).filter((member) => member.uid !== ACCOUNTS[username]);
+  for (const member of others) {
+    const profile = memberProfile(member.uid);
+    await Store.connectCloud(profile, member.uid);
+    for (const workout of await Store.listWorkouts(profile)) {
+      for (const exercise of await Store.listExercises(workout.id, profile)) {
+        if (!(exercise.videoCode > 0)) continue;
+        const list = shared.get(exercise.videoCode) ?? [];
+        list.push({ name: member.name, workout: workout.name, sets: exercise.sets, reps: exercise.reps, kind: exercise.kind });
+        shared.set(exercise.videoCode, list);
       }
     }
   }
 }
 
-// Entrar, sair ou alguém novo no círculo muda os selos dos cartões: remonta a lista.
-async function atualizarCirculo() {
-  await carregarCirculo();
-  await carregarTreinos();
+// Joining, leaving or someone new in the circle changes the card badges: remount the list.
+async function updateCircle() {
+  await loadCircle();
+  await loadWorkouts();
 }
 
-async function desenharCirculo() {
-  await atualizarCirculo();
-  const codigo = await Banco.lerCirculo(perfilAtivo);
-  circuloEntrar.hidden = codigo !== null;
-  circuloSair.hidden = codigo === null;
-  circuloMembros.hidden = codigo === null;
-  circuloErro.hidden = true;
-  if (codigo === null) {
-    circuloCorpo.textContent = "Quem entra com o mesmo código vê o treino dos outros, sem poder mexer.";
+async function renderCircle() {
+  await updateCircle();
+  const code = await Store.readCircle(activeProfile);
+  circleJoin.hidden = code !== null;
+  circleLeave.hidden = code === null;
+  circleMembers.hidden = code === null;
+  circleError.hidden = true;
+  if (code === null) {
+    circleBody.textContent = "Quem entra com o mesmo código vê o treino dos outros, sem poder mexer.";
     return;
   }
-  circuloCorpo.textContent = `Código do convite: ${codigo}. Passe para quem treina com você.`;
-  const outros = (await Banco.lerMembros(codigo)).filter((membro) => membro.uid !== CONTAS[usuario]);
-  circuloMembros.replaceChildren(...outros.map((membro) => {
-    const botao = document.createElement("button");
-    botao.type = "button";
-    botao.className = "secundario";
-    botao.textContent = `Treino de ${membro.nome}`;
-    botao.onclick = () => abrirFicha(membro);
-    return botao;
+  circleBody.textContent = `Código do convite: ${code}. Passe para quem treina com você.`;
+  const others = (await Store.readMembers(code)).filter((member) => member.uid !== ACCOUNTS[username]);
+  circleMembers.replaceChildren(...others.map((member) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "secondary";
+    button.textContent = `Treino de ${member.name}`;
+    button.onclick = () => openPlan(member);
+    return button;
   }));
-  if (outros.length === 0) {
-    circuloMembros.append(Object.assign(document.createElement("p"), { className: "circulo-vazio", textContent: "Ninguém entrou ainda." }));
+  if (others.length === 0) {
+    circleMembers.append(Object.assign(document.createElement("p"), { className: "circle-empty", textContent: "Ninguém entrou ainda." }));
   }
 }
 
-document.getElementById("menu-circulo").onclick = async () => {
+document.getElementById("menu-circle").onclick = async () => {
   menu.close();
-  circuloCodigo.value = "";
-  await desenharCirculo();
-  circulo.showModal();
-  // Como no visor: sem isto o foco cai no campo do código e o celular abre o teclado.
-  circulo.focus();
+  circleCode.value = "";
+  await renderCircle();
+  circle.showModal();
+  // As in the viewer: without this the focus lands on the code field and the phone opens the keyboard.
+  circle.focus();
 };
 
-document.getElementById("circulo-criar").onclick = async () => {
-  const codigo = await Banco.criarCirculo(perfilAtivo, nomeDoUsuario());
-  await desenharCirculo();
-  aviso.textContent = `Círculo criado. Código ${codigo}.`;
+document.getElementById("circle-create").onclick = async () => {
+  const code = await Store.createCircle(activeProfile, userDisplayName());
+  await renderCircle();
+  notice.textContent = `Círculo criado. Código ${code}.`;
 };
 
-circuloEntrar.addEventListener("submit", async (evento) => {
-  evento.preventDefault();
-  const codigo = circuloCodigo.value.trim().toUpperCase();
-  if (codigo.length !== 6) {
-    circuloErro.textContent = "O código tem seis letras.";
-    circuloErro.hidden = false;
+circleJoin.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const code = circleCode.value.trim().toUpperCase();
+  if (code.length !== 6) {
+    circleError.textContent = "O código tem seis letras.";
+    circleError.hidden = false;
     return;
   }
-  await Banco.entrarNoCirculo(perfilAtivo, codigo, nomeDoUsuario());
-  await desenharCirculo();
-  aviso.textContent = `Você entrou no círculo ${codigo}.`;
+  await Store.joinCircle(activeProfile, code, userDisplayName());
+  await renderCircle();
+  notice.textContent = `Você entrou no círculo ${code}.`;
 });
 
-circuloSair.onclick = async () => {
-  await Banco.sairDoCirculo(perfilAtivo);
-  await desenharCirculo();
-  aviso.textContent = "Você saiu do círculo.";
+circleLeave.onclick = async () => {
+  await Store.leaveCircle(activeProfile);
+  await renderCircle();
+  notice.textContent = "Você saiu do círculo.";
 };
-document.getElementById("circulo-fechar").onclick = () => circulo.close();
-document.getElementById("ficha-fechar").onclick = () => ficha.close();
+document.getElementById("circle-close").onclick = () => circle.close();
+document.getElementById("plan-close").onclick = () => plan.close();
 
-// A ficha do outro reaproveita as linhas do histórico: nome, grupos e o "3 × 12" no lugar da
-// carga. Sem <details>, sem botão: não há nada para abrir nem mexer.
-async function abrirFicha(membro) {
-  const perfil = perfilDoMembro(membro.uid);
-  await Banco.ligarNuvem(perfil, membro.uid);
-  const treinos = await Banco.listarTreinos(perfil);
-  const blocos = [];
-  for (const treino of treinos) {
-    const exercicios = await Banco.listarExercicios(treino.id, perfil);
-    if (exercicios.length === 0) continue;
-    blocos.push(Object.assign(document.createElement("h3"), { className: "historico-treino", textContent: `Treino ${treino.nome}` }));
-    blocos.push(...exercicios.map(linhaDaFicha));
+// The other's plan reuses the history rows: name, muscles and the "3 × 12" in place of the load.
+// No <details>, no button: there is nothing to open or touch.
+async function openPlan(member) {
+  const profile = memberProfile(member.uid);
+  await Store.connectCloud(profile, member.uid);
+  const workouts = await Store.listWorkouts(profile);
+  const blocks = [];
+  for (const workout of workouts) {
+    const exercises = await Store.listExercises(workout.id, profile);
+    if (exercises.length === 0) continue;
+    blocks.push(Object.assign(document.createElement("h3"), { className: "history-workout", textContent: `Treino ${workout.name}` }));
+    blocks.push(...exercises.map(planRow));
   }
-  fichaTitulo.textContent = `Treino de ${membro.nome}`;
-  fichaLista.replaceChildren(...blocos);
-  fichaVazio.hidden = blocos.length > 0;
-  circulo.close();
-  ficha.showModal();
-  ficha.focus();
+  planTitle.textContent = `Treino de ${member.name}`;
+  planList.replaceChildren(...blocks);
+  planEmpty.hidden = blocks.length > 0;
+  circle.close();
+  plan.showModal();
+  plan.focus();
 }
 
-function linhaDaFicha(exercicio) {
-  const linha = document.createElement("div");
-  linha.className = "historico-linha";
-  const resumo = document.createElement("div");
-  resumo.className = "historico-resumo";
-  const series = ehAerobico(exercicio) ? "tempo" : `${exercicio.series} × ${exercicio.reps}`;
-  // Nome e séries na primeira linha, grupos na segunda: a grade do histórico é de duas colunas.
-  resumo.append(
-    Object.assign(document.createElement("span"), { className: "historico-nome", textContent: exercicio.nome }),
-    Object.assign(document.createElement("span"), { className: "historico-agora", textContent: series }),
-    Object.assign(document.createElement("span"), { className: "historico-grupos", textContent: etiquetasDe(exercicio) })
+function planRow(exercise) {
+  const row = document.createElement("div");
+  row.className = "history-row";
+  const summary = document.createElement("div");
+  summary.className = "history-summary";
+  const setsLabel = isCardio(exercise) ? "tempo" : `${exercise.sets} × ${exercise.reps}`;
+  // Name and sets on the first line, muscles on the second: the history grid has two columns.
+  summary.append(
+    Object.assign(document.createElement("span"), { className: "history-name", textContent: exercise.name }),
+    Object.assign(document.createElement("span"), { className: "history-now", textContent: setsLabel }),
+    Object.assign(document.createElement("span"), { className: "history-muscles", textContent: labelsOf(exercise) })
   );
-  linha.append(resumo);
-  return linha;
+  row.append(summary);
+  return row;
 }
 
-botaoEntrar.onclick = () => {
+signInButton.onclick = () => {
   menu.close();
   login.querySelector("form").reset();
-  loginErro.hidden = true;
+  loginError.hidden = true;
   login.showModal();
 };
-botaoSair.onclick = async () => {
+signOutButton.onclick = async () => {
   menu.close();
-  await Banco.sair();
-  aviso.textContent = "Você saiu. De volta ao perfil de exemplo.";
+  await Store.signOut();
+  notice.textContent = "Você saiu. De volta ao perfil de exemplo.";
 };
-document.getElementById("login-cancelar").onclick = () => login.close();
+document.getElementById("login-cancel").onclick = () => login.close();
 
-// O Firebase devolve códigos, e a tela devolve uma frase só para credencial errada: dizer se o
-// que falhou foi o usuário ou a senha é ajuda para quem está chutando.
-login.querySelector("form").addEventListener("submit", async (evento) => {
-  evento.preventDefault();
-  loginErro.hidden = true;
-  loginConfirmar.disabled = true;
+// Firebase returns codes, and the screen returns one sentence for a wrong credential: saying whether
+// the username or the password failed is help for whoever is guessing.
+login.querySelector("form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  loginError.hidden = true;
+  loginConfirm.disabled = true;
   try {
-    await Banco.entrar(loginUsuario.value.trim(), loginSenha.value);
+    await Store.signIn(loginUsername.value.trim(), loginPassword.value);
     login.close();
-    aviso.textContent = `Você entrou como ${nomeDoUsuario()}.`;
-  } catch (falha) {
-    loginErro.textContent = falha?.code === "auth/network-request-failed"
+    notice.textContent = `Você entrou como ${userDisplayName()}.`;
+  } catch (error) {
+    loginError.textContent = error?.code === "auth/network-request-failed"
       ? "Sem conexão para entrar. Tente com sinal."
       : "Usuário ou senha errados.";
-    loginErro.hidden = false;
+    loginError.hidden = false;
   } finally {
-    loginConfirmar.disabled = false;
+    loginConfirm.disabled = false;
   }
 });
 
-document.getElementById("historico-fechar").onclick = () => painelDoHistorico.close();
-buscaDoHistorico.addEventListener("input", desenharHistorico);
+document.getElementById("history-close").onclick = () => historyPanel.close();
+historySearch.addEventListener("input", renderHistory);
 
-// Tocar fora fecha qualquer diálogo, e fechar assim é sempre cancelar: close() sem argumento
-// deixa o returnValue vazio, e todo ouvinte de close trata vazio como cancelado.
+// Tapping outside closes any dialog, and closing that way is always cancel: close() with no argument
+// leaves returnValue empty, and every close listener treats empty as cancelled.
 //
-// As duas condições são necessárias. Só o alvo não basta porque o recheio vazio do diálogo
-// também é o próprio elemento, e tocar nele fecharia. Só a coordenada não basta porque o clique
-// que o Enter gera num botão focado chega em 0,0, que cai fora da caixa: sem o alvo, o teclado
-// perdia a capacidade de confirmar qualquer diálogo.
-for (const caixa of document.querySelectorAll("dialog")) {
-  caixa.addEventListener("click", (evento) => {
-    if (evento.target !== caixa) return;
-    const area = caixa.getBoundingClientRect();
-    const dentro = evento.clientX >= area.left && evento.clientX <= area.right
-      && evento.clientY >= area.top && evento.clientY <= area.bottom;
-    if (!dentro) caixa.close();
+// Both conditions are needed. The target alone is not enough because the dialog's empty padding is
+// the element itself, and tapping it would close. The coordinate alone is not enough because the
+// click Enter generates on a focused button arrives at 0,0, outside the box: without the target,
+// the keyboard lost the ability to confirm any dialog.
+for (const box of document.querySelectorAll("dialog")) {
+  box.addEventListener("click", (event) => {
+    if (event.target !== box) return;
+    const area = box.getBoundingClientRect();
+    const inside = event.clientX >= area.left && event.clientX <= area.right
+      && event.clientY >= area.top && event.clientY <= area.bottom;
+    if (!inside) box.close();
   });
 }
 
 (async () => {
-  const temBanco = await Banco.abrir(adotarBanco);
+  const hasStore = await Store.open(adoptStore);
 
-  document.getElementById("sem-banco").hidden = temBanco;
-  perfis.append(...Object.entries(PERFIS).map(criarPerfil));
+  document.getElementById("no-store").hidden = hasStore;
+  profiles.append(...Object.entries(PROFILES).map(createProfileOption));
   navigator.storage?.persist?.();
-  // Duas APIs de plataforma fora do banco.js, as duas aqui e as duas ignorando o retorno. O
-  // registro falha calado por file://, que não tem origem segura, e é o comportamento esperado:
-  // aberto como arquivo o app roda sem guardar nada, service worker inclusive.
-  navigator.serviceWorker?.register("sw.js").catch(() => { /* sem origem segura */ });
-  // A tela só monta depois que o Firebase disse quem está logado. Entrar e sair passam pelo
-  // mesmo caminho: cada mudança de usuário remonta a tela do perfil certo.
-  await new Promise((pronto) => Banco.aoMudarUsuario((uid) => pronto(aplicarUsuario(uid))));
+  // Two platform APIs outside store.js, both here and both ignoring the result. Registration fails
+  // silently on file://, which has no secure origin, and that is expected: opened as a file the app
+  // runs without saving anything, service worker included.
+  navigator.serviceWorker?.register("sw.js").catch(() => { /* no secure origin */ });
+  // The screen only mounts after Firebase said who is signed in. Signing in and out go through the
+  // same path: each user change remounts the screen for the right profile.
+  await new Promise((ready) => Store.onUserChange((uid) => ready(applyUser(uid))));
 })();
