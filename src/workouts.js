@@ -139,6 +139,17 @@ function buildPanels() {
   }));
 
   goTo(activeWorkoutId, false);
+  rearmPanels();
+}
+
+// On the installed app, a pull-to-refresh reload leaves the panel's scroll extent stale on Android:
+// the list cuts mid-card and stops, and the only thing that has ever put it back on the device is a
+// recomposition, the one a dialog forces. Recreating the scroller does the same without a dialog. It
+// runs at every mount and whenever the carousel changes size; one frame with the scrollbar hidden.
+function rearmPanels() {
+  const panels = [...carousel.querySelectorAll(".panel")];
+  for (const panel of panels) panel.style.overflowY = "hidden";
+  requestAnimationFrame(() => { for (const panel of panels) panel.style.overflowY = ""; });
 }
 
 // Scroll to the panel. The browser animates when it can; under reduced motion it jumps, which is
@@ -182,6 +193,7 @@ let carouselGesture = false;
 // layout pass, and follows the footer when it grows or shrinks.
 new ResizeObserver(([entry]) => {
   carousel.style.setProperty("--panel-height", `${entry.contentRect.height}px`);
+  rearmPanels();
 }).observe(carousel);
 for (const name of ["pointerdown", "wheel", "touchstart"]) {
   carousel.addEventListener(name, () => { carouselGesture = true; }, { passive: true });

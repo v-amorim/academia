@@ -3,7 +3,7 @@
 //
 // Bumping VERSION on every release is what swaps the cached content. Without it the device keeps
 // the old version forever, which is the classic way a service worker ruins an app.
-const VERSION = "v18";
+const VERSION = "v19";
 const CACHE = `academia-${VERSION}`;
 
 const ESSENTIALS = [
