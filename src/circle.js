@@ -121,10 +121,11 @@ circleLeave.onclick = async () => {
   notice.textContent = "Você saiu do círculo.";
 };
 document.getElementById("circle-close").onclick = () => circle.close();
-document.getElementById("plan-close").onclick = () => plan.close();
+bindDrawer(plan);
 
-// The other's plan reuses the history rows: name, muscles and the "3 × 12" in place of the load.
-// No <details>, no button: there is nothing to open or touch.
+// The other's plan is a drawer like the history, and each row is the workout card without its frame
+// and cover: the counter block with "3 ×" over "12 rep", then name and muscles. No <details>, no
+// button: there is nothing to open or touch.
 async function openPlan(member) {
   const { profile } = member;
   const workouts = await Store.listWorkouts(profile);
@@ -145,16 +146,19 @@ async function openPlan(member) {
 
 function planRow(exercise) {
   const row = document.createElement("div");
-  row.className = "history-row";
-  const summary = document.createElement("div");
-  summary.className = "history-summary";
-  const setsLabel = isCardio(exercise) ? "tempo" : `${exercise.sets} × ${exercise.reps}`;
-  // Name and sets on the first line, muscles on the second: the history grid has two columns.
-  summary.append(
+  row.className = "plan-row";
+  const block = document.createElement("div");
+  block.className = "plan-block";
+  block.innerHTML = isCardio(exercise)
+    ? `<span class="reps"><span class="unit">tempo</span></span>`
+    : counterLabel(exercise.sets, exercise.reps);
+  block.setAttribute("aria-label", isCardio(exercise) ? "por tempo" : `${exercise.sets} séries de ${exercise.reps}`);
+  const description = document.createElement("div");
+  description.className = "plan-description";
+  description.append(
     Object.assign(document.createElement("span"), { className: "history-name", textContent: exercise.name }),
-    Object.assign(document.createElement("span"), { className: "history-now", textContent: setsLabel }),
     Object.assign(document.createElement("span"), { className: "history-muscles", textContent: labelsOf(exercise) })
   );
-  row.append(summary);
+  row.append(block, description);
   return row;
 }

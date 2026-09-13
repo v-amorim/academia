@@ -295,34 +295,37 @@ for (const name of ["pointerup", "pointercancel"]) {
 // follows the finger; past the threshold it slides the rest of the way and closes, short of it it
 // snaps back. Escape and tapping outside stay as the keyboard and mouse paths.
 const DRAWER_DROP = 80;
-const drawerTop = historyPanel.querySelector(".history-top");
-let drop = null;
-drawerTop.addEventListener("pointerdown", (event) => {
-  drop = { y: event.clientY, moved: 0 };
-  historyPanel.classList.add("dragging");
-  try { drawerTop.setPointerCapture(event.pointerId); } catch { /* synthetic pointer */ }
-});
-drawerTop.addEventListener("pointermove", (event) => {
-  if (!drop) return;
-  drop.moved = Math.max(0, event.clientY - drop.y);
-  historyPanel.style.translate = `0 ${drop.moved}px`;
-});
-function releaseDrawer() {
-  if (!drop) return;
-  const far = drop.moved > DRAWER_DROP;
-  drop = null;
-  historyPanel.classList.remove("dragging");
-  if (!far) {
-    historyPanel.style.translate = "";
-    return;
+function bindDrawer(panel) {
+  const top = panel.querySelector(".history-top");
+  let drop = null;
+  top.addEventListener("pointerdown", (event) => {
+    drop = { y: event.clientY, moved: 0 };
+    panel.classList.add("dragging");
+    try { top.setPointerCapture(event.pointerId); } catch { /* synthetic pointer */ }
+  });
+  top.addEventListener("pointermove", (event) => {
+    if (!drop) return;
+    drop.moved = Math.max(0, event.clientY - drop.y);
+    panel.style.translate = `0 ${drop.moved}px`;
+  });
+  function release() {
+    if (!drop) return;
+    const far = drop.moved > DRAWER_DROP;
+    drop = null;
+    panel.classList.remove("dragging");
+    if (!far) {
+      panel.style.translate = "";
+      return;
+    }
+    const finish = () => { panel.style.translate = ""; panel.close(); };
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return finish();
+    panel.style.translate = "0 100%";
+    // transitionend can be missed when the tab is hidden; the timer is the safety net.
+    const timer = setTimeout(finish, 400);
+    panel.addEventListener("transitionend", () => { clearTimeout(timer); finish(); }, { once: true });
   }
-  const finish = () => { historyPanel.style.translate = ""; historyPanel.close(); };
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return finish();
-  historyPanel.style.translate = "0 100%";
-  // transitionend can be missed when the tab is hidden; the timer is the safety net.
-  const timer = setTimeout(finish, 400);
-  historyPanel.addEventListener("transitionend", () => { clearTimeout(timer); finish(); }, { once: true });
+  top.addEventListener("pointerup", release);
+  top.addEventListener("pointercancel", release);
 }
-drawerTop.addEventListener("pointerup", releaseDrawer);
-drawerTop.addEventListener("pointercancel", releaseDrawer);
+bindDrawer(historyPanel);
 historySearch.addEventListener("input", renderHistory);

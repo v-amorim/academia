@@ -1565,8 +1565,8 @@ const Probe = (function () {
     await pause(400);
     check("o treino da Europa abre só para ler, com os treinos dela", document.getElementById("plan").open
       && document.getElementById("plan-title").textContent === "Treino de Europa"
-      && document.querySelectorAll("#plan-list .history-row").length === Object.values(EUROPA_WORKOUTS).flat().length,
-      document.querySelectorAll("#plan-list .history-row").length);
+      && document.querySelectorAll("#plan-list .plan-row").length === Object.values(EUROPA_WORKOUTS).flat().length,
+      document.querySelectorAll("#plan-list .plan-row").length);
     check("a ficha da Europa não vaza para a lista da Luna", cards().length === Object.values(EXAMPLE_WORKOUTS)[Object.keys(EXAMPLE_WORKOUTS).indexOf(activeWorkoutId)].length);
     document.getElementById("plan").close();
     await pause(200);
@@ -1642,13 +1642,13 @@ const Probe = (function () {
     shineButton.click();
     await pause(400);
     const othersPlan = document.getElementById("plan");
-    const rows = [...othersPlan.querySelectorAll(".history-row")];
+    const rows = [...othersPlan.querySelectorAll(".plan-row")];
     const shineCount = Object.values(SHINE_WORKOUTS).flat().length;
     check("a ficha da Shine abre com os exercícios dela", othersPlan.open && rows.length === shineCount, rows.length);
-    check("a ficha mostra séries por repetições", rows[0]?.querySelector(".history-now")?.textContent === `${SHINE_WORKOUTS.A[0].sets} × ${SHINE_WORKOUTS.A[0].reps}`,
-      rows[0]?.querySelector(".history-now")?.textContent);
-    check("a ficha alheia não tem botão nem campo além de fechar",
-      othersPlan.querySelectorAll("button, input, details, summary").length === 1);
+    check("a ficha mostra séries por repetições, como o contador do cartão", rows[0]?.querySelector(".plan-block")?.textContent === `${SHINE_WORKOUTS.A[0].sets}×${SHINE_WORKOUTS.A[0].reps}rep`,
+      rows[0]?.querySelector(".plan-block")?.textContent);
+    check("a ficha alheia não tem botão nem campo: fecha pela alça, por Escape ou tocando fora",
+      othersPlan.querySelectorAll("button, input, details, summary").length === 0);
     check("a ficha do Sun na tela não muda", cards().every((card) => !card.textContent.includes(SHINE_WORKOUTS.A[0].name)));
     othersPlan.close();
 

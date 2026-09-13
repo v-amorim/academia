@@ -131,17 +131,18 @@ button {
     dialog[open]::backdrop { background: transparent; }
   }
 
-  /* The history drawer neither fades nor shrinks: it rises from below, like the finger that pulled
-     it, and slides down on close. A bit longer than the other dialogs because it crosses the whole screen. */
-  #history {
+  /* The drawers, history and the other's plan, neither fade nor shrink: they rise from below, like the
+     finger that pulled them, and slide down on close. A bit longer than the other dialogs because they
+     cross the whole screen. */
+  #history, #plan {
     opacity: 1;
     scale: 1;
     translate: 0 100%;
     transition: translate 260ms var(--curve), display 260ms allow-discrete, overlay 260ms allow-discrete;
   }
-  #history[open] { translate: 0 0; transition-duration: 300ms; }
+  #history[open], #plan[open] { translate: 0 0; transition-duration: 300ms; }
   @starting-style {
-    #history[open] { translate: 0 100%; }
+    #history[open], #plan[open] { translate: 0 100%; }
   }
 }
 
@@ -903,9 +904,10 @@ dialog:focus-visible { outline: none; }
   padding: 14px;
   overscroll-behavior: contain;
 }
-/* The history is the drawer the footer pulls, so it is a sheet stuck to the bottom, rounded only on
-   top, not a card in the middle of the screen. Slides in and out, in the motion block above. */
-#history {
+/* The history is the drawer the footer pulls, and the other's plan is the same kind of list, so both
+   are a sheet stuck to the bottom, rounded only on top, not a card in the middle of the screen. Slide
+   in and out, in the motion block above. */
+#history, #plan {
   margin-block: auto 0;
   width: min(560px, 100vw);
   /* The browser's sheet caps the dialog at 100% minus 2em; the drawer wants the full width. */
@@ -923,7 +925,7 @@ dialog:focus-visible { outline: none; }
 .history-top { display: grid; gap: 10px; padding-top: 2px; touch-action: none; user-select: none; -webkit-touch-callout: none; cursor: grab; }
 .history-top h2 { margin: 0; text-align: center; }
 /* While the finger holds the sheet it follows at once; the transition returns for the snap back or the slide out. */
-#history.dragging { transition: none; }
+#history.dragging, #plan.dragging { transition: none; }
 #history-search {
   width: 100%;
   padding: 10px 12px;
@@ -1001,6 +1003,28 @@ summary.history-summary { cursor: pointer; }
 }
 .history-left { color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
 .history-actions .secondary { min-height: 34px; padding-inline: 14px; font-size: 13px; }
+
+/* The other's plan: the workout card without its frame and cover. The counter block is the only shape,
+   so the list is not a box inside the drawer's box, and the name sits beside it as on the card. */
+#plan-list { gap: 12px; }
+.plan-row {
+  display: grid;
+  grid-template-columns: 68px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding-inline: 4px;
+}
+.plan-block {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  min-height: 56px;
+  border-radius: var(--radius-card-inner);
+  background: var(--surface-raised);
+  font-variant-numeric: tabular-nums;
+}
+.plan-description { display: grid; gap: 2px; min-width: 0; }
 
 /* Workout row of the restore dialog: same track and same pill as the tabs, because it is the same
    choice, made from somewhere else. */
