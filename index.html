@@ -9,6 +9,14 @@
 <meta name="apple-mobile-web-app-title" content="Sunshine">
 <meta name="theme-color" content="#0D0E17">
 <title>Sunshine</title>
+<meta name="description" content="Contador de séries para o treino de academia. Instala no celular, funciona sem sinal e guarda a carga de cada exercício.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Sunshine">
+<meta property="og:description" content="Contador de séries para o treino de academia. Instala no celular, funciona sem sinal e guarda a carga de cada exercício.">
+<meta property="og:url" content="https://v-amorim.github.io/academia/">
+<meta property="og:image" content="https://v-amorim.github.io/academia/assets/screenshots/workout.png">
+<meta property="og:locale" content="pt_BR">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.json">
 <!-- The iPhone ignores the manifest icons on the home screen and uses only this one. -->
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -93,12 +101,28 @@
 <dialog id="menu" aria-labelledby="menu-title">
   <h2 id="menu-title">Sunshine</h2>
   <p id="menu-who"></p>
+  <!-- Icon beside the label, 2px stroke because the label is bold. Same vocabulary as the edit toolbar. -->
   <div class="stacked-actions">
-    <button type="button" class="secondary" id="menu-history">Histórico</button>
-    <button type="button" class="secondary" id="menu-circle" hidden>Círculo</button>
-    <button type="button" class="secondary" id="menu-edit">Editar treino</button>
-    <button type="button" class="primary" id="menu-sign-in">Entrar</button>
-    <button type="button" class="secondary" id="menu-sign-out" hidden>Sair</button>
+    <button type="button" class="secondary menu-item" id="menu-history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3.5 3v4.5H8"/><path d="M12 8v4.5l3 2"/></svg>
+      Histórico
+    </button>
+    <button type="button" class="secondary menu-item" id="menu-circle" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 19.5c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5"/><path d="M16 5.2a3.5 3.5 0 0 1 0 6.6"/><path d="M17.5 14.3c2.4.6 4 2.5 4 5.2"/></svg>
+      Círculo
+    </button>
+    <button type="button" class="secondary menu-item" id="menu-edit">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
+      Editar treino
+    </button>
+    <button type="button" class="primary menu-item" id="menu-sign-in">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 4h5.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H13"/><path d="M3 12h11"/><path d="m10 8 4 4-4 4"/></svg>
+      Entrar
+    </button>
+    <button type="button" class="secondary menu-item" id="menu-sign-out" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H11"/><path d="M10 12h11"/><path d="m17 8 4 4-4 4"/></svg>
+      Sair
+    </button>
   </div>
 </dialog>
 
@@ -224,13 +248,24 @@
   </form>
 </dialog>
 
-<dialog id="workout-dialog" aria-labelledby="workout-title">
+<!-- Both workout menus take focus themselves on open, like the exercise menu: a ring on the first
+     item would read as a chosen option. Icons as in the brand menu. -->
+<dialog id="workout-dialog" aria-labelledby="workout-title" tabindex="-1">
   <h2 id="workout-title"></h2>
   <p>Encerrar grava o treino de hoje no histórico. Exercício que você não fez entra com zero séries.</p>
   <form method="dialog" class="stacked-actions">
-    <button type="submit" class="primary" value="finish">Encerrar treino aqui</button>
-    <button type="submit" class="secondary" value="reset">Resetar progresso</button>
-    <button type="submit" class="secondary" value="cancel">Cancelar</button>
+    <button type="submit" class="primary menu-item" value="finish">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h12l-2 4 2 4H5"/></svg>
+      Encerrar treino aqui
+    </button>
+    <button type="submit" class="secondary menu-item" value="reset">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3.5 3v4.5H8"/></svg>
+      Resetar progresso
+    </button>
+    <button type="submit" class="secondary menu-item" value="cancel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12"/><path d="M18 6 6 18"/></svg>
+      Cancelar
+    </button>
   </form>
 </dialog>
 
@@ -256,15 +291,30 @@
   </form>
 </dialog>
 
-<dialog id="edit-workout-dialog" aria-labelledby="edit-workout-title">
+<dialog id="edit-workout-dialog" aria-labelledby="edit-workout-title" tabindex="-1">
   <h2 id="edit-workout-title"></h2>
   <p>Tirar o treino não apaga nada: os dias dele continuam no histórico.</p>
   <form method="dialog" class="stacked-actions">
-    <button type="submit" class="secondary" value="rename">Renomear</button>
-    <button type="submit" class="secondary" value="before">Mover para antes</button>
-    <button type="submit" class="secondary" value="after">Mover para depois</button>
-    <button type="submit" class="secondary" value="remove">Tirar este treino</button>
-    <button type="submit" class="secondary" value="cancel">Cancelar</button>
+    <button type="submit" class="secondary menu-item" value="rename">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
+      Renomear
+    </button>
+    <button type="submit" class="secondary menu-item" value="before">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 6-6 6 6 6"/></svg>
+      Mover para antes
+    </button>
+    <button type="submit" class="secondary menu-item" value="after">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+      Mover para depois
+    </button>
+    <button type="submit" class="secondary menu-item" value="remove">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4h15A1.5 1.5 0 0 1 21 5.5V8H3Z"/><path d="M4 8v10.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V8"/><path d="M10 12h4"/></svg>
+      Tirar este treino
+    </button>
+    <button type="submit" class="secondary menu-item" value="cancel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12"/><path d="M18 6 6 18"/></svg>
+      Cancelar
+    </button>
   </form>
 </dialog>
 
@@ -272,7 +322,7 @@
   <h2 id="new-exercise-title">Novo exercício</h2>
   <form method="dialog">
     <label for="new-name" class="label">Nome</label>
-    <input id="new-name" class="field" type="text" maxlength="60" autocomplete="off" required>
+    <input id="new-name" class="field" type="text" maxlength="60" autocomplete="off" placeholder="Ex: Puxada frontal no cabo" required>
     <div id="new-similar" class="similar" role="group" aria-label="Exercícios parecidos que já existem" hidden></div>
     <div class="two-fields">
       <div>
@@ -281,7 +331,7 @@
       </div>
       <div>
         <label for="new-video-code" class="label">Vídeo</label>
-        <input id="new-video-code" class="field" type="text" inputmode="numeric" maxlength="6" autocomplete="off">
+        <input id="new-video-code" class="field" type="text" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="Ex: 541">
       </div>
     </div>
     <div class="two-fields">

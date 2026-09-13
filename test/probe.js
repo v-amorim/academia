@@ -94,6 +94,12 @@ const Probe = (function () {
     check("treino e perfil ficam juntos no rodapé",
       Boolean(document.getElementById("tabs").closest("footer") && document.getElementById("profiles").closest("footer")));
     check("a marca fica no topo", Boolean(document.querySelector("header .logo")));
+    // Android left the panel taller than the carousel and hid the last card behind the footer.
+    const carouselBox = document.getElementById("carousel");
+    check("o painel tem a altura medida do carrossel, em pixel",
+      carouselBox.style.getPropertyValue("--panel-height") === `${carouselBox.clientHeight}px`
+      && document.querySelector(".panel").getBoundingClientRect().height === carouselBox.clientHeight,
+      `${carouselBox.style.getPropertyValue("--panel-height")} / ${carouselBox.clientHeight}`);
     check("o esqueleto sai quando a lista entra, e o main deixa de estar ocupado",
       document.querySelectorAll(".skeleton").length === 0 && !document.querySelector("main").hasAttribute("aria-busy"));
     // The panel scrolls, never the page: with the body growing along with the list, the vertical
@@ -141,7 +147,7 @@ const Probe = (function () {
     await pause();
     check("a aba ativa abre o menu", menu().open);
     check("o rótulo novo está no menu",
-      menu().querySelector('[value="finish"]').textContent === "Encerrar treino aqui");
+      menu().querySelector('[value="finish"]').textContent.trim() === "Encerrar treino aqui");
     check("o rótulo antigo morreu", !menu().querySelector('[value="feito"]'));
     menu().querySelector('[value="reset"]').click();
     await pause(250);
@@ -491,7 +497,7 @@ const Probe = (function () {
     document.getElementById("load-minus").click();
     await pause();
     // With no load at all, the step back stops at zero, not at "sem carga": zero is a stored number.
-    check("menos carga desfaz o passo", menuLoad() === (loadBefore === "sem carga" ? "0 kg" : loadBefore), menuLoad());
+    check("menos carga desfaz o passo", menuLoad().replace(/\s/g, "") === (loadBefore === "sem carga" ? "0kg" : loadBefore.replace(/\s/g, "")), menuLoad());
 
     document.getElementById("exercise-menu-reset").click();
     await pause();

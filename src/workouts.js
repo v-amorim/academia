@@ -177,6 +177,12 @@ function activate(workoutId, announce = false) {
 // Only a real gesture announces the workout switch. A scroll the app itself asked for already has
 // its message, and announcing again would erase the "cycle restarted" just written.
 let carouselGesture = false;
+// Android Chrome sometimes leaves the panel taller than the carousel after a refresh, so it scrolls to
+// its own end behind the footer. A pixel height measured from the carousel does not depend on that
+// layout pass, and follows the footer when it grows or shrinks.
+new ResizeObserver(([entry]) => {
+  carousel.style.setProperty("--panel-height", `${entry.contentRect.height}px`);
+}).observe(carousel);
 for (const name of ["pointerdown", "wheel", "touchstart"]) {
   carousel.addEventListener(name, () => { carouselGesture = true; }, { passive: true });
 }

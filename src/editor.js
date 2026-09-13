@@ -58,6 +58,7 @@ function openEditWorkout(workoutId) {
   editWorkoutDialog.querySelector('[value="remove"]').disabled = WORKOUT_IDS.length === 1;
   editWorkoutDialog.returnValue = "";
   editWorkoutDialog.showModal();
+  editWorkoutDialog.focus();
 }
 
 editWorkoutDialog.addEventListener("close", async () => {

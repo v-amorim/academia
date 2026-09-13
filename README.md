@@ -7,7 +7,11 @@
 A set counter for gym workouts.
 Installable, no build step, works offline, and the history follows the person across devices.
 
-[**Open the app**][app]
+[**Open the app**][app] · [![verify](https://github.com/v-amorim/academia/actions/workflows/verify.yml/badge.svg)][ci]
+
+<img src="assets/demo.gif" width="300" alt="">
+
+Tap to tick a set, hold and drag to adjust it in place, swipe to the next workout.
 
 </div>
 
@@ -23,8 +27,9 @@ Installable, no build step, works offline, and the history follows the person ac
 | :---: | :---: | :---: |
 | ![](assets/screenshots/menu.png) | ![](assets/screenshots/circle.png) | ![](assets/screenshots/circle-plan.png) |
 
-Every screenshot above comes from `node scripts/screenshots.mjs`, which drives the real app in
-headless Chrome as a phone. The visitor profile you see is Luna; Europa trains with her in the
+Every screenshot above comes from `node scripts/screenshots.mjs`, and the clip from
+`node scripts/demo.mjs`: both drive the real app in headless Chrome as a phone, the clip with real
+touch events. The visitor profile you see is Luna; Europa trains with her in the
 example circle, so the circle shows without an account.
 
 ## The map
@@ -203,6 +208,8 @@ just verify carga      # only the cases matching the word
 node test/verify.mjs   # the same, without just
 ```
 
+The same suite runs on every push, in [GitHub Actions][ci].
+
 ```mermaid
 ---
 config:
@@ -315,7 +322,9 @@ academia/
         probe.js ## the assertions, run inside the page
         fake-firebase.js ## stands in for the SDK
     scripts/
+        phone.mjs ## headless Chrome as a phone, over CDP
         screenshots.mjs ## regenerates assets/screenshots
+        demo.mjs ## records assets/demo.gif with real touch
 ```
 
 Script order in `index.html` matters: `vendor/`, then `plans.js`, `store.js` and the `src/`
@@ -327,3 +336,4 @@ files before it declared.
 [MIT](LICENSE).
 
 [app]: https://v-amorim.github.io/academia/
+[ci]: https://github.com/v-amorim/academia/actions/workflows/verify.yml

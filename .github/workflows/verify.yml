@@ -1,0 +1,17 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The runner image ships Google Chrome at /usr/bin/google-chrome, one of the paths the suite tries.
+      - run: node test/verify.mjs

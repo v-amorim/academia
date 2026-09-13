@@ -27,9 +27,11 @@ function renderExerciseMenu() {
   document.getElementById("exercise-menu-title").textContent = exercise.name;
   setsAdjustment.hidden = isCardio(exercise);
   loadAdjustment.hidden = isBodyweight(exercise);
-  setsValue.textContent = `${exercise.sets - setsLeft(exercise)} de ${exercise.sets}`;
+  // Same drawing as the card: the number in full, and the unit (or the "de 3") one step below.
+  setsValue.replaceChildren(text(String(exercise.sets - setsLeft(exercise))),
+    Object.assign(document.createElement("span"), { className: "adjustment-of", textContent: ` de ${exercise.sets}` }));
   const load = loadOf(exercise);
-  menuLoadValue.textContent = load === undefined ? "sem carga" : asMeasure(load, unitOf(exercise));
+  menuLoadValue.replaceChildren(load === undefined ? text("sem carga") : withUnit(load, unitOf(exercise)));
 }
 
 function openExerciseMenu(exercise) {
@@ -68,6 +70,7 @@ function openWorkoutMenu(workoutId) {
   document.getElementById("workout-title").textContent = `${workoutTitle(workoutId)}`;
   workoutDialog.returnValue = "";
   workoutDialog.showModal();
+  workoutDialog.focus();
 }
 
 workoutDialog.addEventListener("close", async () => {

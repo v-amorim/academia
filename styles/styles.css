@@ -51,6 +51,10 @@
   /* The logo's two easter eggs: Shine's heart and Sun's sun. */
   --heart: var(--pink-300);
   --sun: var(--amber-400);
+  /* The chosen option of a control wears what the active workout tab wears: the accent outline, and
+     the fill a step darker than its neighbours. An ink fill was tried on 2026-09-13 and read as ugly. */
+  --chosen: color-mix(in oklab, var(--surface-raised) 55%, var(--background));
+  --chosen-ring: var(--accent);
 
   --radius-card: 16px;
   --radius-panel: 24px;
@@ -90,7 +94,8 @@ button {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .counter, .photo, .tab, .primary, .secondary, .exercise, .load-value, #profiles label {
+  .counter, .photo, .tab, .primary, .secondary, .exercise, .load-value, #profiles label,
+  .choice-track label, .muscle-choice label, .accessory-choice label, .accessory-choice svg {
     transition-property: background-color, box-shadow, color, scale, opacity;
     transition-duration: 120ms;
     transition-timing-function: var(--curve);
@@ -249,8 +254,8 @@ main {
   inline-size: 100%;
   /* Explicit height, not just flex stretch: on Android the panel sometimes came up taller than the
      carousel, scrolled to its own end behind the footer, and only a relayout (opening a dialog) put
-     it back. Reported on 2026-09-13. */
-  block-size: 100%;
+     it back. The percentage alone did not hold on the device; workouts.js writes the measured pixels. */
+  block-size: var(--panel-height, 100%);
   overflow-y: auto;
   overscroll-behavior-y: contain;
   scroll-snap-align: start;
@@ -715,6 +720,14 @@ dialog p { margin: 0 0 16px; color: var(--text-secondary); font-size: 15px; }
 .actions:has(> [hidden]) > :not([hidden]) { grid-column: 1 / -1; }
 .stacked-actions { display: grid; gap: 10px; }
 .wide { width: 100%; margin-top: 10px; }
+/* Brand menu item: icon at the leading edge, label after it, both starting on the same edge in every
+   row so the eye runs down one column. */
+.menu-item { display: flex; align-items: center; justify-content: start; gap: 12px; padding-inline: 16px; text-align: start; }
+.menu-item svg { width: 20px; height: 20px; flex: none; }
+/* Author display beats the browser's hidden: without this "Sair" shows beside "Entrar". */
+.menu-item[hidden] { display: none; }
+/* Same dimming as the edit toolbar: "Mover para antes" on the first workout stays, but steps back. */
+.menu-item:disabled { opacity: 0.35; cursor: default; }
 
 /* Adjustment row of the exercise menu: label on the left, and the value between minus and plus, all
    three with the minimum target. Same round icon as the photo actions. */
@@ -729,6 +742,8 @@ dialog p { margin: 0 0 16px; color: var(--text-secondary); font-size: 15px; }
 .adjustment[hidden] { display: none; }
 .adjustment-label { color: var(--text-secondary); font-size: 14px; font-weight: 600; }
 .adjustment-value { min-width: 72px; text-align: center; font-variant-numeric: tabular-nums; font-size: 15px; }
+/* "de 3" one step below the number, as the unit is beside the load: the number is what changes. */
+.adjustment-of { color: var(--text-secondary); font-size: 13px; font-weight: 600; }
 .adjustment .icon { font-size: 22px; font-weight: 600; line-height: 1; }
 
 /* The tape is born inside the counter and covers it, overflowing up and down: the adjustment
@@ -1048,7 +1063,7 @@ summary.history-summary { cursor: pointer; }
   font-size: 13px;
   cursor: pointer;
 }
-.choice-track label:has(:checked) { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--ring); }
+.choice-track label:has(:checked) { background: var(--chosen); color: var(--text); box-shadow: 0 0 0 1px var(--chosen-ring); }
 .choice-track label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 .progression-block { padding: 0 12px 12px; }
@@ -1170,7 +1185,7 @@ summary.history-summary { cursor: pointer; }
 ::placeholder { color: color-mix(in oklab, var(--text-secondary) 60%, transparent); opacity: 1; }
 /* The login error is text, not a box: the alert color already exists in the store notice. */
 #login-error { margin: 12px 0 0; color: var(--alert); font-size: 14px; }
-#login .actions, #circle .actions { margin-top: 16px; }
+#login .actions, #circle .actions, #workout-name-dialog .actions { margin-top: 16px; }
 
 /* The eye sits inside the password field, at the trailing end, and the field leaves room for it. The
    field is 42px tall, so the pseudo-element stretches the hit area to the 44px target. */
@@ -1249,11 +1264,11 @@ summary.history-summary { cursor: pointer; }
   font-weight: 600;
   cursor: pointer;
 }
-.muscle-choice label:has(:checked) { color: var(--text); box-shadow: 0 0 0 1px var(--ring-strong); }
+.muscle-choice label:has(:checked) { background: var(--chosen); color: var(--text); box-shadow: 0 0 0 1px var(--chosen-ring); }
 .muscle-choice label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 /* The attachment: a grid of options with the icon on top and the name below, radio hidden. The
-   chosen one gets the strong ring and full text, like the muscle group. */
+   chosen one sinks a step and takes the accent outline, like the muscle group and the kind track above it. */
 .accessory-choice {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1275,7 +1290,7 @@ summary.history-summary { cursor: pointer; }
   cursor: pointer;
 }
 .accessory-choice svg { width: 42px; height: 28px; color: var(--text-unit); }
-.accessory-choice label:has(:checked) { color: var(--text); box-shadow: 0 0 0 1px var(--ring-strong); }
+.accessory-choice label:has(:checked) { background: var(--chosen); color: var(--text); box-shadow: 0 0 0 1px var(--chosen-ring); }
 .accessory-choice label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* On the card only the icon, in its own badge on the muscle line, big enough to find standing up;
    in the viewer, icon and name inside the chip. */

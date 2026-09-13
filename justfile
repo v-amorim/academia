@@ -23,3 +23,7 @@ verify case="":
 # Regenerate the README screenshots from the real app.
 screenshots:
     node scripts/screenshots.mjs
+
+# Record the README demo GIF with real touch gestures. Needs ffmpeg on PATH, or in FFMPEG.
+demo:
+    node scripts/demo.mjs
