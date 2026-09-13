@@ -669,6 +669,58 @@ const Probe = (function () {
     check("o histórico do Sun lê a carga migrada", historyEntry?.loads[0]?.load === 40, JSON.stringify(historyEntry?.loads));
   }
 
+  // Every workout finished on earlier days of the cycle, nothing today. The next page opens on top
+  // of it: cards stay "Feito" with their weights, and the app asks whether to start a new cycle.
+  async function prepareCycle() {
+    const database = firebase.firestore();
+    const branch = `profiles/${ACCOUNTS.sun}`;
+    await database.collection(`${branch}/cycle`).doc("current").set({ startedAt: 1000 });
+    NAMES.forEach((workoutId, position) => {
+      const date = daysAgo(NAMES.length - position);
+      const session = `${date}_${workoutId}`;
+      database.collection(`${branch}/sessions`).doc(session)
+        .set({ profile: "sun", workout: workoutId, date, startedAt: 2000 + position, finishedAt: 3000 + position });
+      CATALOG[workoutId].forEach((exercise) => {
+        database.collection(`${branch}/records`).doc(`${session}:${exercise.id}`)
+          .set({ exerciseId: exercise.id, remaining: 0, load: 30 + position, updatedAt: 3000 });
+      });
+    });
+    check("um ciclo inteiro de dias passados preparado", firebase.docs.size === 1 + NAMES.length + exerciseCount(), firebase.docs.size);
+  }
+
+  async function cycle() {
+    if (!(await waitFor(() => cards().length === IN_FIRST, "os cartões do primeiro treino"))) return;
+    await pause(300);
+    const restart = document.getElementById("restart-dialog");
+    const chipOf = (position) => cards()[position].querySelector(".load-value");
+    check("com tudo concluído, abrir pergunta se recomeça o ciclo", restart.open);
+    check("os treinos de dias passados continuam marcados", NAMES.every((workoutId) => tabOf(workoutId).classList.contains("completed")));
+    check("os cartões do treino de anteontem continuam feitos", counters().every((label) => label === "Feito"), counters().join());
+    check("o peso daquele dia continua no cartão", chipOf(0).textContent === "30kg", chipOf(0).textContent);
+
+    restart.querySelector('[value="cancel"]').click();
+    await pause(300);
+    check("cancelar deixa tudo como estava", !restart.open && counters().every((label) => label === "Feito")
+      && tabOf(FIRST).classList.contains("completed"));
+
+    // Repeating a finished workout is allowed: resetting it starts today's session in its place.
+    await viaTab(FIRST, "reset");
+    await pause(400);
+    check("resetar um treino feito noutro dia recomeça só ele hoje", counters().join() === fullOf(FIRST).join(), counters().join());
+    check("o treino resetado sai de concluído, os outros ficam", !tabOf(FIRST).classList.contains("completed") && tabOf(LAST).classList.contains("completed"));
+
+    check("a seção do ciclo só oferece recomeçar com tudo concluído", document.getElementById("cycle").hidden);
+    await Store.finishSession("sun", FIRST);
+    await pause(200);
+    document.getElementById("open-restart").click();
+    await pause(300);
+    restart.querySelector('[value="restart"]').click();
+    await pause(600);
+    check("recomeçar limpa os cartões de todos os treinos", counters().join() === fullOf(FIRST).join(), counters().join());
+    check("recomeçar tira o visto de todas as abas", NAMES.every((workoutId) => !tabOf(workoutId).classList.contains("completed")));
+    check("o peso do ciclo anterior volta herdado", chipOf(0).textContent === "30kg", chipOf(0).textContent);
+  }
+
   async function loads() {
     if (!(await waitFor(() => cards().length === IN_FIRST, "os cartões do primeiro treino"))) return;
 
@@ -1552,7 +1604,7 @@ const Probe = (function () {
       && (await Store.readCircle("sun")) === null);
   }
 
-  const CASES = { behavior, keyboard, loads, prepareLoads, example, cloud, visitor, dragCase, editor, circle, prepareMigration, migration };
+  const CASES = { behavior, keyboard, loads, prepareLoads, example, cloud, visitor, dragCase, editor, circle, prepareMigration, migration, prepareCycle, cycle };
 
   async function run(testCase) {
     try {

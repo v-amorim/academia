@@ -226,7 +226,7 @@ result back with `fetch`. Cases run three at a time, each in its own Chrome prof
 | Today's load | One number per exercise, inherited from last time. Up, down or level, and the card says which |
 | Three exercise kinds | Machine weight, bodyweight with no number at all, and cardio with time plus speed or level. Time adjusts by holding, like sets |
 | History | The whole workout by exercise, with day-by-day progression and what left the workout |
-| Workout cycle | One workout or more, with free names. Finishing all of them unlocks the restart |
+| Workout cycle | One workout or more, with free names. A finished workout stays done, sets and weights included, across the days of the cycle. Once all are done, opening the app asks whether to start a new one |
 | Switching workouts | Tap the tab, swipe like turning a page, drag with the mouse, or use the arrow keys |
 | Exercise details | Station, video code, a photo of the machine from camera or gallery, reps per set and a field for the settings |
 | Workout editor | Rename, create, reorder and remove workouts; move, reorder, remove and create exercises. All on the screen itself, nothing deletes data |

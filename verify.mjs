@@ -44,7 +44,8 @@ const CASES = [
   { name: "Arrasto com o mouse", steps: ["dragCase"] },
   { name: "Editor de treino", steps: ["editor"] },
   { name: "Círculo", steps: ["circle"] },
-  { name: "Migração", steps: ["prepareMigration", "migration"] }
+  { name: "Migração", steps: ["prepareMigration", "migration"] },
+  { name: "Ciclo", steps: ["prepareCycle", "cycle"] }
 ];
 
 const CHROME_PATHS = [

@@ -192,6 +192,17 @@ async function applyUser(uid) {
   await loadWorkouts();
   goTo(WORKOUT_IDS.find((workoutId) => !isWorkoutDone(workoutId)) ?? WORKOUT_IDS[0], false);
   updateMenu();
+  askForNewCycle();
+}
+
+// Opening the app with every workout finished asks once whether to restart. "Cancelar" leaves
+// everything as it is, so something can still be fixed before the cards clear.
+let askedForNewCycle = false;
+function askForNewCycle() {
+  if (askedForNewCycle || WORKOUT_IDS.length === 0 || !WORKOUT_IDS.every(isWorkoutDone)) return;
+  askedForNewCycle = true;
+  restartDialog.returnValue = "";
+  restartDialog.showModal();
 }
 
 // What the user ticked while the store was still opening beats what was stored, and is written over it.
@@ -470,7 +481,7 @@ async function loadWorkouts() {
   for (const workoutId of WORKOUT_IDS) {
     exercisesByWorkoutId.set(workoutId, await exercisesOf(workoutId));
 
-    const { records: records } = await Store.readTodaySession(activeProfile, workoutId);
+    const { records } = await Store.readCurrentSession(activeProfile, workoutId);
     for (const [exerciseId, record] of records) {
       remaining.set(exerciseId, record.remaining);
       if (record.load != null) todayLoads.set(exerciseId, record.load);

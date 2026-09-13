@@ -554,6 +554,25 @@ const Store = (function () {
     return { session: (await get(profile, "sessions", session)) ?? null, records };
   }
 
+  // A workout finished on an earlier day stays finished until the cycle restarts: the card shows
+  // the last session of that workout since the cycle began. Today's wins when it exists.
+  async function readCurrentSession(profile, workout) {
+    const today = await readTodaySession(profile, workout);
+    if (today.session) return today;
+    const { startedAt } = await readCycle(profile);
+    let latest = null;
+    for (const [key, session] of await list(profile, "sessions")) {
+      if (session.profile !== profile || session.workout !== workout || session.startedAt < startedAt) continue;
+      if (!latest || session.startedAt > latest.session.startedAt) latest = { key, session };
+    }
+    if (!latest) return today;
+    const records = new Map();
+    for (const [key, record] of await list(profile, "records", recordsOf(latest.key))) {
+      records.set(key.slice(latest.key.length + 1), record);
+    }
+    return { session: latest.session, records };
+  }
+
   async function ensureSession(profile, workout) {
     const session = sessionKey(profile, workout);
     if (!(await get(profile, "sessions", session))) {
@@ -977,7 +996,7 @@ const Store = (function () {
     connectCloud, signIn, signOut, onUserChange,
     listWorkouts, createWorkout, renameWorkout, archiveWorkout, reorderWorkouts,
     createExercise, moveExercise, reorderExercises,
-    listExercises, readTodaySession, saveSet, saveValue, deleteValue,
+    listExercises, readTodaySession, readCurrentSession, saveSet, saveValue, deleteValue,
     previousLoads, history, archiveExercise, restoreExercise, seedHistory,
     finishSession, resetWorkout,
     readCycle, startCycle, finishedWorkouts,
