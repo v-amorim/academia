@@ -3,24 +3,34 @@
 //
 // Bumping VERSION on every release is what swaps the cached content. Without it the device keeps
 // the old version forever, which is the classic way a service worker ruins an app.
-const VERSION = "v14";
+const VERSION = "v15";
 const CACHE = `academia-${VERSION}`;
 
 const ESSENTIALS = [
   "./",
   "index.html",
-  "styles.css",
-  "mulish.woff2",
+  "styles/styles.css",
+  "assets/mulish.woff2",
   "vendor/firebase-app-compat.js",
   "vendor/firebase-auth-compat.js",
   "vendor/firebase-firestore-compat.js",
-  "plans.js",
-  "store.js",
-  "app.js",
+  "src/plans.js",
+  "src/store.js",
+  "src/icons.js",
+  "src/state.js",
+  "src/format.js",
+  "src/cards.js",
+  "src/workouts.js",
+  "src/dialogs.js",
+  "src/viewer.js",
+  "src/history.js",
+  "src/editor.js",
+  "src/circle.js",
+  "src/session.js",
   "manifest.json",
-  "icone.svg",
-  "icone-192.png",
-  "icone-512.png"
+  "assets/icone.svg",
+  "assets/icone-192.png",
+  "assets/icone-512.png"
 ];
 
 self.addEventListener("install", (event) => {

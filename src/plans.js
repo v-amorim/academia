@@ -98,11 +98,37 @@ const EXAMPLE_ARCHIVED = [
   { id: "e0000009-0000-4000-8000-000000000009", name: "Elíptico", kind: "time", unit: "nível", sets: 1, reps: null, station: "livre", videoCode: 0, muscles: ["quads"], workout: "B", archived: true }
 ];
 
+// Europa trains with Luna in the example circle, so a visitor sees the circle without signing in:
+// badges on the machines both use, and her plan read only. She lives on the device, like Luna, and
+// shares video codes with Luna's plan on purpose.
+const EUROPA_WORKOUTS = {
+  A: [
+    { id: "e1000001-0000-4000-8000-000000000001", name: "Puxada frontal no cabo", station: "4", equipment: "cable", sets: 4, reps: 10, videoCode: 541, muscles: ["back"], accessory: "long-curved-bar" },
+    { id: "e1000002-0000-4000-8000-000000000002", name: "Remada baixa aberta no cabo", station: "4", equipment: "cable", sets: 3, reps: 12, videoCode: 268, muscles: ["back"], accessory: "triangle" },
+    { id: "e1000003-0000-4000-8000-000000000003", name: "Rosca direta com halteres", station: "em pé", equipment: "dumbbells", sets: 3, reps: 12, videoCode: 101, muscles: ["biceps"], accessory: "dumbbell" }
+  ],
+  B: [
+    { id: "e1000004-0000-4000-8000-000000000004", name: "Supino plano articulado", station: "47", equipment: "machine", sets: 4, reps: 8, videoCode: 1113, muscles: ["chest", "triceps"] },
+    { id: "e1000005-0000-4000-8000-000000000005", name: "Desenvolvimento aberto", station: "18", equipment: "machine", sets: 3, reps: 12, videoCode: 579, muscles: ["shoulders", "triceps"] },
+    { id: "e1000006-0000-4000-8000-000000000006", name: "Tríceps pulley com corda", station: "17/40", equipment: "cable", sets: 3, reps: 12, videoCode: 333, muscles: ["triceps"], accessory: "rope" }
+  ],
+  C: [
+    { id: "e1000007-0000-4000-8000-000000000007", name: "Leg press 45 graus", station: "8", equipment: "machine", sets: 4, reps: 12, videoCode: 59, muscles: ["quads", "glutes"] },
+    { id: "e1000008-0000-4000-8000-000000000008", name: "Extensão de pernas", station: "6", equipment: "machine", sets: 3, reps: 12, videoCode: 63, muscles: ["quads"] },
+    { id: "e1000009-0000-4000-8000-000000000009", name: "Esteira", kind: "time", unit: "km/h", sets: 1, reps: null, station: "livre", videoCode: 0, muscles: ["quads", "calves"] }
+  ]
+};
+
 // The catalog belongs to whoever trains: each profile has its own plan, and the example has its
 // own so it can be played with freely without touching anyone's real workout.
-const PROFILES = { sun: "Sun", shine: "Shine", example: "Exemplo" };
+const PROFILES = { sun: "Sun", shine: "Shine", example: "Luna" };
 const PLAN_OF = { sun: SUN_WORKOUTS, shine: SHINE_WORKOUTS, example: EXAMPLE_WORKOUTS };
 const EXAMPLE_OWNER = ["example"];
+// Fixed circle of the two example people. The code never reaches Firestore.
+const EXAMPLE_CIRCLE = {
+  code: "SELENE",
+  members: [{ profile: "example", name: PROFILES.example }, { profile: "europa", name: "Europa" }]
+};
 
 // Each account's Firebase UID. Not a secret: the Firestore rules already carry them, and the rules
 // are what protect. The admin has no profile of their own; they pick whose workout is on screen.

@@ -6,7 +6,7 @@
   font-style: normal;
   font-weight: 400 800;
   font-display: swap;
-  src: url("mulish.woff2") format("woff2");
+  src: url("../assets/mulish.woff2") format("woff2");
 }
 
 :root {

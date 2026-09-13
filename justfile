@@ -18,4 +18,8 @@ stop:
 
 # Run the whole suite, or one case: just verify carga
 verify case="":
-    node verify.mjs {{case}}
+    node test/verify.mjs {{case}}
+
+# Regenerate the README screenshots from the real app.
+screenshots:
+    node scripts/screenshots.mjs

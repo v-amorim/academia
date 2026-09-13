@@ -262,7 +262,7 @@ const Probe = (function () {
 
     const cache = await caches.open(names[0]);
     const cached = (await cache.keys()).map((request) => new URL(request.url).pathname);
-    const missing = ["/index.html", "/styles.css", "/app.js", "/store.js", "/plans.js", "/mulish.woff2", "/manifest.json"]
+    const missing = ["/index.html", "/styles/styles.css", "/src/cards.js", "/src/session.js", "/src/store.js", "/src/plans.js", "/assets/mulish.woff2", "/manifest.json"]
       .filter((file) => !cached.includes(file));
     check("o cache guarda o app inteiro, fonte e manifest", missing.length === 0, missing.join(","));
 
@@ -1528,9 +1528,29 @@ const Probe = (function () {
     const box = document.getElementById("circle");
     const body = () => document.getElementById("circle-body").textContent;
 
+    // The visitor gets the fixed example circle: Luna on screen, Europa as the other member.
     await openMenu();
-    check("sem login não há círculo no menu", circleMenu.hidden);
-    document.getElementById("menu").close();
+    check("sem login o círculo do exemplo aparece no menu", !circleMenu.hidden);
+    circleMenu.click();
+    await pause(300);
+    check("o círculo do exemplo não oferece criar, entrar nem sair", box.open && document.getElementById("circle-join").hidden
+      && document.getElementById("circle-leave").hidden && body().includes("Europa"), body());
+    const europaButton = [...document.querySelectorAll("#circle-members button")].find((b) => b.textContent.includes("Europa"));
+    check("a Europa aparece como membro, e a Luna não", Boolean(europaButton)
+      && ![...document.querySelectorAll("#circle-members button")].some((b) => b.textContent.includes("Luna")));
+    const legPress = Object.values(EXAMPLE_WORKOUTS).flat().find((e) => e.videoCode === 59);
+    const exampleCard = (exercise) => [...document.querySelectorAll(".exercise")].find((c) => c.querySelector(".name").textContent === exercise.name);
+    check("a máquina que a Europa também usa ganha a inicial dela", exampleCard(legPress)?.querySelector(".together")?.textContent === "E",
+      exampleCard(legPress)?.querySelector(".together")?.textContent);
+    europaButton.click();
+    await pause(400);
+    check("o treino da Europa abre só para ler, com os treinos dela", document.getElementById("plan").open
+      && document.getElementById("plan-title").textContent === "Treino de Europa"
+      && document.querySelectorAll("#plan-list .history-row").length === Object.values(EUROPA_WORKOUTS).flat().length,
+      document.querySelectorAll("#plan-list .history-row").length);
+    check("a ficha da Europa não vaza para a lista da Luna", cards().length === Object.values(EXAMPLE_WORKOUTS)[Object.keys(EXAMPLE_WORKOUTS).indexOf(activeWorkoutId)].length);
+    document.getElementById("plan").close();
+    await pause(200);
 
     await Store.signIn("sun", "sol");
     await waitFor(() => document.getElementById("open-menu").classList.contains("with-sun"), "o Sun na tela");

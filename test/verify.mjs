@@ -1,6 +1,6 @@
 // Checks the app without a phone: JS syntax, screen mount on file:// and behavior in a real
 // Chrome served over HTTP.
-// Usage: node verify.mjs [case]
+// Usage: node test/verify.mjs [case]
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { createReadStream, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -9,12 +9,12 @@ import { extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 // import.meta.dirname needs Node 20.11. The fallback keeps the script alive on Node 18.
-const FOLDER = resolve(import.meta.dirname ?? new URL(".", import.meta.url).pathname);
-const JS_FILES = ["plans.js", "store.js", "app.js", "probe.js", "fake-firebase.js", "sw.js"];
+const FOLDER = resolve(import.meta.dirname ?? new URL(".", import.meta.url).pathname, "..");
+const JS_FILES = ["src/plans.js", "src/store.js", "src/icons.js", "src/state.js", "src/format.js", "src/cards.js", "src/workouts.js", "src/dialogs.js", "src/viewer.js", "src/history.js", "src/editor.js", "src/circle.js", "src/session.js", "test/probe.js", "test/fake-firebase.js", "sw.js"];
 
 // How many workouts and exercises come from the seed, not from a number written here: the app
 // accepts one workout upwards, and the suite may not be what locks that at three.
-const PLANS = readFileSync(join(FOLDER, "plans.js"), "utf8");
+const PLANS = readFileSync(join(FOLDER, "src/plans.js"), "utf8");
 const SUN_WORKOUTS = new Function(`${PLANS}; return SUN_WORKOUTS;`)();
 const EXAMPLE_WORKOUTS = new Function(`${PLANS}; return EXAMPLE_WORKOUTS;`)();
 const PROFILES = new Function(`${PLANS}; return PROFILES;`)();
@@ -32,7 +32,7 @@ const EXPECTED = [
 // Each case runs in a fresh Chrome profile, so IndexedDB is born clean. The Carga case needs two
 // loads in the same profile: the first writes the past, the second brings the app up.
 //
-// `node verify.mjs carga` runs only what matches the word, and skips the file:// dump, which alone
+// `node test/verify.mjs carga` runs only what matches the word, and skips the file:// dump, which alone
 // costs twenty seconds. That is what it is for: touching one case without paying for the others.
 const CASES = [
   { name: "Comportamento", steps: ["behavior"] },
@@ -133,17 +133,17 @@ function server(onReceive) {
 
     if (url.pathname === "/sonda") {
       const testCase = url.searchParams.get("caso");
-      const injection = `<script src="/probe.js"></script><script>Probe.run(${JSON.stringify(testCase)})</script>`;
+      const injection = `<script src="/test/probe.js"></script><script>Probe.run(${JSON.stringify(testCase)})</script>`;
       // The fake Firebase goes after the plans, because it reads their UIDs, and before store.js, which
       // consumes it. The suite never talks to the real project.
-      const fake = '<script src="/fake-firebase.js"></script>';
+      const fake = '<script src="/test/fake-firebase.js"></script>';
       // The `prepare` page does not bring the app up, but loads the plans and the fake Firebase: what it
       // writes has to have the keys today's app expects, and writing them by hand would lock the suite.
       const page = testCase.startsWith("prepare")
         ? `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>preparar</title></head>`
-          + `<body><script src="/plans.js"></script>${fake}${injection}</body></html>`
+          + `<body><script src="/src/plans.js"></script>${fake}${injection}</body></html>`
         : markup
-          .replace('<script src="store.js">', `${fake}<script src="store.js">`)
+          .replace('<script src="src/store.js">', `${fake}<script src="src/store.js">`)
           .replace("</body>", `${injection}\n</body>`);
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(page);
       return;

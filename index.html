@@ -11,9 +11,9 @@
 <title>Sunshine</title>
 <link rel="manifest" href="manifest.json">
 <!-- The iPhone ignores the manifest icons on the home screen and uses only this one. -->
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" href="icone.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" href="assets/icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles/styles.css">
 </head>
 <body>
 
@@ -21,7 +21,7 @@
   <h1 class="visually-hidden">Sunshine, treino ABC</h1>
   <!-- The logo opens the menu: history, sign in and sign out share the spot since the cloud. -->
   <button type="button" id="open-menu" aria-label="Abrir o menu">
-    <img src="icone.svg" width="40" height="40" alt="" class="logo">
+    <img src="assets/icone.svg" width="40" height="40" alt="" class="logo">
   </button>
 </header>
 
@@ -326,9 +326,19 @@
 <script src="vendor/firebase-app-compat.js"></script>
 <script src="vendor/firebase-auth-compat.js"></script>
 <script src="vendor/firebase-firestore-compat.js"></script>
-<script src="plans.js"></script>
-<script src="store.js"></script>
-<script src="app.js"></script>
+<script src="src/plans.js"></script>
+<script src="src/store.js"></script>
+<script src="src/icons.js"></script>
+<script src="src/state.js"></script>
+<script src="src/format.js"></script>
+<script src="src/cards.js"></script>
+<script src="src/workouts.js"></script>
+<script src="src/dialogs.js"></script>
+<script src="src/viewer.js"></script>
+<script src="src/history.js"></script>
+<script src="src/editor.js"></script>
+<script src="src/circle.js"></script>
+<script src="src/session.js"></script>
 
 </body>
 </html>
