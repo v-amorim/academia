@@ -501,6 +501,7 @@ async function loadWorkouts() {
 
 function buildPanels() {
   cardById.clear();
+  mainElement.removeAttribute("aria-busy");
   carousel.replaceChildren(...WORKOUT_IDS.map((workoutId) => {
     const panel = document.createElement("section");
     panel.className = "panel";
@@ -2326,8 +2327,18 @@ signInButton.onclick = () => {
   menu.close();
   login.querySelector("form").reset();
   loginError.hidden = true;
+  revealPassword(false);
   login.showModal();
 };
+
+// The eye shows the password while it is pressed on; the dialog always opens with it hidden.
+const loginReveal = document.getElementById("login-reveal");
+function revealPassword(shown) {
+  loginPassword.type = shown ? "text" : "password";
+  loginReveal.setAttribute("aria-pressed", String(shown));
+  loginReveal.setAttribute("aria-label", shown ? "Ocultar senha" : "Mostrar senha");
+}
+loginReveal.onclick = () => revealPassword(loginPassword.type === "password");
 signOutButton.onclick = async () => {
   menu.close();
   await Store.signOut();

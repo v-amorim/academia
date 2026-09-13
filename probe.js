@@ -94,6 +94,8 @@ const Probe = (function () {
     check("treino e perfil ficam juntos no rodapé",
       Boolean(document.getElementById("tabs").closest("footer") && document.getElementById("profiles").closest("footer")));
     check("a marca fica no topo", Boolean(document.querySelector("header .logo")));
+    check("o esqueleto sai quando a lista entra, e o main deixa de estar ocupado",
+      document.querySelectorAll(".skeleton").length === 0 && !document.querySelector("main").hasAttribute("aria-busy"));
     // The panel scrolls, never the page: with the body growing along with the list, the vertical
     // gesture over the cards went nowhere on Android.
     check("a página não cresce com a lista", document.documentElement.scrollHeight <= innerHeight,
@@ -1244,6 +1246,21 @@ const Probe = (function () {
     document.getElementById("menu-sign-in").click();
     await pause(150);
     check("entrar abre o diálogo de login", dialog.open);
+    const password = document.getElementById("login-password");
+    const reveal = document.getElementById("login-reveal");
+    check("a senha abre escondida, com o olho dizendo que mostra", password.type === "password"
+      && reveal.getAttribute("aria-pressed") === "false" && reveal.getAttribute("aria-label") === "Mostrar senha");
+    reveal.click();
+    await pause(100);
+    check("o olho mostra a senha e passa a dizer que esconde", password.type === "text"
+      && reveal.getAttribute("aria-pressed") === "true" && reveal.getAttribute("aria-label") === "Ocultar senha");
+    check("o olho tem o alvo mínimo de toque", reveal.getBoundingClientRect().width >= 44);
+    document.getElementById("login-cancel").click();
+    await pause(200);
+    await openMenu();
+    document.getElementById("menu-sign-in").click();
+    await pause(200);
+    check("reabrir o login volta a esconder a senha", password.type === "password" && reveal.getAttribute("aria-pressed") === "false");
 
     await logIn("sun", "errada");
     check("senha errada avisa e não fecha", !errorText.hidden && dialog.open, errorText.textContent);

@@ -119,6 +119,13 @@ button {
     transition: background-color 150ms var(--curve), display 150ms allow-discrete, overlay 150ms allow-discrete;
   }
   dialog[open]::backdrop { transition-duration: 200ms; }
+
+  /* The skeleton breathes instead of shimmering: one opacity pulse, all bones in step, nothing
+     travelling across the card. Static under reduced motion, still readable as a placeholder. */
+  .bone { animation: pulsar 1400ms ease-in-out infinite alternate; }
+
+  /* Eye and eye-off cross-fade in place; the button label carries the state for the screen reader. */
+  .field-action svg { transition: opacity 150ms var(--curve), scale 150ms var(--curve), filter 150ms var(--curve); }
   @starting-style {
     dialog[open] { opacity: 0; scale: 0.96; }
     dialog[open]::backdrop { background: transparent; }
@@ -140,6 +147,10 @@ button {
 
 @keyframes entrar {
   from { opacity: 0; translate: 0 6px; filter: blur(4px); }
+}
+
+@keyframes pulsar {
+  to { opacity: 0.45; }
 }
 
 /* Travel as a fraction of the screen, not fixed pixels: the gesture that brings the list crosses the
@@ -312,6 +323,8 @@ footer {
 /* The active tab indicator is a single one that moves: an outline around the tab, no fill. A filled
    pill competed with the finished state, and an underline under the name was too weak, both on
    2026-09-12. --active comes from app.js, in tab positions. */
+/* No active tab yet while the skeleton stands: the indicator would frame the whole track. */
+#tabs:has(.skeleton)::before { display: none; }
 #tabs::before {
   content: "";
   position: absolute;
@@ -427,6 +440,17 @@ footer {
 }
 .exercise.done:has(.adjusting) { opacity: 1; }
 .exercise.done .name { text-decoration: line-through; color: var(--text-secondary); }
+
+/* Bones take the raised surface, like the counter and the photo they stand in for, so the skeleton
+   is the card with its content muted rather than a second design. Line bones use the inner radius
+   of the text they replace; blocks use the card's inner radius, concentric with the card. */
+.bone { display: block; background: var(--surface-raised); border-radius: 4px; }
+.bone-block { block-size: 64px; border-radius: var(--radius-card-inner); }
+.bone-text { display: grid; gap: 8px; align-content: center; }
+.bone-line { block-size: 14px; inline-size: 80%; }
+.bone-line.short { block-size: 12px; inline-size: 55%; }
+.bone-tab { block-size: 40px; border-radius: var(--radius-track-inner); background: var(--surface-raised); opacity: 0.6; }
+.skeleton .exercise { pointer-events: none; }
 
 /* Sets left are the big number; reps, the small line below. */
 .counter {
@@ -1119,6 +1143,30 @@ summary.history-summary { cursor: pointer; }
 /* The login error is text, not a box: the alert color already exists in the store notice. */
 #login-error { margin: 12px 0 0; color: var(--alert); font-size: 14px; }
 #login .actions, #circle .actions { margin-top: 16px; }
+
+/* The eye sits inside the password field, at the trailing end, and the field leaves room for it. The
+   field is 42px tall, so the pseudo-element stretches the hit area to the 44px target. */
+.field-with-action { position: relative; }
+.field-with-action .field { padding-inline-end: calc(var(--target) + 4px); }
+.field-action {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: grid;
+  place-items: center;
+  inline-size: var(--target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-panel-inner);
+  background: none;
+  color: var(--text-secondary);
+}
+.field-action::before { content: ""; position: absolute; inset: -2px 0; }
+.field-action[aria-pressed="true"] { color: var(--text); }
+.field-action svg { grid-area: 1 / 1; width: 22px; height: 22px; }
+.field-action .when-shown { opacity: 0; scale: 0.25; filter: blur(4px); }
+.field-action[aria-pressed="true"] .when-shown { opacity: 1; scale: 1; filter: blur(0); }
+.field-action[aria-pressed="true"] .when-hidden { opacity: 0; scale: 0.25; filter: blur(4px); }
 /* Fifth time in this trap: a display declared by the class beats hidden. */
 #circle-members[hidden] { display: none; }
 .circle-empty { margin: 0; color: var(--text-secondary); text-wrap: pretty; }

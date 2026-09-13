@@ -25,7 +25,7 @@
   </button>
 </header>
 
-<main>
+<main aria-busy="true">
   <p id="no-store" role="alert" hidden>Séries e fotos não serão salvas nesta sessão. O navegador bloqueia o banco de dados em página aberta como arquivo. Publique a pasta num endereço http ou https para gravar.</p>
 
   <section id="cycle" role="status" hidden>
@@ -35,7 +35,18 @@
 
   <!-- One panel per workout, side by side. The browser drags, through scroll snap: the content follows
        the finger, returns by itself when the gesture stops short of halfway, and says where it stopped. -->
-  <div id="carousel"></div>
+  <!-- Skeleton until the store answers: same card geometry, so the real list lands in place instead of
+       popping into an empty screen. The first render replaces it wholesale. -->
+  <div id="carousel">
+    <section class="panel skeleton" aria-hidden="true">
+      <ul class="list">
+        <li class="exercise"><span class="bone bone-block"></span><span class="bone-text"><span class="bone bone-line"></span><span class="bone bone-line short"></span></span><span class="bone bone-block"></span></li>
+        <li class="exercise"><span class="bone bone-block"></span><span class="bone-text"><span class="bone bone-line"></span><span class="bone bone-line short"></span></span><span class="bone bone-block"></span></li>
+        <li class="exercise"><span class="bone bone-block"></span><span class="bone-text"><span class="bone bone-line"></span><span class="bone bone-line short"></span></span><span class="bone bone-block"></span></li>
+      </ul>
+    </section>
+    <p class="visually-hidden skeleton">Carregando o treino.</p>
+  </div>
 </main>
 
 <!-- Both rows sit in the footer, within thumb reach: mid-workout the phone is in one hand. The top
@@ -43,7 +54,9 @@
 <footer>
   <!-- The drawer handle: pulling the footer up opens the history. Drawing only; the gesture belongs to the footer. -->
   <div class="handle" aria-hidden="true"></div>
-  <nav id="tabs" role="tablist" aria-label="Treinos"></nav>
+  <nav id="tabs" role="tablist" aria-label="Treinos">
+    <span class="bone bone-tab skeleton" aria-hidden="true"></span><span class="bone bone-tab skeleton" aria-hidden="true"></span><span class="bone bone-tab skeleton" aria-hidden="true"></span>
+  </nav>
   <!-- Born hidden: only the admin sees it, and that is only known once Firebase answers who signed in. -->
   <fieldset id="profiles" hidden>
     <legend class="visually-hidden">Quem está treinando</legend>
@@ -95,7 +108,14 @@
     <label for="login-username" class="label">Usuário</label>
     <input id="login-username" class="field" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" enterkeyhint="next" required>
     <label for="login-password" class="label">Senha</label>
-    <input id="login-password" class="field" type="password" autocomplete="current-password" enterkeyhint="go" required>
+    <div class="field-with-action">
+      <input id="login-password" class="field" type="password" autocomplete="current-password" enterkeyhint="go" required>
+      <!-- Both icons stay in the DOM and cross-fade; the button label follows the state. -->
+      <button type="button" class="field-action" id="login-reveal" aria-label="Mostrar senha" aria-pressed="false">
+        <svg class="when-hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="when-shown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6.5C5.3 4.8 8 3.5 12 3.5c6 0 9.5 6.5 9.5 6.5s-1 1.9-2.9 3.7"/><path d="M14.1 14.1a3 3 0 0 1-4.2-4.2"/><path d="M6.6 8.6C4 10.3 2.5 12.5 2.5 12.5s3.5 6.5 9.5 6.5c1.5 0 2.9-.4 4.1-1"/><path d="M4 4l16 16"/></svg>
+      </button>
+    </div>
     <p id="login-error" role="alert" hidden></p>
     <div class="actions">
       <button type="button" class="secondary" id="login-cancel">Cancelar</button>
