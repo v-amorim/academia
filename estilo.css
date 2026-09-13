@@ -911,7 +911,6 @@ dialog:focus-visible { outline: none; }
   /* 16px, senão o Safari do iPhone dá zoom na página ao focar. */
   font-size: 16px;
 }
-#historico-busca::placeholder { color: var(--texto-secundario); }
 
 #historico-lista, #ficha-lista { overflow-y: auto; display: grid; gap: 8px; }
 /* Não gruda no topo: dentro de um diálogo que rola por dentro, o Chrome do celular às vezes perde
@@ -1117,8 +1116,10 @@ summary.historico-resumo { cursor: pointer; }
   field-sizing: content;
   min-height: calc(2 * 1.4em + 20px);
 }
-#observacao::placeholder { color: var(--texto-secundario); }
 .campo { min-height: 0; margin-bottom: 0; }
+/* Placeholder é exemplo, não valor: mais apagado que o texto de apoio, senão lê como preenchido.
+   O "Ex:" na frente é o segundo aviso, para quem não distingue os dois tons. */
+::placeholder { color: color-mix(in oklab, var(--texto-secundario) 60%, transparent); opacity: 1; }
 /* O erro de login é texto, não caixa: a cor de alerta já existe no aviso de banco. */
 #login-erro { margin: 12px 0 0; color: var(--alerta); font-size: 14px; }
 #login .acoes, #circulo .acoes { margin-top: 16px; }
@@ -1178,4 +1179,46 @@ summary.historico-resumo { cursor: pointer; }
 }
 .grupos-escolha label:has(:checked) { color: var(--texto); box-shadow: 0 0 0 1px var(--anel-forte); }
 .grupos-escolha label:has(:focus-visible) { outline: 2px solid var(--foco); outline-offset: 2px; }
+
+/* O acessório: uma grade de opções com o ícone em cima e o nome embaixo, rádio escondido. A
+   escolhida ganha o anel forte e o texto cheio, como o grupo muscular. */
+.acessorios-escolha {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.acessorios-escolha label {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: var(--raio-interno-carta);
+  background: var(--superficie-alta);
+  color: var(--texto-secundario);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+.acessorios-escolha svg { width: 42px; height: 28px; color: var(--texto-unidade); }
+.acessorios-escolha label:has(:checked) { color: var(--texto); box-shadow: 0 0 0 1px var(--anel-forte); }
+.acessorios-escolha label:has(:focus-visible) { outline: 2px solid var(--foco); outline-offset: 2px; }
+/* No cartão só o ícone, num selo próprio na linha dos músculos, grande o bastante para se achar
+   de pé; no visor, ícone e nome dentro do chip. */
+.acessorio-selo {
+  display: inline-grid;
+  place-items: center;
+  height: 22px;
+  padding-inline: 5px;
+  margin-inline-start: 2px;
+  vertical-align: -6px;
+  border-radius: 999px;
+  background: var(--superficie-alta);
+  box-shadow: 0 0 0 1px var(--anel);
+}
+.acessorio-selo svg { width: 30px; height: 20px; color: var(--texto-unidade); }
+.valor-acessorio { display: inline-flex; align-items: center; gap: 4px; }
+.valor-acessorio svg { width: 21px; height: 14px; }
 #novo-unidade[hidden], #novo-unidade-rotulo[hidden] { display: none; }

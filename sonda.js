@@ -818,6 +818,12 @@ const Sonda = (function () {
       deCorpo < 0 || !cartoes()[deCorpo].querySelector(".carga-valor"),
       cartoes()[deCorpo]?.querySelector(".carga-valor")?.textContent);
 
+    // O exemplo mostra o acessório de fábrica: é o que um visitante vê sem editar nada.
+    const comAcessorio = doExemplo[letrasDoExemplo[0]].findIndex((exercicio) => exercicio.acessorio);
+    confere("o exemplo traz exercício com acessório, e o cartão mostra o ícone",
+      comAcessorio >= 0 && Boolean(cartoes()[comAcessorio].querySelector(".acessorio-selo svg")),
+      doExemplo[letrasDoExemplo[0]][comAcessorio]?.acessorio);
+
     // A esteira: tocar faz, segurar abre a fita de minutos, como no contador de séries.
     const daEsteira = doExemplo[letrasDoExemplo[0]].findIndex((exercicio) => exercicio.tipo === "tempo");
     if (daEsteira >= 0) {
@@ -1233,6 +1239,37 @@ const Sonda = (function () {
     confere("editar não mexe no que o formulário não tem", depoisDaEdicao?.equipamento === editado.equipamento
       && depoisDaEdicao.letra === editado.letra && depoisDaEdicao.ordem === editado.ordem);
     confere("a lista continua do mesmo tamanho depois de editar", cartoes().length === DO_PRIMEIRO - 1, cartoes().length);
+
+    // O acessório: escolhido no mesmo formulário, vira ícone no cartão e chip com nome no visor.
+    acoesDo(cartoes()[0]).find((b) => b.dataset.acao === "editar").click();
+    await respira(200);
+    const opcoes = [...document.querySelectorAll('#novo-acessorio input[name="novo-acessorio"]')];
+    confere("o formulário oferece nenhum mais os acessórios, cada um com ícone",
+      opcoes[0].value === "" && opcoes[0].checked && opcoes.length === 1 + Object.keys(ACESSORIOS).length
+        && opcoes.slice(1).every((radio) => radio.parentElement.querySelector("svg")),
+      opcoes.length);
+    document.querySelector('#novo-acessorio input[value="corda"]').click();
+    formularioNovo.querySelector('[value="criar"]').click();
+    await respira(500);
+    const comCorda = (await Banco.listarExercicios(PRIMEIRA, "sun")).find((e) => e.id === editado.id);
+    confere("o acessório é gravado no exercício", comCorda?.acessorio === "corda", comCorda?.acessorio);
+    confere("o cartão mostra o ícone do acessório na linha dos músculos",
+      Boolean(cartoes()[0].querySelector(".grupos .acessorio-selo svg")) && cartoes()[0].querySelector(".descricao").getAttribute("aria-label").includes("Com corda"));
+    cartoes()[0].querySelector(".foto").click();
+    await respira(300);
+    confere("o visor mostra o acessório com nome e ícone",
+      document.querySelector("#visor-meta .valor-acessorio")?.textContent === "Corda" && document.querySelector("#visor-meta .valor-acessorio svg") !== null,
+      document.querySelector("#visor-meta .valor-acessorio")?.textContent);
+    document.getElementById("visor").close();
+    await respira(200);
+    acoesDo(cartoes()[0]).find((b) => b.dataset.acao === "editar").click();
+    await respira(200);
+    confere("editar de novo abre com o acessório marcado", document.querySelector('#novo-acessorio input[value="corda"]').checked);
+    document.querySelector('#novo-acessorio input[value=""]').click();
+    formularioNovo.querySelector('[value="criar"]').click();
+    await respira(500);
+    confere("nenhum limpa o acessório e tira o ícone do cartão",
+      (await Banco.listarExercicios(PRIMEIRA, "sun")).find((e) => e.id === editado.id)?.acessorio == null && !cartoes()[0].querySelector(".acessorio-selo"));
 
     // Tirar um exercício: sai da lista e fica no histórico.
     const tirado = cartoes()[0].querySelector(".nome").textContent;

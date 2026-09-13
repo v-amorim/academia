@@ -806,6 +806,15 @@ const Banco = (function () {
     gravar(perfil, "exercicios", exId, { ...anterior, ...dados });
   }
 
+  // Preenche um campo que o exercício gravado ainda não tem, e só esse caso: o seed não passa por
+  // cima de edição, então campo novo na ficha precisa deste caminho para chegar a quem já abriu.
+  async function completarCampo(perfil, exId, campo, valor) {
+    if (semMotor(perfil)) return;
+    const anterior = await pegar(perfil, "exercicios", exId);
+    if (!anterior || anterior[campo] !== undefined) return;
+    gravar(perfil, "exercicios", exId, { ...anterior, [campo]: valor });
+  }
+
   // Safari lança ao tocar em localStorage numa origem opaca, e o Chrome não. Daí o try.
   function lerPreferencia(chave) {
     try {
@@ -834,7 +843,7 @@ const Banco = (function () {
     lerCiclo, iniciarCiclo, letrasConcluidas,
     lerCirculo, criarCirculo, entrarNoCirculo, sairDoCirculo, lerMembros,
     chaveDaFoto, lerFotos, salvarFoto, apagarFoto, migrarChavesDeFoto, sincronizarFotos,
-    salvarObservacao, salvarRepeticoes, editarExercicio,
+    salvarObservacao, salvarRepeticoes, editarExercicio, completarCampo,
     lerPreferencia, gravarPreferencia
   };
 })();

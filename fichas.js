@@ -74,7 +74,7 @@ const TREINOS_SHINE = {
 // remover exercício sem apagar o que foi levantado.
 const TREINOS_EXEMPLO = {
   A: [
-    { id: "e0000001-0000-4000-8000-000000000001", nome: "Puxada frontal no cabo", aparelho: "4", series: 3, reps: 12, cod: 541, grupos: ["costas"] },
+    { id: "e0000001-0000-4000-8000-000000000001", nome: "Puxada frontal no cabo", aparelho: "4", series: 3, reps: 12, cod: 541, grupos: ["costas"], acessorio: "barra-curva-longa" },
     { id: "e0000002-0000-4000-8000-000000000002", nome: "Supino plano articulado", aparelho: "47", series: 3, reps: 12, cod: 1113, grupos: ["peito", "triceps"] },
     { id: "e0000003-0000-4000-8000-000000000003", nome: "Flexão de braço", tipo: "corpo", series: 3, reps: 12, aparelho: "livre", cod: 0, grupos: ["peito", "triceps"] },
     { id: "e0000004-0000-4000-8000-000000000004", nome: "Esteira", tipo: "tempo", unidade: "km/h", series: 1, reps: null, aparelho: "livre", cod: 0, grupos: ["quadriceps", "panturrilha"] }
@@ -88,13 +88,13 @@ const TREINOS_EXEMPLO = {
   // sem nada e parece que o app quebrou.
   C: [
     { id: "e0000010-0000-4000-8000-000000000010", nome: "Desenvolvimento aberto", aparelho: "18", series: 3, reps: 12, cod: 579, grupos: ["ombro", "triceps"] },
-    { id: "e0000011-0000-4000-8000-000000000011", nome: "Rosca direta com halteres", aparelho: "em pé", series: 3, reps: 12, cod: 101, grupos: ["biceps"] },
+    { id: "e0000011-0000-4000-8000-000000000011", nome: "Rosca direta com halteres", aparelho: "em pé", series: 3, reps: 12, cod: 101, grupos: ["biceps"], acessorio: "halter" },
     { id: "e0000012-0000-4000-8000-000000000012", nome: "Elevação de pernas na barra", tipo: "corpo", series: 3, reps: 10, aparelho: "livre", cod: 0, grupos: ["quadriceps"] }
   ]
 };
 
 const ARQUIVADOS_EXEMPLO = [
-  { id: "e0000008-0000-4000-8000-000000000008", nome: "Remada curvada com barra", aparelho: "livre", series: 3, reps: 10, cod: 0, grupos: ["costas", "biceps"], letra: "A", arquivado: true },
+  { id: "e0000008-0000-4000-8000-000000000008", nome: "Remada curvada com barra", aparelho: "livre", series: 3, reps: 10, cod: 0, grupos: ["costas", "biceps"], acessorio: "barra-livre", letra: "A", arquivado: true },
   { id: "e0000009-0000-4000-8000-000000000009", nome: "Elíptico", tipo: "tempo", unidade: "nível", series: 1, reps: null, aparelho: "livre", cod: 0, grupos: ["quadriceps"], letra: "B", arquivado: true }
 ];
 

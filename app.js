@@ -25,6 +25,51 @@ const ICONE_EDITAR = fino(`<path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2
 const ICONE_MOVER = fino(`<path d="M13 5h5.5A1.5 1.5 0 0 1 20 6.5v11a1.5 1.5 0 0 1-1.5 1.5H13"/><path d="M3 12h11"/><path d="m10 8 4 4-4 4"/>`);
 const ICONE_ARQUIVAR = fino(`<path d="M3 5.5A1.5 1.5 0 0 1 4.5 4h15A1.5 1.5 0 0 1 21 5.5V8H3Z"/><path d="M4 8v10.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V8"/><path d="M12 11v6"/><path d="m9 14 3 3 3-3"/>`);
 
+// Os acessórios, desenhados com o Vinicius em 2026-09-13 a partir das fotos da academia dele. Os
+// de polia pendem do mesmo gancho, olhal e haste, e embaixo vai só a silhueta em uma linha. Fio de
+// nylon e corda são tracejados; pegada anatômica é gota cheia. Os livres não têm gancho. O campo
+// `acessorio` do exercício guarda a chave; vazio quer dizer nenhum.
+const GANCHO_DA_POLIA = `<circle cx="24" cy="4.5" r="2.5"/><path d="M24 7v4"/>`;
+const FIO = `stroke-dasharray="2 1.5"`;
+const bolaCheia = (x, y) => `<circle cx="${x}" cy="${y}" r="2.5" fill="currentColor" stroke="none"/>`;
+const gotaCheia = (x, y, lado) => `<ellipse cx="${x}" cy="${y}" rx="1.9" ry="3" transform="rotate(${lado * 28} ${x} ${y})" fill="currentColor" stroke="none"/>`;
+const magGrip = (meia, altura, plana, sobe) => {
+  const x = 24 - meia;
+  const y = 11 + altura;
+  return `<path d="M24 11L${x} ${y}h-${plana}v-${sobe}M24 11L${48 - x} ${y}h${plana}v-${sobe}"/>`
+    + gotaCheia(x - plana, y - sobe - 2, -1) + gotaCheia(48 - x + plana, y - sobe - 2, 1);
+};
+const ANILHAS_DA_BARRA = `<rect x="9" y="8" width="5" height="16" rx="1.5"/><rect x="34" y="8" width="5" height="16" rx="1.5"/><path d="M15.5 13v6M32.5 13v6"/>`;
+const ACESSORIOS = {
+  "barra-reta-curta": { nome: "Barra reta curta", polia: true, desenho: `<path d="M14 11h20"/>` },
+  "barra-reta-longa": { nome: "Barra reta longa", polia: true, desenho: `<path d="M3 11h42"/>` },
+  "barra-curva-longa": { nome: "Barra curva longa", polia: true, desenho: `<path d="M3 18l7-7h28l7 7"/>` },
+  "barra-w": { nome: "Barra W", polia: true, desenho: `<path d="M3 11l8 6 8-6h10l8 6 8-6"/>` },
+  "barra-v": { nome: "Barra V", polia: true, desenho: `<path d="M24 11l-9 12M24 11l9 12"/><path d="M15 23h-6M33 23h6" stroke-width="3"/>` },
+  "corda": { nome: "Corda", polia: true, desenho: `<path d="M24 11c-9 3-12 8-12 13M24 11c9 3 12 8 12 13" ${FIO}/>${bolaCheia(12, 26.5)}${bolaCheia(36, 26.5)}` },
+  "estribo-ferro": { nome: "Estribo de ferro", polia: true, desenho: `<path d="M13 26v-4a11 11 0 0 1 22 0v4"/><path d="M11 26h26" stroke-width="3"/>` },
+  "estribo-nylon": { nome: "Estribo de nylon", polia: true, desenho: `<path d="M24 11l-10 15M24 11l10 15" ${FIO}/><path d="M12 26h24" stroke-width="3"/>` },
+  "romano": { nome: "Puxador romano", polia: true, desenho: `<path d="M17 11h14"/><rect x="3" y="7.5" width="14" height="7" rx="1"/><rect x="31" y="7.5" width="14" height="7" rx="1"/><path d="M8 7.5v7M12 7.5v7M36 7.5v7M40 7.5v7" stroke-width="1"/>` },
+  "triangulo": { nome: "Triângulo", polia: true, desenho: `<path d="M24 11l-11 12M24 11l11 12"/>${bolaCheia(13, 23)}${bolaCheia(35, 23)}` },
+  "mag-fechada-neutra": { nome: "Mag grip fechada neutra", polia: true, desenho: magGrip(5, 6, 3, 5) },
+  "mag-fechada-pronada": { nome: "Mag grip fechada pronada", polia: true, desenho: magGrip(7, 5, 4, 4) },
+  "mag-media": { nome: "Mag grip média", polia: true, desenho: magGrip(10, 7, 5, 4) },
+  "mag-larga": { nome: "Mag grip larga", polia: true, desenho: magGrip(13, 8, 6, 4) },
+  "mag-extra-larga": { nome: "Mag grip extra larga", polia: true, desenho: magGrip(16, 9, 6, 4) },
+  "tornozeleira": { nome: "Tornozeleira", polia: true, desenho: `<path d="M24 11l-9 11M24 11l9 11" ${FIO}/><path d="M15 22q9 8 18 0" stroke-width="3"/>` },
+  "halter": { nome: "Halter", polia: false, desenho: `<path d="M17 16h14"/><rect x="9" y="10" width="7" height="12" rx="1.5"/><rect x="32" y="10" width="7" height="12" rx="1.5"/><path d="M6 13v6M42 13v6"/>` },
+  "barra-livre": { nome: "Barra livre", polia: false, desenho: `<path d="M3 16h6M14 16h20M39 16h6"/>${ANILHAS_DA_BARRA}` },
+  "barra-w-livre": { nome: "Barra W livre", polia: false, desenho: `<path d="M3 16h6M39 16h6"/><path d="M14 16h3l3.5-4 3.5 4 3.5-4 3.5 4h3"/>${ANILHAS_DA_BARRA}` },
+  "kettlebell": { nome: "Kettlebell", polia: false, desenho: `<path d="M18 13a6 6 0 0 1 12 0"/><circle cx="24" cy="20" r="8"/>` },
+  "anilha": { nome: "Anilha", polia: false, desenho: `<circle cx="24" cy="16" r="11"/><circle cx="24" cy="16" r="3"/>` }
+};
+const svgDoAcessorio = (chave) => {
+  const acessorio = ACESSORIOS[chave];
+  if (!acessorio) return "";
+  return `<svg viewBox="0 0 48 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${acessorio.polia ? GANCHO_DA_POLIA : ""}${acessorio.desenho}</svg>`;
+};
+const nomeDoAcessorio = (chave) => ACESSORIOS[chave]?.nome ?? "";
+
 // O dado guarda o valor cru, minúsculo e sem acento; a tela mostra a palavra como um nativo
 // escreve, com diacrítico completo e maiúscula inicial.
 const NOME_DO_GRUPO = {
@@ -104,6 +149,11 @@ async function seedPerfil(perfil) {
   if (perfil === "example") {
     await Banco.seed(TREINOS_EXEMPLO, DONO_DO_EXEMPLO, ARQUIVADOS_EXEMPLO);
     await Banco.seedHistorico("example", TREINOS_EXEMPLO, ARQUIVADOS_EXEMPLO);
+    // O exemplo é vitrine, não ficha de gente: campo novo na ficha chega a quem já o abriu, sem
+    // esperar um catálogo novo. Só completa o que ainda não existe no gravado.
+    for (const exercicio of [...Object.values(TREINOS_EXEMPLO).flat(), ...ARQUIVADOS_EXEMPLO]) {
+      if (exercicio.acessorio) await Banco.completarCampo("example", exercicio.id, "acessorio", exercicio.acessorio);
+    }
   } else {
     await Banco.seed(catalogoDe(perfil), [perfil]);
   }
@@ -674,6 +724,14 @@ function criarCartao(exercicio, posicao) {
   const grupos = document.createElement("div");
   grupos.className = "grupos";
   grupos.textContent = etiquetasDe(exercicio);
+  // O acessório vai no fim da linha dos músculos, só o ícone: o nome dele mora no visor.
+  if (exercicio.acessorio && ACESSORIOS[exercicio.acessorio]) {
+    const selo = document.createElement("span");
+    selo.className = "acessorio-selo";
+    selo.title = nomeDoAcessorio(exercicio.acessorio);
+    selo.innerHTML = svgDoAcessorio(exercicio.acessorio);
+    grupos.append(" ", selo);
+  }
 
   meio.append(nome, grupos);
 
@@ -681,6 +739,7 @@ function criarCartao(exercicio, posicao) {
   // só cor, porque cor sozinha não carrega significado neste app.
   const juntos = compartilhados.get(exercicio.cod) ?? [];
   meio.setAttribute("aria-label", `${exercicio.nome}. ${etiquetasDe(exercicio)}.`
+    + (exercicio.acessorio && ACESSORIOS[exercicio.acessorio] ? ` Com ${nomeDoAcessorio(exercicio.acessorio).toLowerCase()}.` : "")
     + (juntos.length > 0 ? ` Também no treino de ${juntos.map((outro) => outro.nome).join(" e ")}.` : "")
     + " Tocar baixa uma série. Segurar, ou a tecla de menu, abre o menu do exercício.");
   if (juntos.length > 0) {
@@ -1217,6 +1276,12 @@ function montarMeta(exercicio) {
     partes.push(valorEmChip(valor.trim()));
   });
   partes.push(document.createTextNode(" · Vídeo "), valorEmChip(exercicio.cod));
+  if (exercicio.acessorio && ACESSORIOS[exercicio.acessorio]) {
+    const chip = valorEmChip(nomeDoAcessorio(exercicio.acessorio));
+    chip.classList.add("valor-acessorio");
+    chip.insertAdjacentHTML("afterbegin", svgDoAcessorio(exercicio.acessorio));
+    partes.push(document.createTextNode(" · "), chip);
+  }
   visorMeta.replaceChildren(...partes);
 }
 
@@ -1811,6 +1876,23 @@ gruposDoNovo.append(...Object.entries(NOME_DO_GRUPO).map(([valor, nome]) => {
   rotuloDoGrupo.append(caixa, nome);
   return rotuloDoGrupo;
 }));
+// O acessório: "Nenhum" primeiro e marcado, depois os de polia e os livres, cada um com o ícone e
+// o nome. Rádio, porque um exercício usa um acessório só.
+const acessorioDoNovo = document.getElementById("novo-acessorio");
+acessorioDoNovo.append(...[["", { nome: "Nenhum" }], ...Object.entries(ACESSORIOS)].map(([chave, acessorio]) => {
+  const rotuloDoAcessorio = document.createElement("label");
+  const radio = document.createElement("input");
+  radio.type = "radio";
+  radio.name = "novo-acessorio";
+  radio.value = chave;
+  radio.className = "oculto-visual";
+  radio.defaultChecked = chave === "";
+  rotuloDoAcessorio.innerHTML = svgDoAcessorio(chave);
+  rotuloDoAcessorio.prepend(radio);
+  rotuloDoAcessorio.append(acessorio.nome);
+  return rotuloDoAcessorio;
+}));
+const acessorioEscolhido = () => dialogoNovoExercicio.querySelector('input[name="novo-acessorio"]:checked')?.value ?? "";
 const tipoDoNovo = () => dialogoNovoExercicio.querySelector('input[name="novo-tipo"]:checked').value;
 for (const radio of dialogoNovoExercicio.querySelectorAll('input[name="novo-tipo"]')) {
   radio.onchange = () => {
@@ -1877,6 +1959,8 @@ function preencherNovoCom(exercicio) {
   tipo.dispatchEvent(new Event("change"));
   document.getElementById("novo-unidade").value = exercicio.unidade ?? "";
   for (const caixa of gruposDoNovo.querySelectorAll("input")) caixa.checked = (exercicio.grupos ?? []).includes(caixa.value);
+  const acessorio = acessorioDoNovo.querySelector(`input[value="${exercicio.acessorio ?? ""}"]`) ?? acessorioDoNovo.querySelector('input[value=""]');
+  acessorio.checked = true;
   parecidosDoNovo.hidden = true;
 }
 
@@ -1938,7 +2022,8 @@ dialogoNovoExercicio.addEventListener("close", async () => {
     series: tipo === "tempo" ? 1 : numero("novo-series", 3),
     reps: tipo === "tempo" ? null : numero("novo-reps", 12),
     cod: numero("novo-cod", 0),
-    grupos: [...gruposDoNovo.querySelectorAll("input:checked")].map((caixa) => caixa.value)
+    grupos: [...gruposDoNovo.querySelectorAll("input:checked")].map((caixa) => caixa.value),
+    acessorio: acessorioEscolhido() || null
   };
   if (tipo) dados.tipo = tipo;
   if (tipo === "tempo") dados.unidade = valor("novo-unidade") || "km/h";

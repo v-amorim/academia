@@ -66,7 +66,7 @@
   <label for="repeticoes" class="rotulo" id="repeticoes-rotulo">Repetições por série</label>
   <input id="repeticoes" class="campo" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done">
   <label for="observacao" class="rotulo">Observação</label>
-  <textarea id="observacao" rows="2" placeholder="Banco 4, pino 7" autocomplete="off" enterkeyhint="done"></textarea>
+  <textarea id="observacao" rows="2" placeholder="Ex: banco 4, pino 7" autocomplete="off" enterkeyhint="done"></textarea>
   <!-- As ações de foto moram sobre a própria foto, e aparecem ao tocar nela: ver desenharVisor.
        Resetar saiu daqui para o menu do exercício, o de segurar no cartão. -->
   <button type="button" class="secundario largo" id="visor-fechar">Fechar</button>
@@ -110,7 +110,7 @@
     <button type="button" class="secundario" id="historico-fechar">Fechar</button>
   </div>
   <label for="historico-busca" class="oculto-visual">Buscar por exercício ou grupo</label>
-  <input id="historico-busca" type="search" placeholder="Puxada, costas, bíceps" autocomplete="off" enterkeyhint="search">
+  <input id="historico-busca" type="search" placeholder="Ex: puxada, costas, bíceps" autocomplete="off" enterkeyhint="search">
   <!-- Duas vistas: o que está no treino, e o que saiu dele (tirado no editor ou de treino que não
        existe mais). O peso levantado continua contando nas duas. -->
   <div id="historico-vista" class="trilho-escolha" role="radiogroup" aria-label="O que mostrar">
@@ -256,7 +256,7 @@
     <div class="dois-campos">
       <div>
         <label for="novo-aparelho" class="rotulo">Aparelho</label>
-        <input id="novo-aparelho" class="campo" type="text" maxlength="12" autocomplete="off" placeholder="47, em pé">
+        <input id="novo-aparelho" class="campo" type="text" maxlength="12" autocomplete="off" placeholder="Ex: 47, em pé">
       </div>
       <div>
         <label for="novo-cod" class="rotulo">Vídeo</label>
@@ -280,9 +280,11 @@
       <label><input type="radio" name="novo-tipo" value="tempo" class="oculto-visual">Aeróbico</label>
     </div>
     <label for="novo-unidade" class="rotulo" id="novo-unidade-rotulo" hidden>Unidade da intensidade</label>
-    <input id="novo-unidade" class="campo" type="text" maxlength="8" autocomplete="off" placeholder="km/h, nível" hidden>
+    <input id="novo-unidade" class="campo" type="text" maxlength="8" autocomplete="off" placeholder="Ex: km/h, nível" hidden>
     <p class="rotulo" id="novo-grupos-rotulo">Músculos</p>
     <div id="novo-grupos" class="grupos-escolha" role="group" aria-labelledby="novo-grupos-rotulo"></div>
+    <p class="rotulo" id="novo-acessorio-rotulo">Acessório da polia</p>
+    <div id="novo-acessorio" class="acessorios-escolha" role="radiogroup" aria-labelledby="novo-acessorio-rotulo"></div>
     <div class="acoes">
       <button type="submit" class="secundario" value="cancelar" formnovalidate>Cancelar</button>
       <button type="submit" class="primario" value="criar">Adicionar</button>
