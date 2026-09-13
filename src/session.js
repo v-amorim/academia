@@ -179,6 +179,12 @@ for (const box of document.querySelectorAll("dialog")) {
 }
 
 (async () => {
+  // The skeleton has no text, so nothing asks for Mulish until the list mounts, and the list would
+  // mount in the fallback font and reflow when Mulish arrives: long names gain lines, the list grows,
+  // and Android Chrome keeps the panel's old scroll extent until something forces a recomposition.
+  // Loading the face first makes the first layout the final one. Capped, so a missing font
+  // (file://) or a slow signal does not hold the screen.
+  const fontReady = document.fonts?.load("600 16px Mulish").catch(() => []);
   const hasStore = await Store.open(adoptStore);
 
   document.getElementById("no-store").hidden = hasStore;
@@ -188,6 +194,7 @@ for (const box of document.querySelectorAll("dialog")) {
   // silently on file://, which has no secure origin, and that is expected: opened as a file the app
   // runs without saving anything, service worker included.
   navigator.serviceWorker?.register("sw.js").catch(() => { /* no secure origin */ });
+  await Promise.race([fontReady, new Promise((done) => setTimeout(done, 1500))]);
   // The screen only mounts after Firebase said who is signed in. Signing in and out go through the
   // same path: each user change remounts the screen for the right profile.
   await new Promise((ready) => Store.onUserChange((uid) => ready(applyUser(uid))));
