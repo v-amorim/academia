@@ -64,6 +64,7 @@ const seletorDaCamera = document.getElementById("foto-camera");
 const visor = document.getElementById("visor");
 const visorTitulo = document.getElementById("visor-titulo");
 const visorMeta = document.getElementById("visor-meta");
+const visorCirculo = document.getElementById("visor-circulo");
 const visorQuadro = document.getElementById("visor-quadro");
 const observacao = document.getElementById("observacao");
 const repeticoes = document.getElementById("repeticoes");
@@ -125,6 +126,7 @@ async function aplicarUsuario(uid) {
 
   await seedPerfil(perfilAtivo);
   concluidas = await Banco.letrasConcluidas(perfilAtivo);
+  await carregarCirculo();
   await carregarTreinos();
   irPara(LETRAS.find((letra) => !letraFeita(letra)) ?? LETRAS[0], false);
   atualizarMenu();
@@ -649,8 +651,6 @@ function criarCartao(exercicio, posicao) {
     if (segurouNome()) return;
     abrirVisor(exercicio);
   };
-  meio.setAttribute("aria-label", `${exercicio.nome}. ${etiquetasDe(exercicio)}. Abrir detalhes e fotos.`);
-
   const nome = document.createElement("div");
   nome.className = "nome";
   nome.textContent = exercicio.nome;
@@ -660,6 +660,20 @@ function criarCartao(exercicio, posicao) {
   grupos.textContent = etiquetasDe(exercicio);
 
   meio.append(nome, grupos);
+
+  // Alguém do círculo faz o mesmo exercício: a inicial de quem, num selo no canto. Inicial e não
+  // só cor, porque cor sozinha não carrega significado neste app.
+  const juntos = compartilhados.get(exercicio.cod) ?? [];
+  meio.setAttribute("aria-label", `${exercicio.nome}. ${etiquetasDe(exercicio)}.`
+    + (juntos.length > 0 ? ` Também no treino de ${juntos.map((outro) => outro.nome).join(" e ")}.` : "")
+    + " Abrir detalhes e fotos.");
+  if (juntos.length > 0) {
+    const selo = document.createElement("span");
+    selo.className = "junto";
+    selo.setAttribute("aria-hidden", "true");
+    selo.textContent = juntos.map((outro) => outro.nome[0]).join("");
+    item.append(selo);
+  }
 
   const foto = document.createElement("button");
   foto.type = "button";
@@ -1146,6 +1160,12 @@ function desenharVisor() {
     ? `<button type="button" class="ampliar" aria-label="Ampliar a foto"><img src="${atual}" alt=""></button>`
     : `${ICONE_CAMERA}<span>Nenhuma foto ainda</span>`;
   if (atual) visorQuadro.querySelector(".ampliar").onclick = () => abrirTelaCheia(exercicio, VAGA_DA_MAQUINA);
+
+  const juntos = compartilhados.get(exercicio.cod) ?? [];
+  visorCirculo.hidden = juntos.length === 0;
+  visorCirculo.textContent = juntos
+    .map((outro) => `${outro.nome} faz ${outro.tipo === "tempo" ? "por tempo" : `${outro.series} × ${outro.reps}`} no treino ${outro.treino}.`)
+    .join(" ");
 
   visorApagar.hidden = !atual;
 }
@@ -1918,7 +1938,38 @@ const fichaVazio = document.getElementById("ficha-vazio");
 const temCirculo = () => Boolean(usuario) && usuario !== "admin";
 const perfilDoMembro = (uid) => `membro:${uid}`;
 
+// Código do vídeo -> quem do círculo faz o exercício, e como. O código é o que casa o mesmo
+// aparelho entre fichas diferentes, como já casa as fotos.
+const compartilhados = new Map();
+
+async function carregarCirculo() {
+  compartilhados.clear();
+  if (!temCirculo()) return;
+  const codigo = await Banco.lerCirculo(perfilAtivo);
+  if (codigo === null) return;
+  const outros = (await Banco.lerMembros(codigo)).filter((membro) => membro.uid !== CONTAS[usuario]);
+  for (const membro of outros) {
+    const perfil = perfilDoMembro(membro.uid);
+    await Banco.ligarNuvem(perfil, membro.uid);
+    for (const treino of await Banco.listarTreinos(perfil)) {
+      for (const exercicio of await Banco.listarExercicios(treino.id, perfil)) {
+        if (!(exercicio.cod > 0)) continue;
+        const lista = compartilhados.get(exercicio.cod) ?? [];
+        lista.push({ nome: membro.nome, treino: treino.nome, series: exercicio.series, reps: exercicio.reps, tipo: exercicio.tipo });
+        compartilhados.set(exercicio.cod, lista);
+      }
+    }
+  }
+}
+
+// Entrar, sair ou alguém novo no círculo muda os selos dos cartões: remonta a lista.
+async function atualizarCirculo() {
+  await carregarCirculo();
+  await carregarTreinos();
+}
+
 async function desenharCirculo() {
+  await atualizarCirculo();
   const codigo = await Banco.lerCirculo(perfilAtivo);
   circuloEntrar.hidden = codigo !== null;
   circuloSair.hidden = codigo === null;

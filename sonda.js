@@ -1241,6 +1241,34 @@ const Sonda = (function () {
     confere("cada outro membro vira um botão, e o próprio não", Boolean(botaoDaShine)
       && ![...document.querySelectorAll("#circulo-membros button")].some((b) => b.textContent.includes("Sun")));
 
+    // O selo no cartão: o Leg press tem o mesmo código de vídeo nas duas fichas, e ganha a
+    // inicial da Shine. Exercício que só o Sun faz não ganha nada.
+    const codigosDaShine = new Set(Object.values(TREINOS_SHINE).flat().map((e) => e.cod));
+    const emComum = Object.values(TREINOS).flat().find((e) => e.cod === 59);
+    const soDoSun = Object.values(TREINOS).flat().find((e) => e.cod > 0 && !codigosDaShine.has(e.cod));
+    const cartaoDe = (exercicio) => [...document.querySelectorAll(".exercicio")].find((c) => c.querySelector(".nome").textContent === exercicio.nome);
+    confere("exercício em comum ganha o selo com a inicial de quem mais faz", cartaoDe(emComum)?.querySelector(".junto")?.textContent === "S",
+      cartaoDe(emComum)?.querySelector(".junto")?.textContent);
+    confere("exercício que só o Sun faz não ganha selo", Boolean(soDoSun) && !cartaoDe(soDoSun)?.querySelector(".junto"), soDoSun?.nome);
+    confere("o selo é só desenho, o leitor de tela ouve o nome", cartaoDe(emComum)?.querySelector(".descricao").getAttribute("aria-label").includes("Também no treino de Shine"));
+
+    caixa.close();
+    cartaoDe(emComum).querySelector(".descricao").click();
+    await respira(300);
+    const daShineNoVisor = Object.values(TREINOS_SHINE).flat().find((e) => e.cod === 59);
+    confere("o visor diz quem mais faz e com quantas séries", document.getElementById("visor").open
+      && !document.getElementById("visor-circulo").hidden
+      && document.getElementById("visor-circulo").textContent.startsWith(`Shine faz ${daShineNoVisor.series} × ${daShineNoVisor.reps} no treino `),
+      document.getElementById("visor-circulo").textContent);
+    document.getElementById("visor").close();
+    cartaoDe(soDoSun).querySelector(".descricao").click();
+    await respira(300);
+    confere("sem ninguém em comum a linha do círculo some do visor", document.getElementById("visor-circulo").hidden);
+    document.getElementById("visor").close();
+    await abrirMenu();
+    menuCirculo.click();
+    await respira(300);
+
     botaoDaShine.click();
     await respira(400);
     const fichaAlheia = document.getElementById("ficha");

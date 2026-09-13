@@ -703,6 +703,36 @@ dialog p { margin: 0 0 16px; color: var(--texto-secundario); font-size: 15px; }
 .fita-valor.feito { font-size: 15px; }
 .fita-valor.escolhido { color: var(--texto); opacity: 1; }
 
+/* Alguém do círculo faz este exercício: a inicial de quem, num selo no canto do cartão. Sem azul,
+   porque o selo não clica, e com letra, porque cor sozinha não carrega significado. */
+.junto {
+  position: absolute;
+  top: -6px;
+  inset-inline-end: 10px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 5px;
+  border-radius: 999px;
+  background: var(--superficie-alta);
+  box-shadow: 0 0 0 1px var(--anel-forte);
+  color: var(--texto-unidade);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+/* A linha do círculo no visor: quem mais faz, e como. Texto de apoio, sem botão. */
+#visor-circulo {
+  margin-block: -6px 12px;
+  color: var(--texto-secundario);
+  font-size: 13px;
+  text-wrap: pretty;
+}
+#visor-circulo[hidden] { display: none; }
+
 /* O rótulo apaga e o valor vira chip. Destaque por forma e brilho, nunca por hue nova: o azul
    deste app quer dizer "clicável", e pintar número estático de azul manda tocar no que não toca. */
 #visor-meta {
