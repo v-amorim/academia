@@ -685,6 +685,28 @@ const Sonda = (function () {
       document.querySelectorAll(".historico-linha .historico-sem").length);
     document.getElementById("historico-fechar").click();
     await respira(250);
+
+    // A gaveta: puxar o rodapé para cima abre o histórico, e o clique que nasce do dedo soltando
+    // em cima de uma aba não troca de treino.
+    const rodape = document.querySelector("footer");
+    const abaAntes = document.querySelector('.aba[aria-selected="true"]').textContent;
+    const abaAlvo = [...document.querySelectorAll(".aba")].find((aba) => aba.getAttribute("aria-selected") !== "true");
+    confere("a alça da gaveta está acima das abas", getComputedStyle(document.querySelector(".alca")).display !== "none");
+    abaAlvo.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientY: 800 }));
+    abaAlvo.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientY: 780 }));
+    await respira();
+    confere("puxada curta não abre nada", !document.getElementById("historico").open);
+    abaAlvo.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientY: 740 }));
+    abaAlvo.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientY: 740 }));
+    abaAlvo.click();
+    await respira(300);
+    confere("puxar o rodapé para cima abre o histórico", document.getElementById("historico").open);
+    confere("o dedo que puxou não troca de treino ao soltar", document.querySelector('.aba[aria-selected="true"]').textContent === abaAntes);
+    document.getElementById("historico-fechar").click();
+    await respira(250);
+    abaAlvo.click();
+    await respira(300);
+    confere("a aba volta a funcionar no toque seguinte", document.querySelector('.aba[aria-selected="true"]').textContent === abaAlvo.textContent);
   }
 
   async function aAbaHistorico() {

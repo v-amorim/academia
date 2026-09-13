@@ -123,6 +123,19 @@ button {
     dialog[open] { opacity: 0; scale: 0.96; }
     dialog[open]::backdrop { background: transparent; }
   }
+
+  /* A gaveta do histórico não some nem encolhe: ela sobe de baixo, como o dedo que a puxou, e
+     desce ao fechar. Um pouco mais longa que os outros diálogos porque percorre a tela inteira. */
+  #historico {
+    opacity: 1;
+    scale: 1;
+    translate: 0 100%;
+    transition: translate 260ms var(--curva), display 260ms allow-discrete, overlay 260ms allow-discrete;
+  }
+  #historico[open] { translate: 0 0; transition-duration: 300ms; }
+  @starting-style {
+    #historico[open] { translate: 0 100%; }
+  }
 }
 
 @keyframes entrar {
@@ -237,9 +250,19 @@ footer {
   z-index: 10;
   display: grid;
   gap: 8px;
-  padding-block: 8px 12px;
+  padding-block: 6px 12px;
   padding-inline: 16px;
   background: var(--fundo);
+  /* O gesto de puxar para cima é do app: sem isto o navegador toma o arrasto e o pointermove para. */
+  touch-action: none;
+}
+/* A alça da gaveta: o traço curto de quem tem o que puxar, como nas folhas de baixo do celular. */
+.alca {
+  width: 36px;
+  height: 4px;
+  margin: 0 auto;
+  border-radius: 2px;
+  background: var(--anel-forte);
 }
 /* O trilho de treinos ocupa a largura; o de perfis é do tamanho dos dois nomes e fica centrado. */
 #perfis { justify-self: center; }
@@ -857,6 +880,17 @@ dialog:focus-visible { outline: none; }
   max-height: calc(100dvh - 48px);
   padding: 14px;
   overscroll-behavior: contain;
+}
+/* O histórico é a gaveta que o rodapé puxa, então ele é uma folha colada embaixo, de canto
+   redondo só em cima, e não um cartão no meio da tela. Entra e sai deslizando, no bloco de
+   movimento lá em cima. */
+#historico {
+  margin-block: auto 0;
+  width: min(560px, 100vw);
+  /* A folha do navegador limita o diálogo a 100% menos 2em; a gaveta quer a largura toda. */
+  max-width: none;
+  border-radius: var(--raio-painel) var(--raio-painel) 0 0;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
 }
 /* Só aberto: estilo de autor vence o display do navegador, e um flex solto deixaria o painel
    visível com o diálogo fechado. */

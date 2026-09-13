@@ -41,6 +41,8 @@
 <!-- As duas fileiras ficam no rodapé, ao alcance do polegar: no meio do treino o celular está numa
      mão só. O topo é da marca, que vira o menu de conta e histórico quando eles existirem. -->
 <footer>
+  <!-- A alça de gaveta: puxar o rodapé para cima abre o histórico. Só desenho; o gesto é do rodapé. -->
+  <div class="alca" aria-hidden="true"></div>
   <nav id="abas" role="tablist" aria-label="Treinos"></nav>
   <!-- Nasce escondido: só o admin o vê, e isso só se sabe quando o Firebase responde quem entrou. -->
   <fieldset id="perfis" hidden>
@@ -102,7 +104,7 @@
   </form>
 </dialog>
 
-<dialog id="historico" aria-labelledby="historico-titulo">
+<dialog id="historico" aria-labelledby="historico-titulo" tabindex="-1">
   <div class="historico-topo">
     <h2 id="historico-titulo">Histórico</h2>
     <button type="button" class="secundario" id="historico-fechar">Fechar</button>

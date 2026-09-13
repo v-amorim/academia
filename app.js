@@ -1481,6 +1481,8 @@ async function abrirHistorico() {
   buscaDoHistorico.value = "";
   desenharHistorico();
   painelDoHistorico.showModal();
+  // Como no visor: o foco fica na folha, e não no primeiro botão, que ganharia um anel sem pedir.
+  painelDoHistorico.focus();
 }
 
 function filtrarHistorico() {
@@ -1988,6 +1990,28 @@ document.getElementById("menu-historico").onclick = () => {
   menu.close();
   abrirHistorico();
 };
+
+// Puxar o rodapé para cima também abre o histórico, como uma gaveta: a alça acima das abas é o
+// aviso. Dedo que anda menos que isso é toque na aba, e dedo que desce não é nada.
+const PUXADA_DA_GAVETA = 40;
+const rodape = document.querySelector("footer");
+let puxada = null;
+rodape.addEventListener("pointerdown", (evento) => { puxada = { y: evento.clientY, abriu: false }; });
+rodape.addEventListener("pointermove", (evento) => {
+  if (!puxada || puxada.abriu || puxada.y - evento.clientY < PUXADA_DA_GAVETA) return;
+  puxada.abriu = true;
+  abrirHistorico();
+});
+// O dedo que puxou solta em cima de uma aba, e o clique que nasce daí não pode trocar de treino.
+rodape.addEventListener("click", (evento) => {
+  if (!puxada?.abriu) return;
+  evento.stopPropagation();
+  evento.preventDefault();
+  puxada = null;
+}, { capture: true });
+for (const nome of ["pointerup", "pointercancel"]) {
+  rodape.addEventListener(nome, () => { if (!puxada?.abriu) puxada = null; });
+}
 
 // Círculo: quem divide o código vê a ficha do outro, só leitura. Só para quem tem branch próprio:
 // o visitante não tem com quem dividir, e o admin não é membro de nada, ele já vê todos.
