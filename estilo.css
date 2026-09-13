@@ -892,6 +892,8 @@ dialog:focus-visible { outline: none; }
   border-radius: var(--raio-painel) var(--raio-painel) 0 0;
   padding-bottom: calc(14px + env(safe-area-inset-bottom));
 }
+/* O trilho das duas vistas vive no flex do histórico, que já espaça: sem a margem do trilho solto. */
+#historico .trilho-escolha { margin-bottom: 0; }
 /* Só aberto: estilo de autor vence o display do navegador, e um flex solto deixaria o painel
    visível com o diálogo fechado. */
 #historico[open], #ficha[open] { display: flex; flex-direction: column; gap: 10px; }
@@ -1130,28 +1132,20 @@ summary.historico-resumo { cursor: pointer; }
 #edicao button { padding-inline: 12px; white-space: nowrap; }
 #edicao[hidden] { display: none; }
 .editando #perfis { display: none; }
+/* Cinco ícones redondos, os mesmos das ações da foto, espalhados na largura do cartão. As setas
+   ficam juntas à esquerda, e o resto à direita: mover na lista e mexer no exercício são dois grupos. */
 .edicao-acoes {
   display: none;
   grid-column: 1 / -1;
-  grid-template-columns: var(--alvo) var(--alvo) 1fr 1fr;
+  justify-content: space-between;
   gap: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--divisor);
 }
-.editando .edicao-acoes { display: grid; }
+.editando .edicao-acoes { display: flex; }
 .editando .exercicio > :not(.edicao-acoes) { pointer-events: none; opacity: 0.55; }
-.edicao-acoes button {
-  min-height: 36px;
-  padding-inline: 10px;
-  border: 0;
-  border-radius: var(--raio-interno-carta);
-  background: var(--superficie-alta);
-  color: var(--texto);
-  font-weight: 600;
-  font-size: 13px;
-  box-shadow: 0 0 0 1px var(--anel);
-}
-.edicao-acoes button:disabled { opacity: 0.35; cursor: default; }
+.edicao-acoes .icone:nth-child(2) { margin-inline-end: auto; }
+.edicao-acoes .icone:disabled { opacity: 0.35; cursor: default; }
 
 /* Parecidos: o que já existe com nome próximo do que está sendo digitado, para reaproveitar a
    máquina, o vídeo e a foto em vez de criar um "Adbução" ao lado de "Abdução". */

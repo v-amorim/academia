@@ -111,6 +111,12 @@
   </div>
   <label for="historico-busca" class="oculto-visual">Buscar por exercício ou grupo</label>
   <input id="historico-busca" type="search" placeholder="Puxada, costas, bíceps" autocomplete="off" enterkeyhint="search">
+  <!-- Duas vistas: o que está no treino, e o que saiu dele (tirado no editor ou de treino que não
+       existe mais). O peso levantado continua contando nas duas. -->
+  <div id="historico-vista" class="trilho-escolha" role="radiogroup" aria-label="O que mostrar">
+    <label><input type="radio" name="historico-vista" value="treino" class="oculto-visual" checked>No treino</label>
+    <label><input type="radio" name="historico-vista" value="fora" class="oculto-visual">Fora do treino</label>
+  </div>
   <div id="historico-lista"></div>
   <p id="historico-vazio" hidden></p>
 </dialog>
@@ -156,6 +162,15 @@
   <form method="dialog" class="acoes">
     <button type="submit" class="secundario" value="cancelar">Cancelar</button>
     <button type="submit" class="primario" value="apagar">Apagar foto</button>
+  </form>
+</dialog>
+
+<dialog id="dialogo-tirar" aria-labelledby="tirar-titulo">
+  <h2 id="tirar-titulo">Tirar do treino?</h2>
+  <p id="tirar-corpo"></p>
+  <form method="dialog" class="acoes">
+    <button type="submit" class="secundario" value="cancelar">Cancelar</button>
+    <button type="submit" class="primario" value="tirar">Tirar do treino</button>
   </form>
 </dialog>
 

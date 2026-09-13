@@ -15,6 +15,16 @@ const ICONE_SUBIU = traco(`<path d="M3 17 9.5 10.5 14 15 21 8"/><path d="M15 8h6
 const ICONE_DESCEU = traco(`<path d="M3 7 9.5 13.5 14 9 21 16"/><path d="M15 16h6v-6"/>`);
 const ICONE_MANTEVE = traco(`<path d="M5 9h14"/><path d="M5 15h14"/>`);
 
+// A fileira do modo de edição, no traço fino dos ícones da foto: subir, descer, editar, mudar de
+// treino e tirar. Tirar é arquivar, então é uma caixa e não uma lixeira.
+const fino = (miolo) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${miolo}</svg>`;
+const ICONE_SUBIR = fino(`<path d="m6 14 6-6 6 6"/>`);
+const ICONE_DESCER = fino(`<path d="m6 10 6 6 6-6"/>`);
+const ICONE_EDITAR = fino(`<path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z"/><path d="m13.5 6.5 4 4"/>`);
+const ICONE_MOVER = fino(`<path d="M13 5h5.5A1.5 1.5 0 0 1 20 6.5v11a1.5 1.5 0 0 1-1.5 1.5H13"/><path d="M3 12h11"/><path d="m10 8 4 4-4 4"/>`);
+const ICONE_ARQUIVAR = fino(`<path d="M3 5.5A1.5 1.5 0 0 1 4.5 4h15A1.5 1.5 0 0 1 21 5.5V8H3Z"/><path d="M4 8v10.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V8"/><path d="M12 11v6"/><path d="m9 14 3 3 3-3"/>`);
+
 // O dado guarda o valor cru, minúsculo e sem acento; a tela mostra a palavra como um nativo
 // escreve, com diacrítico completo e maiúscula inicial.
 const NOME_DO_GRUPO = {
@@ -769,24 +779,29 @@ function criarCartao(exercicio, posicao) {
 function acoesDeEdicao(exercicio) {
   const fileira = document.createElement("div");
   fileira.className = "edicao-acoes";
-  const botao = (texto, rotulo, agir) => {
+  // Ícone e nome acessível, sem texto à vista: cinco palavras lado a lado não cabiam em 390px, e
+  // o data-acao é o que a suíte lê.
+  const botao = (acao, icone, rotulo, agir) => {
     const elemento = document.createElement("button");
     elemento.type = "button";
-    elemento.textContent = texto;
+    elemento.className = "icone";
+    elemento.dataset.acao = acao;
+    elemento.innerHTML = icone;
     elemento.setAttribute("aria-label", `${rotulo}: ${exercicio.nome}`);
     elemento.onclick = agir;
     return elemento;
   };
-  const subir = botao("↑", "Subir", () => deslocarExercicio(exercicio, -1));
-  const descer = botao("↓", "Descer", () => deslocarExercicio(exercicio, 1));
+  const subir = botao("subir", ICONE_SUBIR, "Subir", () => deslocarExercicio(exercicio, -1));
+  const descer = botao("descer", ICONE_DESCER, "Descer", () => deslocarExercicio(exercicio, 1));
   const lista = exerciciosPorLetra.get(exercicio.letra) ?? [];
   subir.disabled = lista[0]?.id === exercicio.id;
   descer.disabled = lista[lista.length - 1]?.id === exercicio.id;
   fileira.append(
     subir,
     descer,
-    botao("Mover", "Mudar de treino", () => abrirEscolhaDeTreino(exercicio, "mover")),
-    botao("Tirar", "Tirar do treino", () => tirarExercicio(exercicio))
+    botao("editar", ICONE_EDITAR, "Editar", () => abrirEdicaoDeExercicio(exercicio)),
+    botao("mover", ICONE_MOVER, "Mudar de treino", () => abrirEscolhaDeTreino(exercicio, "mover")),
+    botao("tirar", ICONE_ARQUIVAR, "Tirar do treino", () => tirarExercicio(exercicio))
   );
   return fileira;
 }
@@ -1479,6 +1494,7 @@ const semAcento = (texto) => texto.normalize("NFD").replace(/\p{Diacritic}/gu, "
 async function abrirHistorico() {
   linhasDoHistorico = await Banco.historico(perfilAtivo);
   buscaDoHistorico.value = "";
+  document.querySelector('input[name="historico-vista"][value="treino"]').checked = true;
   desenharHistorico();
   painelDoHistorico.showModal();
   // Como no visor: o foco fica na folha, e não no primeiro botão, que ganharia um anel sem pedir.
@@ -1492,35 +1508,43 @@ function filtrarHistorico() {
     semAcento(exercicio.nome).includes(procurado) || semAcento(etiquetasDe(exercicio)).includes(procurado));
 }
 
+// Duas vistas, uma de cada vez: o que está no treino, agrupado por treino, e o que saiu dele.
+// Exercício que saiu continua contando, porque o peso foi levantado e apagar isso da tela seria o
+// histórico mentir. Ele só deixou de dividir a mesma lista com o de hoje, em 2026-09-13.
+const vistaDoHistorico = () => document.querySelector('input[name="historico-vista"]:checked').value;
+
 function desenharHistorico() {
   const linhas = filtrarHistorico();
   const blocos = [];
+  const fora = vistaDoHistorico() === "fora";
 
   const titulo = (palavra) => Object.assign(document.createElement("h3"), {
     className: "historico-treino",
     textContent: palavra
   });
 
-  // Um título por treino, na ordem em que os treinos existem. Sem o título, vinte e um exercícios
-  // seguidos viram uma parede, e achar o de hoje passa a exigir a busca de novo.
-  for (const letra of LETRAS) {
-    const doTreino = linhas.filter(({ exercicio }) => exercicio.letra === letra && !estaForaDoTreino(exercicio));
-    if (doTreino.length === 0) continue;
-    blocos.push(titulo(`${tituloDoTreino(letra)}`), ...doTreino.map(linhaDoHistorico));
-  }
-
-  // Exercício que saiu do treino continua contando: o peso foi levantado, e apagar isso da tela
-  // seria o histórico mentir sobre o que aconteceu.
-  const foraDoTreino = linhas.filter(({ exercicio }) => estaForaDoTreino(exercicio));
-  if (foraDoTreino.length > 0) {
-    blocos.push(titulo("Fora do treino"), ...foraDoTreino.map(linhaDoHistorico));
+  const visiveis = linhas.filter(({ exercicio }) => estaForaDoTreino(exercicio) === fora);
+  if (fora) {
+    blocos.push(...visiveis.map(linhaDoHistorico));
+  } else {
+    // Um título por treino, na ordem em que os treinos existem. Sem o título, vinte e um exercícios
+    // seguidos viram uma parede, e achar o de hoje passa a exigir a busca de novo.
+    for (const letra of LETRAS) {
+      const doTreino = visiveis.filter(({ exercicio }) => exercicio.letra === letra);
+      if (doTreino.length === 0) continue;
+      blocos.push(titulo(`${tituloDoTreino(letra)}`), ...doTreino.map(linhaDoHistorico));
+    }
   }
 
   listaDoHistorico.replaceChildren(...blocos);
   const procurado = buscaDoHistorico.value.trim();
-  vazioDoHistorico.hidden = linhas.length > 0;
-  vazioDoHistorico.textContent = linhas.length > 0 ? "" : `Nada encontrado para "${procurado}".`;
+  vazioDoHistorico.hidden = visiveis.length > 0;
+  vazioDoHistorico.textContent = visiveis.length > 0 ? ""
+    : procurado ? `Nada encontrado para "${procurado}".`
+      : fora ? "Nada saiu do treino até agora." : "Nada no treino ainda.";
 }
+
+document.getElementById("historico-vista").addEventListener("change", desenharHistorico);
 
 // Arquivado é o que a fase 4 faz no lugar de apagar. A letra fora da fileira cobre o outro
 // caminho: treino que deixou de existir leva os exercícios dele junto.
@@ -1755,11 +1779,25 @@ async function deslocarExercicio(exercicio, passo) {
   aviso.textContent = `${exercicio.nome} agora é o ${para + 1}º do treino.`;
 }
 
-async function tirarExercicio(exercicio) {
-  await Banco.arquivarExercicio(perfilAtivo, exercicio.id);
-  await carregarTreinos();
-  aviso.textContent = `${exercicio.nome} saiu do treino. Continua no histórico, e volta por lá.`;
+// Tirar pede confirmação, como apagar foto: é reversível pelo histórico, mas um toque no ícone
+// errado no meio da edição sumia com o exercício da lista sem aviso.
+const dialogoTirar = document.getElementById("dialogo-tirar");
+let alvoDoTirar = null;
+
+function tirarExercicio(exercicio) {
+  alvoDoTirar = exercicio;
+  document.getElementById("tirar-corpo").textContent =
+    `${exercicio.nome} sai da lista de hoje. Continua no histórico, e volta por lá.`;
+  dialogoTirar.returnValue = "";
+  dialogoTirar.showModal();
 }
+
+dialogoTirar.addEventListener("close", async () => {
+  if (dialogoTirar.returnValue !== "tirar") return;
+  await Banco.arquivarExercicio(perfilAtivo, alvoDoTirar.id);
+  await carregarTreinos();
+  aviso.textContent = `${alvoDoTirar.nome} saiu do treino. Continua no histórico, e volta por lá.`;
+});
 
 // O formulário do exercício novo. Os músculos vêm do mesmo mapa que a tela usa para escrever.
 const gruposDoNovo = document.getElementById("novo-grupos");
@@ -1857,14 +1895,33 @@ campoNovoNome.addEventListener("input", () => {
   parecidosDoNovo.hidden = parecidos.length === 0;
 });
 
+// O mesmo formulário cria e edita: com alvo, ele abre preenchido e salva por cima. Nome, aparelho
+// e vídeo de exercício existente eram o que faltava no editor.
+let alvoDaEdicao = null;
+const tituloDoNovo = document.getElementById("novo-exercicio-titulo");
+const confirmarNovo = dialogoNovoExercicio.querySelector('[value="criar"]');
+
 document.getElementById("edicao-exercicio").onclick = () => {
+  alvoDaEdicao = null;
   dialogoNovoExercicio.querySelector("form").reset();
   document.getElementById("novo-unidade").hidden = true;
   document.getElementById("novo-unidade-rotulo").hidden = true;
   parecidosDoNovo.hidden = true;
+  tituloDoNovo.textContent = "Novo exercício";
+  confirmarNovo.textContent = "Adicionar";
   dialogoNovoExercicio.returnValue = "";
   dialogoNovoExercicio.showModal();
 };
+
+function abrirEdicaoDeExercicio(exercicio) {
+  alvoDaEdicao = exercicio;
+  dialogoNovoExercicio.querySelector("form").reset();
+  preencherNovoCom(exercicio);
+  tituloDoNovo.textContent = "Editar exercício";
+  confirmarNovo.textContent = "Salvar";
+  dialogoNovoExercicio.returnValue = "";
+  dialogoNovoExercicio.showModal();
+}
 
 dialogoNovoExercicio.addEventListener("close", async () => {
   if (dialogoNovoExercicio.returnValue !== "criar") return;
@@ -1886,6 +1943,17 @@ dialogoNovoExercicio.addEventListener("close", async () => {
   if (tipo) dados.tipo = tipo;
   if (tipo === "tempo") dados.unidade = valor("novo-unidade") || "km/h";
   if (!dados.nome) return;
+  if (alvoDaEdicao) {
+    // Tipo que saiu (peso do corpo virou peso) precisa sumir do documento, e não só deixar de vir.
+    if (!tipo) dados.tipo = null;
+    if (tipo !== "tempo") dados.unidade = null;
+    // O formulário não tem equipamento; o que a ficha diz (halteres, cabo) fica como está.
+    delete dados.equipamento;
+    await Banco.editarExercicio(perfilAtivo, alvoDaEdicao.id, dados);
+    await carregarTreinos();
+    aviso.textContent = `${dados.nome} salvo.`;
+    return;
+  }
   const exercicio = await Banco.criarExercicio(perfilAtivo, letraAtiva, dados);
   await carregarTreinos();
   cartaoPorId.get(exercicio.id)?.item.scrollIntoView({ block: "nearest" });

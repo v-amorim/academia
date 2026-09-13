@@ -797,6 +797,15 @@ const Banco = (function () {
   const salvarObservacao = (perfil, exId, observacao) => salvarCampoDoExercicio(perfil, exId, "observacao", observacao);
   const salvarRepeticoes = (perfil, exId, reps) => salvarCampoDoExercicio(perfil, exId, "reps", reps);
 
+  // Edição pelo editor: vários campos de uma vez, por cima do que está, sem tocar em id, letra,
+  // ordem, observação nem arquivamento, que não são do formulário.
+  async function editarExercicio(perfil, exId, dados) {
+    if (semMotor(perfil)) return;
+    const anterior = await pegar(perfil, "exercicios", exId);
+    if (!anterior) return;
+    gravar(perfil, "exercicios", exId, { ...anterior, ...dados });
+  }
+
   // Safari lança ao tocar em localStorage numa origem opaca, e o Chrome não. Daí o try.
   function lerPreferencia(chave) {
     try {
@@ -825,7 +834,7 @@ const Banco = (function () {
     lerCiclo, iniciarCiclo, letrasConcluidas,
     lerCirculo, criarCirculo, entrarNoCirculo, sairDoCirculo, lerMembros,
     chaveDaFoto, lerFotos, salvarFoto, apagarFoto, migrarChavesDeFoto, sincronizarFotos,
-    salvarObservacao, salvarRepeticoes,
+    salvarObservacao, salvarRepeticoes, editarExercicio,
     lerPreferencia, gravarPreferencia
   };
 })();

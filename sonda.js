@@ -865,16 +865,21 @@ const Sonda = (function () {
 
     await abrirPeloMenu();
     await respira(400);
-    const fora = [...document.querySelectorAll(".historico-treino")]
-      .find((titulo) => titulo.textContent === "Fora do treino");
-    confere("o histórico separa o que saiu do treino", Boolean(fora));
-    if (!fora) return;
-
-    const arquivados = [...document.querySelectorAll(".historico-linha")]
-      .filter((linha) => linha.querySelector(".historico-acoes"));
-    confere("só o que saiu do treino tem o caminho de volta",
-      arquivados.length === (typeof ARQUIVADOS_EXEMPLO === "undefined" ? 0 : ARQUIVADOS_EXEMPLO.length),
-      arquivados.length);
+    // Duas vistas: o que saiu do treino não divide mais a lista com o de hoje, mora na segunda.
+    const linhasComVolta = () => [...document.querySelectorAll(".historico-linha")].filter((linha) => linha.querySelector(".historico-acoes"));
+    confere("o histórico abre na vista do treino, sem nada do que saiu",
+      document.querySelector('input[name="historico-vista"]:checked').value === "treino" && linhasComVolta().length === 0
+        && document.querySelectorAll(".historico-treino").length === NOMES.length,
+      `${linhasComVolta().length} / ${document.querySelectorAll(".historico-treino").length}`);
+    document.querySelector('input[name="historico-vista"][value="fora"]').click();
+    await respira(200);
+    const arquivados = linhasComVolta();
+    confere("a vista de fora do treino lista só o que saiu, sem título de treino",
+      arquivados.length === (typeof ARQUIVADOS_EXEMPLO === "undefined" ? 0 : ARQUIVADOS_EXEMPLO.length)
+        && arquivados.length === document.querySelectorAll(".historico-linha").length
+        && document.querySelectorAll(".historico-treino").length === 0,
+      `${arquivados.length} de ${document.querySelectorAll(".historico-linha").length}`);
+    if (arquivados.length === 0) return;
 
     confere("a linha de fora do treino afunda no fundo da página",
       getComputedStyle(arquivados[0]).backgroundColor === getComputedStyle(document.body).backgroundColor,
@@ -1152,7 +1157,7 @@ const Sonda = (function () {
     clicar("#menu-editar");
     await respira(200);
     confere("o menu liga o modo de edição", document.body.classList.contains("editando") && !document.getElementById("edicao").hidden);
-    confere("editando, cada cartão mostra as ações", getComputedStyle(cartoes()[0].querySelector(".edicao-acoes")).display === "grid");
+    confere("editando, cada cartão mostra as ações", getComputedStyle(cartoes()[0].querySelector(".edicao-acoes")).display === "flex");
     confere("editando, o seletor de perfis some", getComputedStyle(document.getElementById("perfis")).display === "none");
 
     // Renomear o treino ativo.
@@ -1186,7 +1191,7 @@ const Sonda = (function () {
     abaDe(PRIMEIRA).click();
     await aguardar(() => letraAtiva === PRIMEIRA, "voltar ao primeiro treino");
     const movido = cartoes()[0].querySelector(".nome").textContent;
-    acoesDo(cartoes()[0]).find((b) => b.textContent === "Mover").click();
+    acoesDo(cartoes()[0]).find((b) => b.dataset.acao === "mover").click();
     await respira(200);
     confere("mover abre a escolha de treino", document.getElementById("dialogo-reativar").open
       && document.getElementById("reativar-titulo").textContent === "Mudar de treino");
@@ -1205,11 +1210,45 @@ const Sonda = (function () {
     confere("descer troca a ordem", cartoes()[0].querySelector(".nome").textContent === segundoNome
       && cartoes()[1].querySelector(".nome").textContent === primeiroNome, cartoes().slice(0, 2).map((c) => c.querySelector(".nome").textContent).join(","));
 
+    // Editar o que já existe: o mesmo formulário do novo, preenchido, salvando por cima sem trocar
+    // o id nem o que o formulário não tem, como o equipamento.
+    const editado = (await Banco.listarExercicios(PRIMEIRA, "sun"))[0];
+    acoesDo(cartoes()[0]).find((b) => b.dataset.acao === "editar").click();
+    await respira(200);
+    const formularioNovo = document.getElementById("dialogo-novo-exercicio");
+    confere("editar abre o formulário preenchido com o exercício",
+      formularioNovo.open && document.getElementById("novo-exercicio-titulo").textContent === "Editar exercício"
+        && document.getElementById("novo-nome").value === editado.nome
+        && document.getElementById("novo-aparelho").value === String(editado.aparelho),
+      `${document.getElementById("novo-nome").value} / ${document.getElementById("novo-aparelho").value}`);
+    document.getElementById("novo-nome").value = `${editado.nome} editado`;
+    document.getElementById("novo-aparelho").value = "99";
+    formularioNovo.querySelector('[value="criar"]').click();
+    await respira(500);
+    const depoisDaEdicao = (await Banco.listarExercicios(PRIMEIRA, "sun")).find((e) => e.id === editado.id);
+    confere("salvar troca nome e aparelho no mesmo exercício",
+      depoisDaEdicao?.nome === `${editado.nome} editado` && depoisDaEdicao.aparelho === "99"
+        && cartoes()[0].querySelector(".nome").textContent === `${editado.nome} editado`,
+      JSON.stringify({ nome: depoisDaEdicao?.nome, aparelho: depoisDaEdicao?.aparelho }));
+    confere("editar não mexe no que o formulário não tem", depoisDaEdicao?.equipamento === editado.equipamento
+      && depoisDaEdicao.letra === editado.letra && depoisDaEdicao.ordem === editado.ordem);
+    confere("a lista continua do mesmo tamanho depois de editar", cartoes().length === DO_PRIMEIRO - 1, cartoes().length);
+
     // Tirar um exercício: sai da lista e fica no histórico.
     const tirado = cartoes()[0].querySelector(".nome").textContent;
-    acoesDo(cartoes()[0]).find((b) => b.textContent === "Tirar").click();
+    acoesDo(cartoes()[0]).find((b) => b.dataset.acao === "tirar").click();
+    await respira(200);
+    const confirmarTirar = document.getElementById("dialogo-tirar");
+    confere("tirar pede confirmação antes de mexer na lista", confirmarTirar.open && cartoes().length === DO_PRIMEIRO - 1, cartoes().length);
+    confirmarTirar.querySelector('[value="cancelar"]').click();
+    await respira(300);
+    confere("cancelar deixa o exercício onde estava", cartoes().length === DO_PRIMEIRO - 1
+      && cartoes()[0].querySelector(".nome").textContent === tirado, cartoes().length);
+    acoesDo(cartoes()[0]).find((b) => b.dataset.acao === "tirar").click();
+    await respira(200);
+    confirmarTirar.querySelector('[value="tirar"]').click();
     await respira(400);
-    confere("tirar reduz a lista", cartoes().length === DO_PRIMEIRO - 2, cartoes().length);
+    confere("confirmado, tirar reduz a lista", cartoes().length === DO_PRIMEIRO - 2, cartoes().length);
     confere("o tirado fica arquivado no histórico",
       (await Banco.historico("sun")).some((linha) => linha.exercicio.nome === tirado && linha.exercicio.arquivado));
 
