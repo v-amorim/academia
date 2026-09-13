@@ -1,6 +1,10 @@
 // Traço de 1.5px porque o ícone fica ao lado de texto de peso 400, e currentColor porque um SVG
 // só é recolorido por estado, nunca trocado por outro arquivo.
 const ICONE_CAMERA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2a1.5 1.5 0 0 0 1.2-.6l.9-1.2a1.5 1.5 0 0 1 1.2-.6h4a1.5 1.5 0 0 1 1.2.6l.9 1.2a1.5 1.5 0 0 0 1.2.6h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5Z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+// Os três irmãos da câmera, no mesmo traço: galeria, lixeira e ampliar. Vivem sobre a foto do visor.
+const ICONE_GALERIA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-4.5-4.5L8 19"/></svg>`;
+const ICONE_LIXEIRA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7M6 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h7.4a1.5 1.5 0 0 0 1.5-1.4L18 7M10 11v6M14 11v6"/></svg>`;
+const ICONE_AMPLIAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h5v5M9 20H4v-5M20 4l-6 6M4 20l6-6"/></svg>`;
 
 // Traço 2 porque o ícone tem 13px: a 1.5 a linha some ao lado do número em peso 700. Mesmo
 // vocabulário do ícone da câmera, currentColor e nada de arquivo por estado.
@@ -69,9 +73,6 @@ const visorQuadro = document.getElementById("visor-quadro");
 const observacao = document.getElementById("observacao");
 const repeticoes = document.getElementById("repeticoes");
 const repeticoesRotulo = document.getElementById("repeticoes-rotulo");
-const visorApagar = document.getElementById("visor-apagar");
-const visorGaleria = document.getElementById("visor-galeria");
-const visorCamera = document.getElementById("visor-camera");
 const dialogoApagar = document.getElementById("dialogo-apagar");
 const telaCheia = document.getElementById("tela-cheia");
 const telaCheiaTitulo = document.getElementById("tela-cheia-titulo");
@@ -644,13 +645,18 @@ function criarCartao(exercicio, posicao) {
   const meio = document.createElement("button");
   meio.type = "button";
   meio.className = "descricao";
-  // Toque curto abre o visor, o mesmo destino da foto. O toque longo é atalho para o reset, que
-  // também está no visor como botão, e é por ali que o teclado chega nele.
-  const segurouNome = ligarToqueLongo(meio, () => abrirResetExercicio(exercicio));
+  // Toque curto no corpo faz o mesmo que no contador: baixa uma série. Segurar abre o menu do
+  // exercício, e o evento de menu de contexto é o mesmo caminho para mouse e teclado. O visor
+  // abre só pela foto, desde 2026-09-13.
+  const segurouNome = ligarToqueLongo(meio, () => abrirMenuExercicio(exercicio));
   meio.onclick = () => {
     if (segurouNome()) return;
-    abrirVisor(exercicio);
+    contador.click();
   };
+  meio.addEventListener("contextmenu", (evento) => {
+    evento.preventDefault();
+    if (!menuExercicio.open) abrirMenuExercicio(exercicio);
+  });
   const nome = document.createElement("div");
   nome.className = "nome";
   nome.textContent = exercicio.nome;
@@ -666,7 +672,7 @@ function criarCartao(exercicio, posicao) {
   const juntos = compartilhados.get(exercicio.cod) ?? [];
   meio.setAttribute("aria-label", `${exercicio.nome}. ${etiquetasDe(exercicio)}.`
     + (juntos.length > 0 ? ` Também no treino de ${juntos.map((outro) => outro.nome).join(" e ")}.` : "")
-    + " Abrir detalhes e fotos.");
+    + " Tocar baixa uma série. Segurar, ou a tecla de menu, abre o menu do exercício.");
   if (juntos.length > 0) {
     const selo = document.createElement("span");
     selo.className = "junto";
@@ -690,15 +696,9 @@ function criarCartao(exercicio, posicao) {
   chip.className = "carga-valor";
 
   const campo = criarCampo(exercicio, "carga");
-  // Mesma gramática do contador: toque faz, segurar ajusta. No dedo o chip é pequeno demais para
-  // ser alvo, e tocar nele querendo baixar série abria o teclado. Pelo teclado o clique chega
-  // com detail 0, e aí o chip continua sendo o caminho para a carga.
-  const segurouChip = ligarToqueLongo(chip, () => abrirCampoDaCarga(exercicio, chip, campo));
-  chip.onclick = (evento) => {
-    if (segurouChip()) return;
-    if (evento.detail === 0) return abrirCampoDaCarga(exercicio, chip, campo);
-    contador.click();
-  };
+  // Tocar na carga abre o campo direto. Já foi "segurar abre, tocar baixa série", e ele pediu de
+  // volta o toque simples em 2026-09-13: quem toca no número quer mexer no número.
+  chip.onclick = () => abrirCampoDaCarga(exercicio, chip, campo);
   ligarCampoDaCarga(exercicio, chip, campo);
 
   bloco.append(contador);
@@ -828,7 +828,7 @@ function rotuloDaCarga(exercicio, carga, rumo) {
   const anterior = ultimaCarga(exercicio);
   const comparacao = rumo === 0 ? ""
     : ` ${comSinal(diferencaEntre(cargasDeHoje.get(exercicio.id), anterior.carga))} ${unidadeDe(exercicio)} desde ${emDia(anterior.data)}.`;
-  return `Carga de ${exercicio.nome}: ${emMedida(carga, unidadeDe(exercicio))}.${comparacao} Segurar para mudar.`;
+  return `Carga de ${exercicio.nome}: ${emMedida(carga, unidadeDe(exercicio))}.${comparacao} Tocar para mudar.`;
 }
 
 const texto = (conteudo) => document.createTextNode(conteudo);
@@ -1076,6 +1076,59 @@ dialogoExercicio.addEventListener("close", () => {
   definir(alvoExercicio, alvoExercicio.series);
 });
 
+// O menu do exercício: segurar no corpo do cartão. Ajuste fino de séries e de carga, um passo por
+// toque, e o reset. Aeróbico não tem série para ajustar, e peso do corpo não tem carga.
+const menuExercicio = document.getElementById("menu-exercicio");
+const ajusteSeries = document.getElementById("ajuste-series");
+const ajusteCarga = document.getElementById("ajuste-carga");
+const seriesValor = document.getElementById("series-valor");
+const cargaValorMenu = document.getElementById("carga-valor-menu");
+let alvoMenu = null;
+
+// Meio quilo é o menor degrau de anilha; nível e velocidade andam de um em um.
+const passoDaCarga = (exercicio) => (unidadeDe(exercicio) === "kg" ? 2.5 : 1);
+
+function desenharMenuExercicio() {
+  const exercicio = alvoMenu;
+  document.getElementById("menu-exercicio-titulo").textContent = exercicio.nome;
+  ajusteSeries.hidden = ehAerobico(exercicio);
+  ajusteCarga.hidden = semCarga(exercicio);
+  seriesValor.textContent = `${exercicio.series - faltam(exercicio)} de ${exercicio.series}`;
+  const carga = cargaDe(exercicio);
+  cargaValorMenu.textContent = carga === undefined ? "sem carga" : emMedida(carga, unidadeDe(exercicio));
+}
+
+function abrirMenuExercicio(exercicio) {
+  alvoMenu = exercicio;
+  desenharMenuExercicio();
+  menuExercicio.showModal();
+  menuExercicio.focus();
+}
+
+const mudarSeries = (passo) => {
+  definir(alvoMenu, Math.min(alvoMenu.series, Math.max(0, faltam(alvoMenu) - passo)));
+  desenharMenuExercicio();
+};
+document.getElementById("series-mais").onclick = () => mudarSeries(1);
+document.getElementById("series-menos").onclick = () => mudarSeries(-1);
+
+const mudarCarga = (sentido) => {
+  const atual = cargaDe(alvoMenu) ?? 0;
+  const nova = Math.max(0, Math.round((atual + sentido * passoDaCarga(alvoMenu)) * 100) / 100);
+  gravarDigitado(alvoMenu, "carga", nova);
+  cartaoPorId.get(alvoMenu.id)?.atualizar();
+  aviso.textContent = `${alvoMenu.nome}: ${emMedida(nova, unidadeDe(alvoMenu))}.`;
+  desenharMenuExercicio();
+};
+document.getElementById("carga-mais").onclick = () => mudarCarga(1);
+document.getElementById("carga-menos").onclick = () => mudarCarga(-1);
+
+document.getElementById("menu-exercicio-resetar").onclick = () => {
+  menuExercicio.close();
+  abrirResetExercicio(alvoMenu);
+};
+document.getElementById("menu-exercicio-fechar").onclick = () => menuExercicio.close();
+
 function abrirMenuTreino(letra) {
   alvoTreino = letra;
   document.getElementById("treino-titulo").textContent = `${tituloDoTreino(letra)}`;
@@ -1156,18 +1209,37 @@ function desenharVisor() {
   const exercicio = alvoVisor;
   const atual = fotoDa(exercicio, VAGA_DA_MAQUINA);
 
-  visorQuadro.innerHTML = atual
-    ? `<button type="button" class="ampliar" aria-label="Ampliar a foto"><img src="${atual}" alt=""></button>`
-    : `${ICONE_CAMERA}<span>Nenhuma foto ainda</span>`;
-  if (atual) visorQuadro.querySelector(".ampliar").onclick = () => abrirTelaCheia(exercicio, VAGA_DA_MAQUINA);
+  // A foto é o botão: tocar nela mostra as ações sobre a própria imagem, e o quadro vazio faz o
+  // mesmo. Botão de texto embaixo de tudo era o que enchia o visor.
+  visorQuadro.innerHTML = `<button type="button" class="quadro-toque" aria-expanded="false" aria-label="${atual ? "Ações da foto" : "Nenhuma foto ainda. Ações da foto"}">`
+    + (atual ? `<img src="${atual}" alt="">` : `${ICONE_CAMERA}<span>Nenhuma foto ainda</span>`)
+    + "</button>"
+    + `<div class="foto-acoes" hidden>`
+    + (atual ? `<button type="button" class="icone" data-acao="ampliar" aria-label="Ampliar a foto">${ICONE_AMPLIAR}</button>` : "")
+    + `<button type="button" class="icone" data-acao="camera" aria-label="Tirar foto">${ICONE_CAMERA}</button>`
+    + `<button type="button" class="icone" data-acao="galeria" aria-label="Escolher da galeria">${ICONE_GALERIA}</button>`
+    + (atual ? `<button type="button" class="icone" data-acao="apagar" aria-label="Apagar foto">${ICONE_LIXEIRA}</button>` : "")
+    + "</div>";
+
+  const toque = visorQuadro.querySelector(".quadro-toque");
+  const acoes = visorQuadro.querySelector(".foto-acoes");
+  toque.onclick = () => {
+    acoes.hidden = !acoes.hidden;
+    toque.setAttribute("aria-expanded", String(!acoes.hidden));
+  };
+  const porAcao = {
+    ampliar: () => abrirTelaCheia(exercicio, VAGA_DA_MAQUINA),
+    camera: () => escolherFoto(exercicio, VAGA_DA_MAQUINA, seletorDaCamera),
+    galeria: () => escolherFoto(exercicio, VAGA_DA_MAQUINA, seletorDaGaleria),
+    apagar: () => pedirParaApagarFoto(exercicio)
+  };
+  for (const botao of acoes.querySelectorAll(".icone")) botao.onclick = porAcao[botao.dataset.acao];
 
   const juntos = compartilhados.get(exercicio.cod) ?? [];
   visorCirculo.hidden = juntos.length === 0;
   visorCirculo.textContent = juntos
     .map((outro) => `${outro.nome} faz ${outro.tipo === "tempo" ? "por tempo" : `${outro.series} × ${outro.reps}`} no treino ${outro.treino}.`)
     .join(" ");
-
-  visorApagar.hidden = !atual;
 }
 
 const refrescarVisor = (exercicio) => {
@@ -1303,16 +1375,12 @@ zoom.addEventListener("wheel", (evento) => {
 }, { passive: false });
 
 document.getElementById("visor-fechar").onclick = () => visor.close();
-document.getElementById("visor-resetar").onclick = () => abrirResetExercicio(alvoVisor);
-visorGaleria.onclick = () => escolherFoto(alvoVisor, VAGA_DA_MAQUINA, seletorDaGaleria);
-visorCamera.onclick = () => escolherFoto(alvoVisor, VAGA_DA_MAQUINA, seletorDaCamera);
 
-visorApagar.onclick = () => {
-  document.getElementById("apagar-corpo").textContent =
-    `A foto de ${alvoVisor.nome} sai deste aparelho.`;
+function pedirParaApagarFoto(exercicio) {
+  document.getElementById("apagar-corpo").textContent = `A foto de ${exercicio.nome} sai deste aparelho.`;
   dialogoApagar.returnValue = "";
   dialogoApagar.showModal();
-};
+}
 
 dialogoApagar.addEventListener("close", () => {
   if (dialogoApagar.returnValue !== "apagar") return;

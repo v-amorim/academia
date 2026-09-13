@@ -65,12 +65,8 @@
   <input id="repeticoes" class="campo" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done">
   <label for="observacao" class="rotulo">Observação</label>
   <textarea id="observacao" rows="2" placeholder="Banco 4, pino 7" autocomplete="off" enterkeyhint="done"></textarea>
-  <div class="acoes">
-    <button type="button" class="secundario" id="visor-galeria">Da galeria</button>
-    <button type="button" class="primario" id="visor-camera">Tirar foto</button>
-  </div>
-  <button type="button" class="secundario largo" id="visor-apagar">Apagar foto</button>
-  <button type="button" class="secundario largo" id="visor-resetar">Resetar progresso</button>
+  <!-- As ações de foto moram sobre a própria foto, e aparecem ao tocar nela: ver desenharVisor.
+       Resetar saiu daqui para o menu do exercício, o de segurar no cartão. -->
   <button type="button" class="secundario largo" id="visor-fechar">Fechar</button>
   <!-- Dois seletores: com `capture` o Android abre a câmera direto e pula a galeria, e sem ele o
        seletor de fotos do Android 13 em diante não oferece câmera. Dentro do diálogo, senão ficam
@@ -159,6 +155,26 @@
     <button type="submit" class="secundario" value="cancelar">Cancelar</button>
     <button type="submit" class="primario" value="apagar">Apagar foto</button>
   </form>
+</dialog>
+
+<!-- O menu do exercício: segurar no corpo do cartão, ou a tecla de menu de contexto. Ajuste fino
+     de séries e carga, e o reset, que saiu do visor. -->
+<dialog id="menu-exercicio" aria-labelledby="menu-exercicio-titulo" tabindex="-1">
+  <h2 id="menu-exercicio-titulo"></h2>
+  <div class="ajuste" id="ajuste-series">
+    <span class="ajuste-rotulo">Séries feitas</span>
+    <button type="button" class="icone" id="series-menos" aria-label="Uma série a menos">−</button>
+    <b class="ajuste-valor" id="series-valor"></b>
+    <button type="button" class="icone" id="series-mais" aria-label="Uma série a mais">+</button>
+  </div>
+  <div class="ajuste" id="ajuste-carga">
+    <span class="ajuste-rotulo" id="carga-rotulo">Carga</span>
+    <button type="button" class="icone" id="carga-menos" aria-label="Menos carga">−</button>
+    <b class="ajuste-valor" id="carga-valor-menu"></b>
+    <button type="button" class="icone" id="carga-mais" aria-label="Mais carga">+</button>
+  </div>
+  <button type="button" class="secundario largo" id="menu-exercicio-resetar">Resetar progresso</button>
+  <button type="button" class="secundario largo" id="menu-exercicio-fechar">Fechar</button>
 </dialog>
 
 <dialog id="dialogo-exercicio" aria-labelledby="exercicio-titulo">

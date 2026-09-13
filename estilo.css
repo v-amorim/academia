@@ -221,6 +221,10 @@ main {
 .painel {
   flex: none;
   inline-size: 100%;
+  /* Altura explícita, e não só o stretch do flex: no Android o painel às vezes nascia mais alto que
+     o carrossel, rolava até o próprio fim atrás do rodapé, e só um relayout (abrir um diálogo) o
+     encaixava. Relatado em 2026-09-13. */
+  block-size: 100%;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   scroll-snap-align: start;
@@ -366,6 +370,12 @@ footer {
 #ciclo .primario { width: 100%; }
 
 .lista { list-style: none; margin: 0; padding: 8px 16px 16px; display: grid; gap: 12px; }
+/* Em tela larga a lista vira grade: um cartão de 390px esticado a 1400px era uma linha de vazio.
+   Colunas quantas couberem, e cada uma perto da largura do celular, que é onde o cartão foi
+   desenhado. */
+@media (min-width: 720px) {
+  .lista { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); align-content: start; padding-inline: 24px; }
+}
 
 /* Anel translúcido no lugar de borda: sobre fundo escuro a borda sólida virava moldura e o
    cartão lia como wireframe. O contador e a foto ficam tonais, sem moldura própria, para o
@@ -587,8 +597,13 @@ footer {
   background: none;
   text-align: start;
 }
+/* Com mouse, o cartão inteiro acende, e não só a faixa do nome: o alvo do toque é o cartão, e
+   uma caixa clara só no meio lia como campo de texto. O feito não acende, porque recuou. */
 @media (hover: hover) {
-  .descricao:hover { background: var(--superficie-alta); }
+  .exercicio:not(.feito):hover {
+    background: color-mix(in oklab, var(--superficie-alta) 45%, var(--superficie));
+    box-shadow: 0 0 0 1px var(--anel-forte);
+  }
 }
 
 .nome {
@@ -653,6 +668,21 @@ dialog p { margin: 0 0 16px; color: var(--texto-secundario); font-size: 15px; }
 .acoes:has(> [hidden]) > :not([hidden]) { grid-column: 1 / -1; }
 .acoes-empilhadas { display: grid; gap: 10px; }
 .largo { width: 100%; margin-top: 10px; }
+
+/* Linha de ajuste do menu do exercício: rótulo à esquerda, e o valor entre menos e mais, os três
+   com o alvo mínimo. O mesmo ícone redondo das ações da foto. */
+.ajuste {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--alvo);
+  margin-bottom: 10px;
+}
+.ajuste[hidden] { display: none; }
+.ajuste-rotulo { color: var(--texto-secundario); font-size: 14px; font-weight: 600; }
+.ajuste-valor { min-width: 72px; text-align: center; font-variant-numeric: tabular-nums; font-size: 15px; }
+.ajuste .icone { font-size: 22px; font-weight: 600; line-height: 1; }
 
 /* A fita nasce dentro do contador e o cobre, transbordando para cima e para baixo: o ajuste
    acontece onde o dedo está, e não numa caixa no meio da tela. */
@@ -774,8 +804,50 @@ dialog p { margin: 0 0 16px; color: var(--texto-secundario); font-size: 15px; }
    caixa larga ela ficava boiando com moldura em volta. A caixa é só o estado vazio. */
 #visor-quadro:has(img) { background: none; }
 #visor-quadro img { display: block; max-width: 100%; max-height: 36vh; border-radius: var(--raio-interno-painel); }
-/* A foto grande é botão: toque abre em tela cheia. O botão some atrás da imagem. */
-.ampliar { display: block; padding: 0; border: 0; border-radius: var(--raio-interno-painel); background: none; cursor: zoom-in; }
+/* A foto, ou o quadro vazio, é o botão que mostra as ações. Ele some atrás do que contém: sem
+   caixa própria, o quadro continua sendo só a imagem ou o estado vazio. */
+#visor-quadro { position: relative; }
+.quadro-toque {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 160px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--raio-interno-painel);
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+/* As ações flutuam sobre o pé da foto, uma fileira de ícones redondos com o alvo mínimo. */
+.foto-acoes {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.foto-acoes[hidden] { display: none; }
+/* Sem foto não há imagem para flutuar por cima: a fileira desce para baixo do aviso. */
+#visor-quadro:not(:has(img)) .foto-acoes { position: static; padding-bottom: 12px; }
+/* O diálogo recebe o foco ao abrir só para o teclado não pular para um campo; o anel nele não
+   diz nada, porque o diálogo inteiro não é um controle. */
+dialog:focus-visible { outline: none; }
+.icone {
+  display: grid;
+  place-items: center;
+  width: var(--alvo);
+  height: var(--alvo);
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--superficie-alta);
+  box-shadow: 0 0 0 1px var(--anel-forte);
+  color: var(--texto);
+}
+.icone svg { width: 22px; height: 22px; }
 
 /* O histórico é lista longa, então ocupa a tela quase inteira e rola por dentro, em vez de
    crescer até estourar. Largura maior que a dos outros diálogos: aqui cabem nome, carga e data
@@ -987,7 +1059,7 @@ summary.historico-resumo { cursor: pointer; }
 }
 .tela-cheia-barra > * { pointer-events: auto; }
 .tela-cheia-barra p { margin: 0; min-width: 0; font-size: 14px; font-weight: 600; color: var(--texto); text-wrap: balance; }
-#visor-quadro svg { width: 32px; height: 32px; }
+#visor-quadro .quadro-toque svg { width: 32px; height: 32px; }
 
 .rotulo { display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600; color: var(--texto-secundario); }
 /* 16px no campo, senão o Safari do iPhone dá zoom na página inteira ao focar. */

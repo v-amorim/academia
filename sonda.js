@@ -224,7 +224,7 @@ const Sonda = (function () {
     const nomeDoAlvo = alvoReps.querySelector(".nome").textContent;
     const repsNoBanco = async () => (await Banco.listarExercicios(PRIMEIRA, "sun")).find((exercicio) => exercicio.nome === nomeDoAlvo).reps;
     const repsDaFicha = CATALOGO[PRIMEIRA].find((exercicio) => exercicio.nome === nomeDoAlvo).reps;
-    alvoReps.querySelector(".descricao").click();
+    alvoReps.querySelector(".foto").click();
     await respira();
     const campoReps = document.getElementById("repeticoes");
     confere("o visor mostra as repetições do exercício", campoReps.value === String(repsDaFicha), campoReps.value);
@@ -423,30 +423,90 @@ const Sonda = (function () {
     confere("tocar fora fecha o menu do treino", !menu().open);
     confere("fechar o menu não encerra nem reseta", !abaDe(PRIMEIRA).classList.contains("feita"));
 
+    // Desde 2026-09-13 o corpo do cartão baixa série, como o contador, e o visor abre só pela foto.
+    // O cartão chega aqui feito pelos testes de cima: uma seta sobe uma série para haver o que baixar.
+    if (!contadores()[0].includes("×")) {
+      cartoes()[0].querySelector(".contador").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+      await respira();
+    }
+    const antesDoToque = contadores()[0];
     cartoes()[0].querySelector(".descricao").click();
     await respira();
+    confere("o meio do cartão baixa uma série", contadores()[0] !== antesDoToque && !document.getElementById("visor").open, contadores()[0]);
+    cartoes()[0].querySelector(".foto").click();
+    await respira();
     const detalhes = document.getElementById("visor");
-    confere("o meio do cartão abre o visor", detalhes.open);
+    confere("a foto abre o visor", detalhes.open);
     confere("o aparelho aparece no visor e não no cartão",
       document.getElementById("visor-meta").textContent.includes(`Aparelho ${CATALOGO[PRIMEIRA][0].aparelho}`)
         && !cartoes()[0].querySelector(".descricao").textContent.includes(String(CATALOGO[PRIMEIRA][0].aparelho)));
-    document.getElementById("visor-resetar").click();
+
+    // As ações de foto moram sobre a foto e só aparecem ao tocar nela: o visor sem foto tem só o
+    // fechar como botão de texto.
+    const acoesDaFoto = () => detalhes.querySelector(".foto-acoes");
+    confere("as ações da foto nascem escondidas", acoesDaFoto().hidden && getComputedStyle(acoesDaFoto()).display === "none");
+    confere("só o fechar sobra como botão de texto no visor", [...detalhes.querySelectorAll("button.secundario, button.primario")].map((b) => b.textContent).join() === "Fechar");
+    detalhes.querySelector(".quadro-toque").click();
     await respira();
-    const dialogo = document.getElementById("dialogo-exercicio");
-    confere("o reset tem caminho sem toque longo, pelo visor", dialogo.open);
-    dialogo.querySelector('[value="resetar"]').click();
-    await respira(250);
-    confere("resetar pelo visor volta ao total", contadores()[0] === primeiroCheio(), contadores()[0]);
+    confere("tocar no quadro mostra câmera e galeria, e sem foto nem ampliar nem apagar",
+      !acoesDaFoto().hidden && [...acoesDaFoto().querySelectorAll(".icone")].map((b) => b.dataset.acao).join() === "camera,galeria",
+      [...acoesDaFoto().querySelectorAll(".icone")].map((b) => b.dataset.acao).join());
+    confere("cada ícone tem nome para o leitor de tela", [...acoesDaFoto().querySelectorAll(".icone")].every((b) => b.getAttribute("aria-label")));
+    detalhes.querySelector(".quadro-toque").click();
+    await respira();
+    confere("tocar de novo esconde as ações", acoesDaFoto().hidden);
+
     detalhes.close();
     await respira();
+
+    // O menu do exercício: segurar no corpo, ou o evento de menu de contexto, que é o caminho do
+    // mouse e do teclado. Ajusta séries e carga um passo por toque, e é onde o reset mora agora.
+    const menuDoExercicio = document.getElementById("menu-exercicio");
+    // Uma série de folga, para o "mais" do menu ter para onde ir.
+    cartoes()[0].querySelector(".contador").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+    await respira();
+    cartoes()[0].querySelector(".descricao").dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+    await respira();
+    confere("o menu de contexto abre o menu do exercício", menuDoExercicio.open);
+    const feitas = () => document.getElementById("series-valor").textContent;
+    const cargaNoMenu = () => document.getElementById("carga-valor-menu").textContent;
+    const total = CATALOGO[PRIMEIRA][0].series;
+    const feitasNoCartao = () => (contadores()[0].includes("×") ? total - Number(contadores()[0].split("×")[0]) : total);
+    const feitasAntes = feitasNoCartao();
+    confere("o menu diz quantas séries foram feitas", feitas() === `${feitasAntes} de ${total}`, `${feitas()} / ${contadores()[0]}`);
+    document.getElementById("series-mais").click();
+    await respira();
+    confere("mais uma série no menu baixa o contador", feitas() === `${feitasAntes + 1} de ${total}` && feitasNoCartao() === feitasAntes + 1, `${feitas()} ${contadores()[0]}`);
+    document.getElementById("series-menos").click();
+    await respira();
+    confere("uma série a menos volta o contador", feitas() === `${feitasAntes} de ${total}` && feitasNoCartao() === feitasAntes, feitas());
+    const cargaAntes = cargaNoMenu();
+    document.getElementById("carga-mais").click();
+    await respira();
+    confere("mais carga anda meio degrau de anilha e grava no chip", cargaNoMenu() !== cargaAntes
+      && cartoes()[0].querySelector(".carga-valor").textContent.replace(/\s/g, "") === cargaNoMenu().replace(/\s/g, ""), `${cargaAntes} -> ${cargaNoMenu()} / ${cartoes()[0].querySelector(".carga-valor").textContent}`);
+    document.getElementById("carga-menos").click();
+    await respira();
+    // Sem carga nenhuma, o passo de volta para no zero, e não em "sem carga": zero é um número gravado.
+    confere("menos carga desfaz o passo", cargaNoMenu() === (cargaAntes === "sem carga" ? "0 kg" : cargaAntes), cargaNoMenu());
+
+    document.getElementById("menu-exercicio-resetar").click();
+    await respira();
+    const dialogo = document.getElementById("dialogo-exercicio");
+    confere("o reset tem caminho sem toque longo, pelo menu do exercício", dialogo.open && !menuDoExercicio.open);
+    dialogo.querySelector('[value="resetar"]').click();
+    await respira(250);
+    confere("resetar pelo menu volta ao total", contadores()[0] === primeiroCheio(), contadores()[0]);
 
     const meio = cartoes()[0].querySelector(".descricao");
     meio.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     await respira(600);
     meio.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+    meio.click();
     await respira(250);
-    confere("o toque longo no meio é atalho para o reset", dialogo.open && !detalhes.open);
-    dialogo.close();
+    confere("o toque longo no meio abre o menu do exercício, e o clique que vem junto não baixa série",
+      menuDoExercicio.open && !detalhes.open && contadores()[0] === primeiroCheio(), contadores()[0]);
+    menuDoExercicio.close();
     await respira();
 
     // Nome acessível vem do aria-label, do texto, ou do label que envolve o controle.
@@ -526,18 +586,12 @@ const Sonda = (function () {
     confere("baixar uma série grava a carga herdada", (await noBanco(0)) === 45, await noBanco(0));
     confere("exercício intocado segue sem carga no banco", (await noBanco(1)) === undefined, await noBanco(1));
 
-    // Toque de dedo no chip é o mesmo que no contador: baixa uma série e não abre teclado nenhum.
-    // O clique sintético do `.click()` chega com detail 0, que é o do teclado, e esse abre o campo.
+    // Tocar no chip abre o campo direto, sem segurar, e não mexe na série. Pedido de 2026-09-13,
+    // depois de uma temporada em que tocar baixava série e só segurar abria o campo.
     const antesDoToque = contadores()[0];
     chipDe(0).dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
     await respira();
-    confere("tocar no chip baixa uma série, como no contador", contadores()[0] !== antesDoToque && campoDe(0).hidden, contadores()[0]);
-    chipDe(0).dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 10, clientY: 10, pointerId: 1 }));
-    await respira(ESPERA_TOQUE_LONGO + 100);
-    chipDe(0).dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientX: 10, clientY: 10, pointerId: 1 }));
-    chipDe(0).dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
-    await respira();
-    confere("segurar o chip abre o campo", !campoDe(0).hidden && document.activeElement === campoDe(0));
+    confere("tocar no chip abre o campo da carga sem baixar série", !campoDe(0).hidden && document.activeElement === campoDe(0) && contadores()[0] === antesDoToque, contadores()[0]);
     campoDe(0).dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
     await respira();
     chipDe(0).click();
@@ -1253,7 +1307,7 @@ const Sonda = (function () {
     confere("o selo é só desenho, o leitor de tela ouve o nome", cartaoDe(emComum)?.querySelector(".descricao").getAttribute("aria-label").includes("Também no treino de Shine"));
 
     caixa.close();
-    cartaoDe(emComum).querySelector(".descricao").click();
+    cartaoDe(emComum).querySelector(".foto").click();
     await respira(300);
     const daShineNoVisor = Object.values(TREINOS_SHINE).flat().find((e) => e.cod === 59);
     confere("o visor diz quem mais faz e com quantas séries", document.getElementById("visor").open
@@ -1261,7 +1315,7 @@ const Sonda = (function () {
       && document.getElementById("visor-circulo").textContent.startsWith(`Shine faz ${daShineNoVisor.series} × ${daShineNoVisor.reps} no treino `),
       document.getElementById("visor-circulo").textContent);
     document.getElementById("visor").close();
-    cartaoDe(soDoSun).querySelector(".descricao").click();
+    cartaoDe(soDoSun).querySelector(".foto").click();
     await respira(300);
     confere("sem ninguém em comum a linha do círculo some do visor", document.getElementById("visor-circulo").hidden);
     document.getElementById("visor").close();
