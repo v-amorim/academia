@@ -963,6 +963,17 @@ const Store = (function () {
     const previous = await get(profile, "exercises", exerciseId);
     if (!previous) return;
     put(profile, "exercises", exerciseId, { ...previous, ...fields });
+    if ("perSide" in fields && Boolean(fields.perSide) !== Boolean(previous.perSide)) {
+      await rescaleLoads(profile, exerciseId, fields.perSide ? 0.5 : 2);
+    }
+  }
+
+  // Rewrites the past in the new scale, or the trend shows a fake drop to half on the switch day.
+  async function rescaleLoads(profile, exerciseId, factor) {
+    for (const [key, record] of await list(profile, "records", ofProfile(profile))) {
+      if (record?.exerciseId !== exerciseId || record.load == null) continue;
+      put(profile, "records", key, { ...record, load: Math.round(record.load * factor * 100) / 100 });
+    }
   }
 
   // Fills a field the stored exercise does not have yet, and only that case: the seed does not

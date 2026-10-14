@@ -155,8 +155,12 @@ for (const radio of newExerciseDialog.querySelectorAll('input[name="new-kind"]')
     const cardio = newKind() === "time";
     document.getElementById("new-unit").hidden = !cardio;
     document.getElementById("new-unit-label").hidden = !cardio;
+    const weight = newKind() === "";
+    document.getElementById("new-side").hidden = !weight;
+    document.getElementById("new-side-label").hidden = !weight;
   };
 }
+const newPerSide = () => newKind() === "" && newExerciseDialog.querySelector('input[name="new-side"]:checked').value === "per-side";
 
 // While the name is typed, whatever already exists with a similar name shows below, and a tap
 // fills the form with it: same machine, same video, and therefore the same photo. Without this an
@@ -213,6 +217,7 @@ function fillNewWith(exercise) {
   kind.checked = true;
   kind.dispatchEvent(new Event("change"));
   document.getElementById("new-unit").value = exercise.unit ?? "";
+  newExerciseDialog.querySelector(`input[name="new-side"][value="${exercise.perSide ? "per-side" : ""}"]`).checked = true;
   for (const box of newMuscles.querySelectorAll("input")) box.checked = (exercise.muscles ?? []).includes(box.value);
   const accessory = newAccessory.querySelector(`input[value="${exercise.accessory ?? ""}"]`) ?? newAccessory.querySelector('input[value=""]');
   accessory.checked = true;
@@ -245,6 +250,8 @@ document.getElementById("editing-exercise").onclick = () => {
   newExerciseDialog.querySelector("form").reset();
   document.getElementById("new-unit").hidden = true;
   document.getElementById("new-unit-label").hidden = true;
+  document.getElementById("new-side").hidden = false;
+  document.getElementById("new-side-label").hidden = false;
   newSimilarList.hidden = true;
   newTitle.textContent = "Novo exercício";
   confirmNew.textContent = "Adicionar";
@@ -282,11 +289,13 @@ newExerciseDialog.addEventListener("close", async () => {
   };
   if (kind) data.kind = kind;
   if (kind === "time") data.unit = value("new-unit") || "km/h";
+  if (newPerSide()) data.perSide = true;
   if (!data.name) return;
   if (editTarget) {
     // A kind that left (bodyweight became weight) has to vanish from the document, not just stop coming.
     if (!kind) data.kind = null;
     if (kind !== "time") data.unit = null;
+    if (!newPerSide()) data.perSide = null;
     // The form has no equipment; what the plan says (dumbbells, cable) stays as is.
     delete data.equipment;
     await Store.editExercise(activeProfile, editTarget.id, data);

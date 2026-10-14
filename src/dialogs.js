@@ -31,7 +31,7 @@ function renderExerciseMenu() {
   setsValue.replaceChildren(text(String(exercise.sets - setsLeft(exercise))),
     Object.assign(document.createElement("span"), { className: "adjustment-of", textContent: ` de ${exercise.sets}` }));
   const load = loadOf(exercise);
-  menuLoadValue.replaceChildren(load === undefined ? text("sem carga") : withUnit(load, unitOf(exercise)));
+  menuLoadValue.replaceChildren(load === undefined ? text("sem carga") : withUnit(load, loadUnitOf(exercise)));
 }
 
 function openExerciseMenu(exercise) {

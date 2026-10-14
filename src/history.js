@@ -94,7 +94,7 @@ function historyRow({ exercise: exercise, loads: loads }) {
   const muscles = Object.assign(document.createElement("span"), { className: "history-muscles", textContent: labelsOf(exercise) });
   const now = document.createElement("span");
   now.className = series.length > 0 ? "history-now" : "history-now history-none";
-  if (series.length > 0) now.append(withUnit(series[0].value, unit));
+  if (series.length > 0) now.append(withUnit(series[0].value, isCardio(exercise) ? unit : loadUnitOf(exercise)));
   // Push-ups never had a load, and saying "sem carga" on them sounds like something is missing. What
   // is missing and what does not apply are different things, and the history may not confuse them.
   else if (isBodyweight(exercise)) now.textContent = "peso do corpo";

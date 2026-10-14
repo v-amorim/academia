@@ -31,6 +31,9 @@ const minutesOf = (exercise) => todayMinutes.get(exercise.id) ?? lastOf(exercise
 const unitOf = (exercise) => exercise.unit ?? "kg";
 const isCardio = (exercise) => exercise.kind === "time";
 const isBodyweight = (exercise) => exercise.kind === "bodyweight";
+// A per-side load stores one side; the /l keeps it from being read as the total.
+const loadUnitOf = (exercise) => (exercise.perSide ? `${unitOf(exercise)}/l` : unitOf(exercise));
+const spokenLoadUnitOf = (exercise) => (exercise.perSide ? `${unitOf(exercise)} por lado` : unitOf(exercise));
 
 // Comma, as spoken. No decimal when the number is round, because a 14 dumbbell is 14.
 const formatNumber = (value) => String(Math.round(value * 100) / 100).replace(".", ",");

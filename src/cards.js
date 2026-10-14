@@ -238,14 +238,22 @@ function createCard(exercise, position) {
       chip.innerHTML = direction === 0 ? "" : direction > 0 ? ICON_UP : ICON_DOWN;
       chip.classList.toggle("load-gain", direction > 0);
       chip.classList.toggle("load-drop", direction < 0);
-      chip.append(load === undefined ? withText("+", unit) : withUnit(load, unit));
+      chip.append(load === undefined ? withText("+", unit) : withUnit(load, loadUnitOf(exercise)));
       chip.setAttribute("aria-label", loadLabel(exercise, load, direction));
+      if (item.isConnected) fitBoxes(item.parentElement);
     }
   };
 
   card.update();
   item.append(block, middle, photo, editActions(exercise));
   return card;
+}
+
+// Every box in a list takes the widest chip's width, so the names stay lined up when one load grows.
+function fitBoxes(list) {
+  list.style.removeProperty("--box");
+  const widest = Math.max(68, ...[...list.querySelectorAll(".load-value")].map((chip) => chip.offsetWidth));
+  if (widest > 68) list.style.setProperty("--box", `${widest}px`);
 }
 
 // The edit-mode toolbar, present on every card and visible only while editing: up, down, change
@@ -317,7 +325,7 @@ function loadLabel(exercise, load, direction) {
   const previous = lastLoad(exercise);
   const comparison = direction === 0 ? ""
     : ` ${withSign(differenceBetween(todayLoads.get(exercise.id), previous.load))} ${unitOf(exercise)} desde ${asDayMonth(previous.date)}.`;
-  return `Carga de ${exercise.name}: ${asMeasure(load, unitOf(exercise))}.${comparison} Tocar para mudar.`;
+  return `Carga de ${exercise.name}: ${asMeasure(load, spokenLoadUnitOf(exercise))}.${comparison} Tocar para mudar.`;
 }
 
 const text = (content) => document.createTextNode(content);
@@ -330,7 +338,7 @@ const TYPED = {
     show: loadOf,
     keep: (exercise, value) => todayLoads.set(exercise.id, value),
     forget: (exercise) => todayLoads.delete(exercise.id),
-    unit: unitOf,
+    unit: spokenLoadUnitOf,
     onDelete: (exercise) => `Carga de ${exercise.name} apagada.`
   },
   minutes: {

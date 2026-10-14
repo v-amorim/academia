@@ -424,8 +424,9 @@ footer {
 .exercise {
   position: relative;
   display: grid;
-  /* Both ends have the same width, and 68px is what fits "52,5 kg" without touching. */
-  grid-template-columns: 68px 1fr 68px;
+  /* Both ends have the same width, and 68px is what fits "52,5 kg" without touching. A wider load
+     widens the box column of the whole list through --box (fitBoxes in cards.js). */
+  grid-template-columns: var(--box, 68px) 1fr 68px;
   gap: 12px;
   align-items: center;
   padding: 8px;
@@ -1053,6 +1054,7 @@ summary.history-summary { cursor: pointer; }
   border-radius: var(--radius-track);
   background: var(--surface-raised);
 }
+.choice-track[hidden] { display: none; }
 .choice-track label {
   display: grid;
   place-items: center;

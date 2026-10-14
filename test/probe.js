@@ -1443,6 +1443,25 @@ const Probe = (function () {
       && afterEditing.workout === edited.workout && afterEditing.order === edited.order);
     check("a lista continua do mesmo tamanho depois de editar", cards().length === IN_FIRST - 1, cards().length);
 
+    // Per side: the switch halves what was stored as total, and switching back doubles it again.
+    await Store.saveValue("sun", FIRST, edited.id, "load", 45);
+    const storedLoad = async () => (await Store.readTodaySession("sun", FIRST)).records.get(edited.id)?.load;
+    const flipSide = async (side) => {
+      actionsOf(cards()[0]).find((b) => b.dataset.action === "edit").click();
+      await pause(200);
+      document.querySelector(`#new-side input[value="${side}"]`).click();
+      newForm.querySelector('[value="create"]').click();
+      await pause(500);
+    };
+    await flipSide("per-side");
+    const chipText = cards()[0].querySelector(".load-value").textContent.replace(/\s/g, "");
+    check("por lado divide a carga gravada e o chip mostra kg/l",
+      (await storedLoad()) === 22.5 && chipText === "22,5kg/l", `${await storedLoad()} / ${chipText}`);
+    check("o rótulo falado diz por lado", cards()[0].querySelector(".load-value").getAttribute("aria-label").includes("kg por lado"));
+    await flipSide("");
+    check("voltar para total dobra de novo e some o /l",
+      (await storedLoad()) === 45 && !cards()[0].querySelector(".load-value").textContent.includes("/l"), String(await storedLoad()));
+
     // The attachment: chosen in the same form, becomes an icon on the card and a named chip in the viewer.
     actionsOf(cards()[0]).find((b) => b.dataset.action === "edit").click();
     await pause(200);

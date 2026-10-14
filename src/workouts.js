@@ -138,6 +138,7 @@ function buildPanels() {
     return panel;
   }));
 
+  carousel.querySelectorAll(".list").forEach(fitBoxes);
   goTo(activeWorkoutId, false);
   rearmPanels();
 }
