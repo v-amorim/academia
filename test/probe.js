@@ -1444,7 +1444,7 @@ const Probe = (function () {
     check("a lista continua do mesmo tamanho depois de editar", cards().length === IN_FIRST - 1, cards().length);
 
     // Per side: the switch halves what was stored as total, and switching back doubles it again.
-    await Store.saveValue("sun", FIRST, edited.id, "load", 45);
+    await Store.saveValue("sun", FIRST, edited.id, "load", 2245);
     const storedLoad = async () => (await Store.readTodaySession("sun", FIRST)).records.get(edited.id)?.load;
     const flipSide = async (side) => {
       actionsOf(cards()[0]).find((b) => b.dataset.action === "edit").click();
@@ -1456,11 +1456,24 @@ const Probe = (function () {
     await flipSide("per-side");
     const chipText = cards()[0].querySelector(".load-value").textContent.replace(/\s/g, "");
     check("por lado divide a carga gravada e o chip mostra kg/l",
-      (await storedLoad()) === 22.5 && chipText === "22,5kg/l", `${await storedLoad()} / ${chipText}`);
+      (await storedLoad()) === 1122.5 && chipText === "1122,5kg/l", `${await storedLoad()} / ${chipText}`);
     check("o rótulo falado diz por lado", cards()[0].querySelector(".load-value").getAttribute("aria-label").includes("kg por lado"));
+    // A chip wider than 68px widens the box of every card in the list, so the names stay in one column.
+    const boxWidths = () => cards().map((card) => card.querySelector(".block").offsetWidth);
+    const nameEdges = () => cards().map((card) => Math.round(card.querySelector(".name").getBoundingClientRect().left - card.getBoundingClientRect().left));
+    const widestChip = Math.max(...cards().map((card) => card.querySelector(".load-value")?.offsetWidth ?? 0));
+    check("o chip por lado passa dos 68px, senão o alinhamento abaixo não prova nada", widestChip > 68, String(widestChip));
+    check("com um chip largo, todas as caixas da lista crescem juntas",
+      boxWidths().every((width) => width === widestChip), `${widestChip} / ${boxWidths().join(",")}`);
+    check("e os nomes continuam na mesma coluna", new Set(nameEdges()).size === 1, nameEdges().join(","));
+    // Typing a smaller load updates the card in place, without a new list: the box has to shrink back.
+    todayLoads.set(edited.id, 10);
+    refresh();
+    check("uma carga menor no mesmo cartão devolve as caixas aos 68px", boxWidths().every((width) => width === 68), boxWidths().join(","));
     await flipSide("");
     check("voltar para total dobra de novo e some o /l",
-      (await storedLoad()) === 45 && !cards()[0].querySelector(".load-value").textContent.includes("/l"), String(await storedLoad()));
+      (await storedLoad()) === 2245 && !cards()[0].querySelector(".load-value").textContent.includes("/l"), String(await storedLoad()));
+    check("sem chip largo, as caixas voltam aos 68px", boxWidths().every((width) => width === 68), boxWidths().join(","));
 
     // The attachment: chosen in the same form, becomes an icon on the card and a named chip in the viewer.
     actionsOf(cards()[0]).find((b) => b.dataset.action === "edit").click();
